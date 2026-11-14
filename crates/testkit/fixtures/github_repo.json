@@ -1,0 +1,16 @@
+{
+ "id": 1,
+ "name": "Questie",
+ "full_name": "Questie/Questie",
+ "html_url": "https://github.com/Questie/Questie",
+ "description": "WoW Classic quest helper",
+ "owner": {
+  "login": "Questie",
+  "id": 2,
+  "avatar_url": "https://avatars.githubusercontent.com/u/2?v=4",
+  "type": "Organization"
+ },
+ "stargazers_count": 1000,
+ "default_branch": "master",
+ "archived": false
+}

@@ -1,0 +1,26 @@
+[
+ {
+  "id": 5108,
+  "categoryId": 21,
+  "version": "v5.1.5-release",
+  "lastUpdate": 1794155247000,
+  "checksum": "5bfd1bedf841cbcd0c83230cfb3f1207",
+  "fileName": "Clique-v5.1.5-release.zip",
+  "downloadUri": "http://FAKE/wowi/getfile.php?id=5108",
+  "pendingUpdate": 0,
+  "title": "Clique",
+  "author": "Cladhaire",
+  "description": "Click-casting [b]addon[/b].",
+  "changeLog": "",
+  "downloads": 1283158,
+  "downloadsMonthly": 269,
+  "favorites": 3557,
+  "images": [
+   {
+    "thumbUrl": "https://cdn-wow.mmoui.com/preview/tiny/pvw76367.png",
+    "imageUrl": "https://cdn-wow.mmoui.com/preview/pvw76367.png",
+    "description": "Clique binding UI"
+   }
+  ]
+ }
+]

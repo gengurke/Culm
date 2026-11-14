@@ -1,0 +1,447 @@
+//! Provider feature tests (CurseForge, GitHub, WowInterface) against a local fake server.
+
+use addon_core::providers::{
+    self, CurseForge, GitHub, Provider, ProviderConfig, ScannedFolder, WowInterface,
+};
+use addon_core::{Channel, DependencyKind, Flavor, http};
+use addon_testkit::{
+    FakeServer, cf_envelope, cf_file, cf_mod, cf_mod_with_files, fixture, fixture_at,
+};
+use serde_json::json;
+
+const F: Flavor = Flavor::Forever;
+
+fn curseforge(s: &FakeServer) -> CurseForge {
+    CurseForge {
+        api_key: Some("test-key".into()),
+        base_url: s.url().into(),
+    }
+}
+
+fn folder(name: &str, fingerprint: u32) -> ScannedFolder {
+    ScannedFolder {
+        name: name.into(),
+        fingerprint,
+        toc_ids: vec![],
+    }
+}
+
+#[test]
+fn f4_1_search_curseforge_filters_forever_files() {
+    let s = FakeServer::start();
+    s.json("GET", "/v1/mods/search", &fixture("cf_search.json"));
+
+    let results = curseforge(&s).search(F, "damage meter").unwrap();
+
+    let req = &s.requests_to("/v1/mods/search")[0];
+    assert_eq!(req.header("x-api-key"), Some("test-key"));
+    for (k, v) in [
+        ("gameId", "1"),
+        ("gameVersionTypeId", "88568"),
+        ("searchFilter", "damage meter"),
+        ("sortField", "2"),
+        ("sortOrder", "desc"),
+        ("pageSize", "50"),
+    ] {
+        assert_eq!(req.query_param(k).as_deref(), Some(v), "query param {k}");
+    }
+    // The retail-only mod is dropped.
+    assert_eq!(results.len(), 1);
+    let a = &results[0];
+    assert_eq!(
+        (a.provider.as_str(), a.external_id.as_str()),
+        ("CurseForge", "61284")
+    );
+    assert_eq!(a.name, "Details! Damage Meter");
+    assert_eq!(a.author, "Terciob", "_forgeuser names are dropped");
+    assert_eq!(a.download_count, 512_345_678);
+    assert_eq!(
+        a.url.as_deref(),
+        Some("https://www.curseforge.com/wow/addons/details")
+    );
+    assert!(a.thumbnail_url.as_deref().unwrap().ends_with("details.png"));
+    // Retail file 5200003 and alternative (nolib) file 5200004 are skipped; one per channel, newest first.
+    let ids: Vec<(&str, Channel)> = a.files.iter().map(|f| (f.id.as_str(), f.channel)).collect();
+    assert_eq!(
+        ids,
+        [
+            ("5200005", Channel::Beta),
+            ("5200002", Channel::Alpha),
+            ("5200001", Channel::Stable)
+        ]
+    );
+    let stable = a.latest_for(Channel::Stable).unwrap();
+    assert_eq!(stable.version, "Details.Forever.20260920");
+    assert_eq!(stable.folders, ["Details", "Details_DataStorage"]);
+    assert_eq!(stable.game_versions, ["1.60.1"]);
+    assert_eq!(stable.released_at.as_deref(), Some("2026-09-20T10:00:00Z"));
+    let kinds: Vec<DependencyKind> = stable.dependencies.iter().map(|d| d.kind).collect();
+    assert_eq!(
+        kinds,
+        [
+            DependencyKind::Embedded,
+            DependencyKind::Optional,
+            DependencyKind::Required,
+            DependencyKind::Other
+        ]
+    );
+    assert_eq!(stable.dependencies[0].external_id, "1001");
+    // Null downloadUrl falls back to the CDN path.
+    assert_eq!(
+        a.files[0].download_url,
+        "https://edge.forgecdn.net/files/5200/5/Details-Forever-20261001-beta.zip"
+    );
+}
+
+#[test]
+fn f4_2_popular_lists_featured() {
+    let s = FakeServer::start();
+    s.json("POST", "/v1/mods/featured", &fixture("cf_featured.json"));
+
+    let results = curseforge(&s).featured(F).unwrap();
+
+    let req = &s.requests_to("/v1/mods/featured")[0];
+    assert_eq!(req.header("x-api-key"), Some("test-key"));
+    assert_eq!(
+        req.json(),
+        json!({ "gameId": 1, "gameVersionTypeId": 88568, "excludedModIds": [] })
+    );
+    // popular + recentlyUpdated, deduped, mods without a Forever file dropped ("featured" is not used).
+    let ids: Vec<&str> = results.iter().map(|a| a.external_id.as_str()).collect();
+    assert_eq!(ids, ["61284", "334372", "1592"]);
+}
+
+#[test]
+fn f3_1_get_many_reports_latest_file_per_channel() {
+    let s = FakeServer::start();
+    let a = cf_mod_with_files(
+        1,
+        "Alpha Addon",
+        vec![
+            cf_file(13, "1.3-alpha", 3, &["A"], 100),
+            cf_file(10, "1.0", 1, &["A"], 100),
+            cf_file(12, "1.2-beta", 2, &["A"], 100),
+            cf_file(11, "1.1", 1, &["A"], 100),
+        ],
+    );
+    let b = cf_mod(2, "Bee", &["Bee", "Bee_Options"], 20, "2.0");
+    s.json("POST", "/v1/mods", &cf_envelope(json!([a, b])));
+
+    let addons = curseforge(&s)
+        .get_many(F, &["1".into(), "2".into(), "junk".into()])
+        .unwrap();
+
+    let req = &s.requests_to("/v1/mods")[0];
+    assert_eq!(req.header("x-api-key"), Some("test-key"));
+    assert_eq!(req.json(), json!({ "modIds": [1, 2] }));
+    let latest = |ch| addons[0].latest_for(ch).unwrap().id.clone();
+    assert_eq!(latest(Channel::Stable), "11");
+    assert_eq!(latest(Channel::Beta), "12");
+    assert_eq!(latest(Channel::Alpha), "13");
+    assert_eq!(
+        addons[1].latest_for(Channel::Stable).unwrap().folders,
+        ["Bee", "Bee_Options"]
+    );
+}
+
+#[test]
+fn f2_3_fingerprint_match_maps_modules_to_folders() {
+    let s = FakeServer::start();
+    s.json(
+        "POST",
+        "/v1/fingerprints/1",
+        &fixture("cf_fingerprints.json"),
+    );
+    let details = fixture("cf_search.json")["data"][0].clone();
+    s.json("POST", "/v1/mods", &cf_envelope(json!([details])));
+
+    let folders = [
+        folder("Details", 3001111111),
+        folder("Details_DataStorage", 3002222222),
+        folder("MyLocalHack", 999),
+    ];
+    let matches = curseforge(&s).match_folders(F, &folders).unwrap();
+
+    let req = &s.requests_to("/v1/fingerprints/1")[0];
+    assert_eq!(req.header("x-api-key"), Some("test-key"));
+    assert_eq!(
+        req.json(),
+        json!({ "fingerprints": [3001111111u32, 3002222222u32, 999] })
+    );
+    assert_eq!(
+        s.requests_to("/v1/mods")[0].json(),
+        json!({ "modIds": [61284] })
+    );
+    let got: Vec<&str> = matches.iter().map(|m| m.folder.as_str()).collect();
+    assert_eq!(got, ["Details", "Details_DataStorage"]);
+    for m in &matches {
+        assert_eq!(m.addon.external_id, "61284");
+        let installed = m.installed_file.as_ref().unwrap();
+        assert_eq!(installed.id, "5200001");
+        assert_eq!(installed.folders, ["Details", "Details_DataStorage"]);
+    }
+}
+
+#[test]
+fn f4_4_curseforge_url_resolves_slug() {
+    let s = FakeServer::start();
+    s.json("GET", "/v1/mods/search", &fixture("cf_search.json"));
+    let cf = curseforge(&s);
+
+    let addon = cf
+        .from_url(F, "https://www.curseforge.com/wow/addons/details")
+        .unwrap()
+        .unwrap();
+    assert_eq!(addon.external_id, "61284");
+    let req = &s.requests_to("/v1/mods/search")[0];
+    assert_eq!(req.query_param("slug").as_deref(), Some("details"));
+    assert_eq!(req.query_param("gameId").as_deref(), Some("1"));
+
+    let err = cf
+        .from_url(F, "https://www.curseforge.com/wow/addons/retail-only")
+        .unwrap_err();
+    assert!(
+        err.to_string()
+            .contains("no World of Warcraft: Forever release"),
+        "{err}"
+    );
+    assert!(cf.from_url(F, "https://github.com/a/b").unwrap().is_none());
+}
+
+fn github_server() -> FakeServer {
+    let s = FakeServer::start();
+    s.json(
+        "GET",
+        "/repos/Questie/Questie",
+        &fixture("github_repo.json"),
+    );
+    s.json(
+        "GET",
+        "/repos/Questie/Questie/releases",
+        &fixture_at("github_releases.json", s.url()),
+    );
+    s.json(
+        "GET",
+        "/dl/82/release.json",
+        &fixture("github_release.json"),
+    );
+    s
+}
+
+#[test]
+fn f4_4_github_url_picks_forever_asset() {
+    let s = github_server();
+    let gh = GitHub {
+        token: Some("gh-token".into()),
+        api_base: s.url().into(),
+    };
+
+    let addon = gh
+        .from_url(F, "https://github.com/Questie/Questie")
+        .unwrap()
+        .unwrap();
+
+    assert_eq!(
+        (addon.provider.as_str(), addon.external_id.as_str()),
+        ("GitHub", "Questie/Questie")
+    );
+    assert_eq!(addon.author, "Questie");
+    // Draft skipped; prerelease → Beta via `-forever.zip` (not the nolib one); stable via release.json (nolib=false).
+    let beta = addon
+        .files
+        .iter()
+        .find(|f| f.channel == Channel::Beta)
+        .unwrap();
+    assert_eq!(
+        (beta.id.as_str(), beta.version.as_str()),
+        ("91", "v12.10.0-beta")
+    );
+    let stable = addon.latest_for(Channel::Stable).unwrap();
+    assert_eq!(
+        (stable.id.as_str(), stable.version.as_str()),
+        ("80", "v12.9.0")
+    );
+    assert_eq!(
+        stable.download_url,
+        format!("{}/dl/80/Questie-v12.9.0.zip", s.url())
+    );
+    assert_eq!(addon.latest_for(Channel::Beta).unwrap().id, "91");
+
+    let api = &s.requests_to("/repos/Questie/Questie")[0];
+    assert_eq!(api.header("authorization"), Some("Bearer gh-token"));
+    assert_eq!(
+        s.requests_to("/dl/82/release.json")[0].header("authorization"),
+        None
+    );
+    // Bare owner/repo works too; other URLs are not GitHub's.
+    assert!(gh.from_url(F, "Questie/Questie").unwrap().is_some());
+    assert!(
+        gh.from_url(F, "https://www.curseforge.com/wow/addons/details")
+            .unwrap()
+            .is_none()
+    );
+    assert_eq!(
+        gh.get_many(F, &["Questie/Questie".into()]).unwrap()[0]
+            .files
+            .len(),
+        2
+    );
+}
+
+#[test]
+fn f4_4_github_plain_zip_fallback_skips_other_flavors() {
+    let s = FakeServer::start();
+    s.json(
+        "GET",
+        "/repos/me/Plain",
+        &json!({
+            "full_name": "me/Plain", "name": "Plain", "html_url": "https://github.com/me/Plain",
+            "description": null, "owner": { "login": "me", "avatar_url": null }
+        }),
+    );
+    let asset = |id: u64, name: &str| {
+        json!({
+            "id": id, "name": name, "content_type": "application/zip", "download_count": 1,
+            "browser_download_url": format!("{}/dl/{id}/{name}", s.url())
+        })
+    };
+    s.json("GET", "/repos/me/Plain/releases", &json!([
+        { "tag_name": "v2", "draft": false, "prerelease": false, "published_at": "2026-11-02T00:00:00Z",
+          "assets": [asset(21, "Plain-v2-mainline.zip"), asset(22, "Plain-v2-classic.zip")] },
+        { "tag_name": "v1", "draft": false, "prerelease": false, "published_at": "2026-11-01T00:00:00Z",
+          "assets": [asset(11, "Plain-v1-classic.zip"), asset(12, "Plain-v1.zip")] }
+    ]));
+    let gh = GitHub {
+        token: None,
+        api_base: s.url().into(),
+    };
+
+    let addon = gh.from_url(F, "github.com/me/Plain").unwrap().unwrap();
+    assert_eq!(addon.files.len(), 1);
+    assert_eq!(
+        (addon.files[0].id.as_str(), addon.files[0].version.as_str()),
+        ("12", "v1")
+    );
+    assert_eq!(
+        s.requests_to("/repos/me/Plain")[0].header("authorization"),
+        None
+    );
+}
+
+#[test]
+fn f2_3_wowinterface_matches_toc_ids() {
+    let s = FakeServer::start();
+    s.json(
+        "GET",
+        "/filedetails/5108.json",
+        &fixture_at("wowi_filedetails.json", s.url()),
+    );
+    let wowi = WowInterface {
+        base_url: s.url().into(),
+    };
+    let folders = [
+        ScannedFolder {
+            name: "Clique".into(),
+            fingerprint: 1,
+            toc_ids: vec![("WowInterface".into(), "5108".into())],
+        },
+        folder("Other", 2),
+    ];
+
+    let matches = wowi.match_folders(F, &folders).unwrap();
+
+    assert_eq!(matches.len(), 1);
+    let a = &matches[0].addon;
+    assert_eq!(
+        (
+            matches[0].folder.as_str(),
+            a.provider.as_str(),
+            a.name.as_str()
+        ),
+        ("Clique", "WowInterface", "Clique")
+    );
+    let file = a.latest_for(Channel::Stable).unwrap();
+    assert_eq!(file.version, "v5.1.5-release");
+    assert_eq!(
+        file.download_url,
+        format!("{}/wowi/getfile.php?id=5108", s.url())
+    );
+    let by_url = wowi
+        .from_url(
+            F,
+            "https://www.wowinterface.com/downloads/info5108-Clique.html",
+        )
+        .unwrap();
+    assert_eq!(by_url.unwrap().external_id, "5108");
+}
+
+#[test]
+fn f7_1_curseforge_unavailable_without_key() {
+    let s = FakeServer::start();
+    for key in [None, Some(String::new())] {
+        let cf = CurseForge {
+            api_key: key,
+            base_url: s.url().into(),
+        };
+        assert!(!cf.available());
+        let err = cf.search(F, "x").unwrap_err();
+        assert!(err.to_string().contains("API key"), "{err}");
+    }
+    assert!(s.requests().is_empty(), "no request without a key");
+
+    let all = providers::all(&ProviderConfig::default());
+    let names: Vec<(&str, bool)> = all.iter().map(|p| (p.name(), p.available())).collect();
+    assert_eq!(
+        names,
+        [
+            ("CurseForge", false),
+            ("WowInterface", true),
+            ("GitHub", true)
+        ]
+    );
+    let cfg = ProviderConfig {
+        curseforge_api_key: Some("k".into()),
+        ..Default::default()
+    };
+    assert!(providers::all(&cfg)[0].available());
+}
+
+#[test]
+fn f3_2_download_reports_progress_and_http_errors() {
+    let s = FakeServer::start();
+    let zip = addon_testkit::make_zip(&[("A/A.toc", b"## Title: A")]);
+    s.bytes("GET", "/files/a.zip", zip.clone());
+    s.respond(
+        "GET",
+        "/v1/mods/search",
+        403,
+        "application/json",
+        r#"{"error":"bad key"}"#,
+    );
+
+    let mut calls = vec![];
+    let bytes = http::download(&format!("{}/files/a.zip", s.url()), &mut |done, total| {
+        calls.push((done, total))
+    })
+    .unwrap();
+    assert_eq!(bytes, zip);
+    assert_eq!(
+        calls.last(),
+        Some(&(zip.len() as u64, Some(zip.len() as u64)))
+    );
+    assert!(
+        s.requests()[0]
+            .header("user-agent")
+            .unwrap()
+            .starts_with("addon-manager/")
+    );
+
+    let err = curseforge(&s).search(F, "x").unwrap_err().to_string();
+    assert!(err.contains("403") && err.contains("bad key"), "{err}");
+    assert!(
+        http::download(&format!("{}/missing", s.url()), &mut |_, _| {})
+            .unwrap_err()
+            .to_string()
+            .contains("404")
+    );
+}
