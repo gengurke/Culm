@@ -1,0 +1,35 @@
+[workspace]
+resolver = "3"
+members = ["crates/core", "crates/app"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+
+[workspace.dependencies]
+# Rune is pre-release: pinned to one commit of the dev branch (fast-forward only, never rewritten).
+# Bump deliberately: same rev everywhere, and re-sync [patch.crates-io] from Rune's root Cargo.toml.
+rune     = { git = "https://github.com/anomalyco/rune", rev = "bd4d42b12c0101660c939063b608edbd2a086686" }
+rune-kit = { git = "https://github.com/anomalyco/rune", rev = "bd4d42b12c0101660c939063b608edbd2a086686" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+anyhow = "1"
+
+# Cargo does not inherit [patch] from dependencies: mirror Rune's root [patch.crates-io] at the SAME rev.
+[patch.crates-io]
+winit             = { git = "https://github.com/anomalyco/rune", rev = "bd4d42b12c0101660c939063b608edbd2a086686" }
+parley_engine     = { git = "https://github.com/anomalyco/rune", rev = "bd4d42b12c0101660c939063b608edbd2a086686" }
+wgpu-hal          = { git = "https://github.com/anomalyco/rune", rev = "bd4d42b12c0101660c939063b608edbd2a086686" }
+accesskit_windows = { git = "https://github.com/anomalyco/rune", rev = "bd4d42b12c0101660c939063b608edbd2a086686" }
+accesskit_macos   = { git = "https://github.com/anomalyco/rune", rev = "bd4d42b12c0101660c939063b608edbd2a086686" }
+
+# Rune's recommendation: full debuginfo makes test builds use huge amounts of RAM.
+[profile.dev]
+debug = "line-tables-only"
+[profile.dev.package."*"]
+debug = false
+
+[profile.release]
+codegen-units = 16
+incremental = true

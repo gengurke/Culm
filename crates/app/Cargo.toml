@@ -1,0 +1,17 @@
+[package]
+name = "addon-app"
+description = "Rune desktop UI of the addon manager."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+# The product name is not final: change it here and in src/brand.rs only.
+[[bin]]
+name = "culm"
+path = "src/main.rs"
+
+[dependencies]
+addon-core = { path = "../core" }
+rune.workspace = true
+rune-kit.workspace = true
+anyhow.workspace = true

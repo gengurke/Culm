@@ -1,0 +1,3 @@
+[toolchain]
+channel = "1.99.1"   # Rune's pinned toolchain at the pinned rev
+components = ["clippy", "rustfmt"]
