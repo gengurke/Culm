@@ -73,6 +73,12 @@ Build needs `libxkbcommon-devel wayland-devel` (Fedora). Without root, a gitigno
   `Variant => module` line in the `themes!` list in `theme/mod.rs`. The picker, prefs id, scenes (`<scene>@<id>`) and
   `f7_3_every_theme_renders_every_screen` pick it up. Fonts: name families in `Family::Named` lists; never bundle
   proprietary game fonts or assets.
+- A light-paged theme (Grimoire) sets `Theme::frame` to a second, dark theme: views build the sidebar and the header band
+  inside `theme::framed(|| ..)`, where `t()`/`pal()` return the frame. `Skin::glyphs` swaps stock glyphs per theme
+  (`theme::glyph`, applied in `ui::button`/`icon_button`/`glyph_tile` and the nav). `Surface::press` sets the pressed wash.
+  `skin.menu` is the floating popup (dropdowns, installation menu): give it a full border and a drop shadow.
+- Keep textures on big surfaces (window, sidebar, band, detail); cards use gradients and bevels (GPU cost per textured box).
+  `f7_3_every_theme_keeps_text_readable` checks palette contrast; `theme::readable` lifts status ink on a dark plate.
 
 ## Data-safety rules (learned here)
 

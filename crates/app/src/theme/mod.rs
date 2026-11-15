@@ -14,7 +14,7 @@ use rune::{Color, El, Icon, Image, Shadow, el, icon};
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Once, OnceLock};
+use std::sync::{Arc, LazyLock, Once, OnceLock};
 pub use texture::Tex;
 
 macro_rules! themes {
@@ -41,6 +41,7 @@ themes! {
     Hearthwood => hearthwood,
     Emberglow => emberglow,
     Ledger => ledger,
+    Grimoire => grimoire,
 }
 
 impl Default for ThemeId {
@@ -73,8 +74,11 @@ pub struct Theme {
     pub pal: Pal,
     pub ty: Type,
     pub skin: Skin,
-    /// Textures its skin uses (generated once when the theme is first shown).
+    /// Textures its skin uses (generated once when the theme is first shown), its frame's too.
     pub textures: &'static [Tex],
+    /// A second look for the window frame (sidebar and header band), for themes whose pages
+    /// are light but whose frame is dark. Views draw the frame inside [`framed`].
+    pub frame: Option<&'static LazyLock<Theme>>,
 }
 
 pub struct Pal {
@@ -173,6 +177,7 @@ pub const ROW_H: f32 = 56.0;
 pub const CONTROL_H: f32 = 32.0;
 
 /// The named surfaces views and components paint with.
+#[derive(Clone)]
 pub struct Skin {
     /// The window ground behind every page.
     pub window: Surface,
@@ -210,6 +215,8 @@ pub struct Skin {
     pub kbd: Surface,
     /// The brand mark beside the wordmark and on empty states.
     pub emblem: &'static Icon,
+    /// Glyphs this theme draws differently: `(default, own)`, looked up by [`glyph`].
+    pub glyphs: &'static [(&'static Icon, &'static Icon)],
 }
 
 /// What draws over the band behind its title.
@@ -239,6 +246,8 @@ pub struct Surface {
     pub shadows: Vec<Shadow>,
     /// Hover wash (transparent: none).
     pub hover: Color,
+    /// Wash while pressed (transparent: a stronger hover).
+    pub press: Color,
     pub corners: Option<Corners>,
 }
 
@@ -339,6 +348,9 @@ impl SurfaceExt for El {
         if s.hover.a > 0.0 {
             e = e.hover(s.hover);
         }
+        if s.press.a > 0.0 {
+            e = e.press(s.press);
+        }
         if let Some((tex, a)) = s.texture
             && let Some(img) = texture(tex)
         {
@@ -388,16 +400,60 @@ impl SurfaceExt for El {
 thread_local! {
     // Per thread, not per process: tests run many windows on parallel threads.
     static CURRENT: Cell<ThemeId> = Cell::new(ThemeId::default());
+    static FRAMED: Cell<bool> = const { Cell::new(false) };
     static TEXTURES: RefCell<HashMap<Tex, Image>> = RefCell::new(HashMap::new());
 }
 
-/// The theme the view on this thread is drawing with.
+/// The theme the view on this thread is drawing with (its frame look inside [`framed`]).
 pub fn t() -> &'static Theme {
-    CURRENT.with(Cell::get).theme()
+    let th = CURRENT.with(Cell::get).theme();
+    match th.frame {
+        Some(frame) if FRAMED.with(Cell::get) => frame,
+        _ => th,
+    }
 }
 
 pub fn pal() -> &'static Pal {
     &t().pal
+}
+
+/// Builds the window frame (sidebar, header band): inside, [`t`] and [`pal`] give the theme's
+/// frame look when it has one.
+pub fn framed<R>(f: impl FnOnce() -> R) -> R {
+    let was = FRAMED.with(|c| c.replace(true));
+    let out = f();
+    FRAMED.with(|c| c.set(was));
+    out
+}
+
+/// The current theme's version of a stock glyph (`&icons::PACKAGE`), or the glyph itself.
+pub fn glyph(g: &'static Icon) -> &'static Icon {
+    t().skin
+        .glyphs
+        .iter()
+        .find(|(stock, _)| std::ptr::eq(*stock, g))
+        .map_or(g, |(_, own)| own)
+}
+
+/// WCAG contrast ratio of `fg` over `bg` (both composited over `under` when translucent).
+pub fn contrast(fg: Color, bg: Color, under: Color) -> f32 {
+    let over = |c: Color, u: Color| u.mix(c.alpha(1.0), c.a);
+    let bg = over(bg, under);
+    let (a, b) = (over(fg, bg).luminance(), bg.luminance());
+    (a.max(b) + 0.05) / (a.min(b) + 0.05)
+}
+
+/// `fg`, darkened or lightened just enough to read at 4.5:1 on `bg`.
+pub fn readable(fg: Color, bg: Color) -> Color {
+    let to = if bg.luminance() > 0.18 {
+        Color::BLACK
+    } else {
+        Color::WHITE
+    };
+    (0..=10)
+        .map(|i| fg.mix(to.alpha(fg.a), i as f32 / 10.0))
+        .find(|c| contrast(*c, bg, bg) >= 4.5)
+        .unwrap_or(to)
 }
 
 /// Starts a view: makes the stored theme current and makes sure the textures it shows exist
@@ -511,7 +567,52 @@ impl StyleExt for TextStyle {
 
 #[cfg(test)]
 mod tests {
-    use super::ThemeId;
+    use super::{ThemeId, contrast};
+
+    /// Text reads at 4.5:1 on the window and on cards; dimmed text (muted, status) at 3:1.
+    #[test]
+    fn f7_3_every_theme_keeps_text_readable() {
+        let mut bad = Vec::new();
+        for id in ThemeId::ALL {
+            let th = id.theme();
+            for (part, th) in std::iter::once(("page", th)).chain(th.frame.map(|f| ("frame", &**f)))
+            {
+                let p = &th.pal;
+                for (ground, bg) in [("bg", p.bg), ("panel", p.panel)] {
+                    let checks = [
+                        ("text", p.text, 4.5),
+                        ("heading", p.heading, 4.5),
+                        ("text_dim", p.text_dim, 4.5),
+                        ("text_muted", p.text_muted, 3.0),
+                        ("accent", p.accent, 3.0),
+                        ("success", p.success, 3.0),
+                        ("warning", p.warning, 3.0),
+                        ("danger", p.danger, 3.0),
+                        ("info", p.info, 3.0),
+                    ];
+                    for (name, fg, min) in checks {
+                        let c = contrast(fg, bg, p.bg);
+                        if c < min {
+                            bad.push(format!(
+                                "{} {part}: {name} on {ground} {c:.2} < {min}",
+                                th.id
+                            ));
+                        }
+                    }
+                }
+                for (name, sk) in [
+                    ("primary", &th.skin.primary),
+                    ("secondary", &th.skin.secondary),
+                ] {
+                    let c = contrast(sk.ink, sk.fill, p.bg);
+                    if c < 4.5 {
+                        bad.push(format!("{} {part}: {name} ink {c:.2} < 4.5", th.id));
+                    }
+                }
+            }
+        }
+        assert!(bad.is_empty(), "{}", bad.join("\n"));
+    }
 
     #[test]
     fn f7_3_unknown_theme_ids_fall_back_to_moonlit() {

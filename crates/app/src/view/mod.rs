@@ -29,13 +29,17 @@ pub fn view(s: &State, _cx: &mut Cx<State>) -> El {
         .w_full()
         .h_full()
         .skin(&t().skin.window)
-        .child(sidebar(s))
+        .child(theme::framed(|| sidebar(s)))
         .child(col().key("main").grow(1.0).min_w(0.0).h_full().child(page))
         .child(toasts(s))
 }
 
 /// The band every page starts with: title, a subtitle and actions on the right.
 pub(crate) fn band(title: &str, subtitle: El, actions: Vec<El>) -> El {
+    theme::framed(|| band_in_frame(title, subtitle, actions))
+}
+
+fn band_in_frame(title: &str, subtitle: El, actions: Vec<El>) -> El {
     let (th, p) = (t(), pal());
     let mut b = row()
         .key("band")
@@ -67,10 +71,12 @@ pub(crate) fn band(title: &str, subtitle: El, actions: Vec<El>) -> El {
 }
 
 pub(crate) fn subtitle(s: impl Into<String>) -> El {
-    text(s.into())
-        .font(t().ty.note)
-        .color(pal().text_dim)
-        .truncate()
+    theme::framed(|| {
+        text(s.into())
+            .font(t().ty.note)
+            .color(pal().text_dim)
+            .truncate()
+    })
 }
 
 /// The band's decoration layer: a fixed scatter (a tiny LCG keeps it the same every frame).
@@ -238,7 +244,7 @@ fn nav_row(
         r = r.child(el().absolute(0.0, 0.0).w(2.0).h(36.0).fill(p.accent));
     }
     r = r
-        .child(icon(glyph, 16.0).color(if on { p.accent } else { p.text_muted }))
+        .child(icon(theme::glyph(glyph), 16.0).color(if on { p.accent } else { p.text_muted }))
         .child(
             text(label)
                 .font(th.ty.body)

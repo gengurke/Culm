@@ -59,7 +59,13 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
         toolbar: Surface { border: under, ..Default::default() },
         panel: Surface { fill: p.panel, border: hairline, ..Default::default() },
         detail: Surface { fill: p.sidebar, border: Some(Border::sides([0.0, 0.0, 0.0, 1.0], p.divider)), ..Default::default() },
-        menu: Surface { fill: p.panel, border: under, ..Default::default() },
+        // Floating (dropdowns, the installation menu): a hairline box lifted off the page.
+        menu: Surface {
+            fill: p.panel_alt,
+            border: Some(Border::all(1.0, p.border_strong)),
+            shadows: vec![Shadow { y: 6.0, blur: 18.0, color: Color::BLACK.alpha(0.45), ..Default::default() }],
+            ..Default::default()
+        },
         list_header: Surface { border: under, ..Default::default() },
         row: Surface { border: under, hover: p.hover, ..Default::default() },
         row_selected: Surface { fill: p.selected, border: under, hover: p.hover, ..Default::default() },
@@ -89,6 +95,7 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
         toast: Surface { fill: p.panel, shadows: vec![Shadow { spread: 1.0, color: p.border, ..Default::default() }], ..Default::default() },
         kbd: Surface { ink: p.text_muted, border: hairline, ..Default::default() },
         emblem: &icons::EMBLEM,
+        glyphs: &[],
     };
     Theme {
         id: "moonlit",
@@ -98,5 +105,6 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
         ty: BASE_TYPE,
         skin,
         textures: &[],
+        frame: None,
     }
 });

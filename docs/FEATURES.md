@@ -135,10 +135,15 @@ What the addon manager does, one short paragraph per feature. Ids are referenced
   e2e `f7_1_without_a_key_search_is_off_and_points_to_settings`, `f7_1_f7_2_saved_settings_survive_a_restart`)
 - **F7.2 Defaults** ✅ — Default channel for new addons, stored in prefs. (e2e `f7_1_f7_2_saved_settings_survive_a_restart`)
 - **F7.3 Themes** ✅ — Settings → Appearance picks the look (Moonlit; Hearthwood: carved wood, stone and gold; Emberglow: mossy
-  black stone, glowing gold; Goblin Ledger: calm charcoal menus, ochre gold); cards preview
-  each theme in its own skin, the choice applies at once, is kept in prefs (`theme`) and read before the first frame; an
-  unknown stored id falls back to Moonlit. Layout is the same in every theme. (e2e `f7_3_theme_choice_applies_and_survives_restart`,
-  `f7_3_unknown_stored_theme_falls_back_to_moonlit`, `f7_3_every_theme_renders_every_screen`)
+  black stone, glowing gold, framed cards and small-caps serif controls; Goblin Ledger: calm charcoal menus, ochre gold;
+  Grimoire: the classic in-game book windows, parchment pages with dark ink in a dark stone frame with gold rims, a
+  red-brown title banner, item-slot tiles, red lacquered buttons, its own tome/scroll/anvil/cog/chest glyphs and one light
+  from the top left: raised parts lit and casting down-right, fields sunk, pressed buttons darken). Cards (five on one
+  row) preview each theme in its own skin, the choice applies at once, is kept in prefs (`theme`) and read before the
+  first frame; an unknown stored id falls back to Moonlit. Layout is the same in every theme; every theme keeps text at
+  4.5:1 and dimmed or status ink at 3:1 on its window and cards. (e2e `f7_3_theme_choice_applies_and_survives_restart`,
+  `f7_3_unknown_stored_theme_falls_back_to_moonlit`, `f7_3_every_theme_renders_every_screen`; unit
+  `f7_3_every_theme_keeps_text_readable`)
 
 ## App wiring ✅
 `crates/app/src/core_backend.rs` implements `backend::Backend` over the core: data/cache dirs from `rune::dirs::AppDirs`

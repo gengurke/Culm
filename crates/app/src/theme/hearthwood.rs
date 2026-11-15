@@ -68,10 +68,11 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
     let under = Some(Border::sides([0.0, 0.0, 1.0, 0.0], p.divider));
     let bevel = Some(Border::bevel(1.0, h("#b08a44"), h("#4a3418")));
     let studs = Some(Corners { glyph: &icons::STUD, size: 9.0, inset: 3.0, color: h("#d9b25a") });
+    // Cards stay untextured (many on screen): a leather-brown gradient under a warm top glow.
     let leather = Surface {
         fill: p.panel,
-        vertical: Some((h("#33241a"), h("#22170e"))),
-        texture: Some((Tex::Leather, 0.5)),
+        vertical: Some((h("#35261a"), h("#21160d"))),
+        overlay: Some(Overlay::Radial { center: [0.3, 0.0], radius: [380.0, 150.0], stops: vec![(0.0, h("#ffcf80").alpha(0.07)), (1.0, h("#ffcf80").alpha(0.0))] }),
         border: Some(Border::bevel(1.0, h("#a8833e"), h("#4a3418"))),
         radius: 2.0,
         shadows: vec![drop(2.0, 8.0, 0.55)],
@@ -93,7 +94,7 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
         toolbar: Surface { fill: Color::BLACK.alpha(0.2), border: Some(Border::sides([0.0, 0.0, 1.0, 0.0], gold.alpha(0.2))), ..Default::default() },
         panel: Surface { corners: studs, ..leather.clone() },
         detail: Surface { border: Some(Border::sides([0.0, 0.0, 0.0, 2.0], h("#8a6a2e"))), ..wood },
-        menu: Surface { border: Some(Border::sides([0.0, 0.0, 1.0, 0.0], gold.alpha(0.3))), shadows: vec![], radius: 0.0, ..leather.clone() },
+        menu: Surface { overlay: None, shadows: vec![inset(1.0, h("#ffcf80").alpha(0.1)), drop(6.0, 18.0, 0.65)], ..leather.clone() },
         list_header: Surface { fill: Color::BLACK.alpha(0.22), border: Some(Border::sides([0.0, 0.0, 1.0, 0.0], gold.alpha(0.25))), ..Default::default() },
         row: Surface { border: under, hover: p.hover, ..Default::default() },
         row_selected: Surface {
@@ -162,6 +163,7 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
         toast: Surface { texture: None, shadows: vec![drop(4.0, 16.0, 0.6)], ..leather },
         kbd: Surface { ink: p.text_muted, border: Some(Border::all(1.0, gold.alpha(0.35))), radius: 2.0, ..Default::default() },
         emblem: &icons::CREST,
+        glyphs: &[],
     };
     Theme {
         id: "hearthwood",
@@ -171,5 +173,6 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
         ty,
         skin,
         textures: &[Tex::Wood, Tex::Stone, Tex::Leather],
+        frame: None,
     }
 });

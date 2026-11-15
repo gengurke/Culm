@@ -32,6 +32,11 @@ pub fn button(
         Kind::Danger => &th.skin.danger,
     };
     let (ink, hover) = (sk.ink, sk.hover);
+    let press = if sk.press.a > 0.0 {
+        sk.press
+    } else {
+        hover.alpha(hover.a * 1.6)
+    };
     let font = if kind == Kind::Primary {
         th.ty.label.weight_of(600.0)
     } else {
@@ -49,16 +54,17 @@ pub fn button(
         .center()
         .skin(&Surface {
             hover: Color::TRANSPARENT,
+            press: Color::TRANSPARENT,
             ..sk.clone()
         })
         .focus_ring(1.0, 2.0, p.accent_focus);
     if let Some(g) = glyph {
-        b = b.child(icon(g, 14.0).color(ink));
+        b = b.child(icon(theme::glyph(g), 14.0).color(ink));
     }
     b = b.child(text(label).font(font).color(ink));
     if enabled {
         b.hover(hover)
-            .press(hover.alpha(hover.a * 1.6))
+            .press(press)
             .cursor(Cursor::Pointer)
             .on_press_tx(f)
     } else {
@@ -85,7 +91,7 @@ pub fn icon_button(
         .press(pal().selected)
         .cursor(Cursor::Pointer)
         .on_press_tx(f)
-        .child(icon(glyph, 16.0).color(sk.ink))
+        .child(icon(theme::glyph(glyph), 16.0).color(sk.ink))
 }
 
 /// What a status tag means; its colour, glyph and shape come from the theme and [`BadgeStyle`].
@@ -228,12 +234,16 @@ pub fn tag(label: &str, mark: Mark) -> El {
         // Only what needs the user gets the plate; quiet marks keep just the gem and the word.
         BadgeStyle::Plate => {
             let mut b = row().h(20.0).pl(6.0).pr(8.0).gap(6.0).center_y();
-            if mark.loud() {
+            // On the plate the status ink may need lifting (a dark plate on a light page).
+            let fg = if mark.loud() {
                 b = b.skin(&Surface {
                     corners: None,
                     ..th.skin.tile.clone()
                 });
-            }
+                theme::readable(fg, th.skin.tile.fill)
+            } else {
+                fg
+            };
             b.child(icon(&icons::STUD, 9.0).color(if mark == Mark::Off { p.text_off } else { fg }))
                 .child(
                     text(label)
@@ -478,7 +488,7 @@ pub fn glyph_tile(glyph: &'static Icon, size: f32) -> El {
     el().size(size, size)
         .center()
         .skin(sk)
-        .child(icon(glyph, size / 2.0).color(sk.ink))
+        .child(icon(theme::glyph(glyph), size / 2.0).color(sk.ink))
 }
 
 /// Thumbnail fallback: the addon's initials on a raised square.

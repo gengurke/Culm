@@ -208,6 +208,7 @@ pub fn page(s: &State) -> El {
 /// A picker card: a miniature window painted in that theme's own skin, its name and a line.
 fn theme_card(s: &State, id: ThemeId) -> El {
     let (th, p) = (id.theme(), pal());
+    let fr = th.frame.map_or(th, |f| &**f);
     let on = s.settings.theme == id;
     let sk = &th.skin;
     let preview = row()
@@ -221,8 +222,8 @@ fn theme_card(s: &State, id: ThemeId) -> El {
                 .h_full()
                 .pt(10.0)
                 .items_center()
-                .skin(&sk.sidebar)
-                .child(icon(sk.emblem, 18.0).color(th.pal.accent)),
+                .skin(&fr.skin.sidebar)
+                .child(icon(sk.emblem, 18.0).color(fr.pal.accent)),
         )
         .child(
             col()
@@ -235,11 +236,11 @@ fn theme_card(s: &State, id: ThemeId) -> El {
                         .h(38.0)
                         .px(10.0)
                         .center_y()
-                        .skin(&sk.band)
+                        .skin(&fr.skin.band)
                         .child(
                             text(th.name)
-                                .font(th.ty.heading)
-                                .color(th.pal.heading)
+                                .font(th.ty.heading.size_of(13.5))
+                                .color(fr.pal.heading)
                                 .truncate(),
                         ),
                 )
@@ -250,9 +251,9 @@ fn theme_card(s: &State, id: ThemeId) -> El {
                         .px(10.0)
                         .gap(6.0)
                         .center_y()
-                        .child(el().w(40.0).h(16.0).skin(&sk.primary))
-                        .child(el().w(30.0).h(16.0).skin(&sk.secondary))
-                        .child(el().w(10.0).h(10.0).radius(5.0).fill(th.pal.success)),
+                        .child(el().w(30.0).h(14.0).skin(&sk.primary))
+                        .child(el().w(22.0).h(14.0).skin(&sk.secondary))
+                        .child(el().w(8.0).h(8.0).radius(4.0).fill(th.pal.success)),
                 ),
         );
     let card = col()
@@ -261,7 +262,8 @@ fn theme_card(s: &State, id: ThemeId) -> El {
         .label(th.name)
         .checked(on)
         .focusable(true)
-        .w(186.0)
+        .w(140.0)
+        .grow(1.0)
         .padding(8.0)
         .gap(10.0)
         .border(

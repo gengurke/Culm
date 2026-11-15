@@ -81,7 +81,7 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
         toolbar: Surface { border: under, ..Default::default() },
         panel: panel.clone(),
         detail: Surface { fill: h("#120d0c"), border: Some(Border::sides([0.0, 0.0, 0.0, 1.0], ink(0.07))), ..Default::default() },
-        menu: Surface { fill: p.panel, border: Some(Border::sides([0.0, 0.0, 1.0, 0.0], ink(0.08))), ..Default::default() },
+        menu: Surface { fill: h("#24201f"), border: frame, radius: 8.0, shadows: vec![lip, drop(6.0, 18.0, 0.6)], ..Default::default() },
         list_header: Surface { fill: Color::WHITE.alpha(0.025), border: under, ..Default::default() },
         row: Surface { border: under, hover: p.hover, ..Default::default() },
         row_selected: Surface { fill: p.selected, border: Some(Border::sides([0.0, 0.0, 1.0, 0.0], gold.alpha(0.25))), hover: p.hover, ..Default::default() },
@@ -117,6 +117,7 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
         toast: Surface { shadows: vec![drop(4.0, 16.0, 0.6)], ..panel },
         kbd: Surface { ink: p.text_muted, border: Some(Border::all(1.0, ink(0.16))), radius: 4.0, ..Default::default() },
         emblem: &icons::EMBLEM,
+        glyphs: &[],
     };
     Theme {
         id: "ledger",
@@ -126,5 +127,6 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
         ty,
         skin,
         textures: &[],
+        frame: None,
     }
 });

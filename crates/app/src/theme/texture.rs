@@ -134,14 +134,20 @@ fn wood(x: u32, y: u32, w: u32) -> f32 {
 
 fn parchment(x: u32, y: u32) -> f32 {
     let (fx, fy) = (x as f32, y as f32);
-    let blotch = fbm(fx / 128.0, fy / 128.0, 4, 4, 5, 7);
-    let fibre = noise(fx / 4.0, fy / 32.0, 128, 16, 8) - 0.5;
-    let speck = if hash(x as i32, y as i32, 9) > 0.996 {
-        -0.35
+    // Broad light and dark clouds, a finer mottle, faint horizontal fibres.
+    let cloud = fbm(fx / 128.0, fy / 128.0, 4, 4, 5, 7) - 0.5;
+    let mottle = fbm(fx / 24.0, fy / 24.0, 21, 21, 3, 10) - 0.5;
+    let fibre = noise(fx / 24.0, fy / 2.0, 21, 256, 8) - 0.5;
+    // Foxing: a few soft brown stains with a darker rim.
+    let stain = fbm(fx / 64.0, fy / 64.0, 8, 8, 4, 11);
+    let fox = ((stain - 0.66) * 6.0).clamp(0.0, 1.0);
+    let rim = (1.0 - ((stain - 0.66).abs() * 40.0)).max(0.0);
+    let speck = if hash(x as i32, y as i32, 9) > 0.997 {
+        -0.3
     } else {
         0.0
     };
-    (blotch - 0.5) * 1.3 + fibre * 0.18 + speck
+    cloud * 0.9 + mottle * 0.3 + fibre * 0.08 - fox * 0.18 - rim * 0.12 + speck
 }
 
 fn stone(x: u32, y: u32) -> f32 {

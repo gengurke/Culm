@@ -75,22 +75,32 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
         heading: TextStyle::new(15.5, 700.0).family(SERIF).tracking(0.5).lh(20.0),
         eyebrow: TextStyle::new(10.5, 700.0).family(SERIF).tracking(1.8).lh(14.0),
         wordmark: TextStyle::new(15.0, 700.0).family(SERIF).tracking(2.6).lh(20.0),
+        // Buttons, tabs and segments in small caps, like engraved plaques.
+        label: TextStyle::new(13.5, 600.0).family(SERIF).features("'smcp' 1").tracking(0.4).lh(16.0),
         ..BASE_TYPE
     };
     let under = Some(Border::sides([0.0, 0.0, 1.0, 0.0], p.divider));
     // Carved stone: a lit top lip, a dark bottom, a black outer ring.
-    let carved = Some(Border::bevel(1.0, h("#5e5838"), h("#1a1c10")));
+    let carved = Some(Border::bevel(2.0, h("#6e6640"), h("#23251a")));
     let studs = Some(Corners { glyph: &icons::STUD, size: 7.0, inset: 4.0, color: bronze.alpha(0.85) });
+    // Cards stay untextured (many on screen); the frame does the work: a carved olive-bronze
+    // rim, a fine gold line inside it, a black outer ring and a soft drop.
     let stone = Surface {
         fill: p.panel,
-        vertical: Some((h("#161d11"), h("#0c1109"))),
-        texture: Some((Tex::Moss, 0.5)),
+        vertical: Some((h("#182012"), h("#0d1209"))),
+        overlay: Some(Overlay::Radial { center: [0.5, 0.0], radius: [420.0, 160.0], stops: vec![(0.0, h("#c8b07a").alpha(0.06)), (1.0, h("#c8b07a").alpha(0.0))] }),
         border: carved,
-        radius: 4.0,
-        shadows: vec![inset(1.0, h("#c8b07a").alpha(0.10)), ring(Color::BLACK.alpha(0.7)), drop(3.0, 10.0, 0.6)],
+        radius: 3.0,
+        shadows: vec![
+            Shadow { spread: 3.0, color: h("#0c1008"), inset: true, ..Shadow::default() },
+            Shadow { spread: 4.0, color: gold.alpha(0.28), inset: true, ..Shadow::default() },
+            ring(Color::BLACK.alpha(0.75)),
+            drop(4.0, 12.0, 0.6),
+        ],
         ..Default::default()
     };
     let slab = Surface { fill: p.sidebar, vertical: Some((h("#0d130a"), h("#080c06"))), texture: Some((Tex::Moss, 0.42)), ..Default::default() };
+    let press = Color::BLACK.alpha(0.22);
     let skin = Skin {
         window: Surface { fill: p.bg, ink: p.text, texture: Some((Tex::Moss, 0.42)), ..Default::default() },
         sidebar: Surface { border: Some(Border::sides([0.0, 1.0, 0.0, 0.0], bronze.alpha(0.45))), ..slab.clone() },
@@ -107,7 +117,12 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
         toolbar: Surface { fill: Color::BLACK.alpha(0.25), border: Some(Border::sides([0.0, 0.0, 1.0, 0.0], bronze.alpha(0.25))), ..Default::default() },
         panel: Surface { corners: studs, ..stone.clone() },
         detail: Surface { border: Some(Border::sides([0.0, 0.0, 0.0, 1.0], bronze.alpha(0.45))), ..slab },
-        menu: Surface { border: Some(Border::sides([0.0, 0.0, 1.0, 0.0], bronze.alpha(0.35))), shadows: vec![], radius: 0.0, ..stone.clone() },
+        menu: Surface {
+            overlay: None,
+            border: Some(Border::bevel(1.0, h("#a08048"), h("#3a3018"))),
+            shadows: vec![inset(1.0, h("#ffe0a0").alpha(0.08)), ring(Color::BLACK.alpha(0.75)), drop(6.0, 18.0, 0.7)],
+            ..stone.clone()
+        },
         list_header: Surface { fill: Color::BLACK.alpha(0.3), border: Some(Border::sides([0.0, 0.0, 1.0, 0.0], bronze.alpha(0.3))), ..Default::default() },
         row: Surface { border: under, hover: p.hover, ..Default::default() },
         row_selected: Surface {
@@ -119,8 +134,14 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
         },
         nav: Surface { hover: p.hover, ..Default::default() },
         nav_active: Surface {
-            overlay: Some(Overlay::Linear { angle: FRAC_PI_2, stops: vec![(0.0, amber.alpha(0.24)), (0.9, amber.alpha(0.0))] }),
-            border: Some(Border::sides([0.0, 0.0, 0.0, 2.0], gold)),
+            fill: h("#0d1209").alpha(0.9),
+            overlay: Some(Overlay::Radial { center: [0.5, 1.15], radius: [150.0, 34.0], stops: vec![(0.0, amber.alpha(0.42)), (1.0, amber.alpha(0.0))] }),
+            border: Some(Border { sides: [3.0, 10.0, 3.0, 10.0], top: Color::TRANSPARENT, bottom: Color::TRANSPARENT }),
+            radius: 5.0,
+            shadows: vec![
+                Shadow { spread: 1.0, color: gold, inset: true, ..Shadow::default() },
+                Shadow { spread: 2.0, color: Color::BLACK.alpha(0.6), inset: true, ..Shadow::default() },
+            ],
             hover: p.hover,
             ..Default::default()
         },
@@ -131,6 +152,7 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
             radius: 5.0,
             shadows: vec![inset(1.0, Color::WHITE.alpha(0.5)), ring(Color::BLACK.alpha(0.6)), drop(2.0, 6.0, 0.6)],
             hover: h("#fff4d0").alpha(0.2),
+            press: h("#5a3008").alpha(0.25),
             ..Default::default()
         },
         secondary: Surface {
@@ -141,6 +163,7 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
             radius: 5.0,
             shadows: vec![inset(1.0, h("#ffe0a0").alpha(0.08)), drop(1.0, 3.0, 0.6)],
             hover: h("#ffd98a").alpha(0.08),
+            press,
             ..Default::default()
         },
         ghost: Surface { ink: p.text_dim, border: Some(Border::all(1.0, Color::TRANSPARENT)), radius: 5.0, hover: p.hover, ..Default::default() },
@@ -155,10 +178,11 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
         },
         icon_button: Surface { ink: p.text_muted, radius: 5.0, hover: p.hover, ..Default::default() },
         input: Surface {
-            fill: p.well,
-            border: Some(Border::bevel(1.0, h("#05070a"), h("#6e5a34"))),
-            radius: 4.0,
-            shadows: vec![inset(2.0, Color::BLACK.alpha(0.55))],
+            fill: h("#0a0e07"),
+            vertical: Some((h("#05070a"), h("#11170d"))),
+            border: Some(Border::bevel(1.0, h("#8a6c38"), h("#c89a48"))),
+            radius: 5.0,
+            shadows: vec![inset(2.0, Color::BLACK.alpha(0.6)), glow(10.0, amber.alpha(0.12))],
             ..Default::default()
         },
         chip: Surface { radius: 4.0, ..Default::default() },
@@ -166,8 +190,9 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
             fill: p.panel_alt,
             ink: h("#ecd6a4"),
             vertical: Some((h("#20281a"), h("#11160c"))),
-            border: Some(Border::bevel(1.0, h("#7a6a40"), h("#2a2614"))),
-            radius: 4.0,
+            border: Some(Border::bevel(2.0, h("#e0b860"), h("#6a4a1e"))),
+            radius: 3.0,
+            shadows: vec![Shadow { spread: 1.0, color: Color::BLACK.alpha(0.7), inset: true, ..Shadow::default() }, ring(Color::BLACK.alpha(0.6))],
             ..Default::default()
         },
         segments: Surface {
@@ -190,6 +215,7 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
         toast: Surface { texture: None, shadows: vec![ring(Color::BLACK.alpha(0.7)), drop(4.0, 16.0, 0.65)], ..stone },
         kbd: Surface { ink: p.text_muted, border: Some(Border::all(1.0, bronze.alpha(0.45))), radius: 3.0, ..Default::default() },
         emblem: &icons::CREST,
+        glyphs: &[],
     };
     Theme {
         id: "emberglow",
@@ -199,5 +225,6 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
         ty,
         skin,
         textures: &[Tex::Moss],
+        frame: None,
     }
 });
