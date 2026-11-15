@@ -215,6 +215,13 @@ const SCENES: &[Scene] = &[
         s.category = Some(1028); // Warrior
         s.sort = addon_core::Sort::LastUpdated;
         s.results = Fetch::Ready(mock::search(&s.search_filter()));
+    }),
+    ("get-addons-menu", |s| {
+        loaded(s);
+        s.screen = Screen::GetAddons;
+        s.categories = Fetch::Ready(mock::categories());
+        s.category = Some(1009); // Bags & Inventory
+        s.results = Fetch::Ready(mock::search(&s.search_filter()));
         s.menu = Some(state::Menu::Category);
     }),
     ("get-addons-link", |s| {
