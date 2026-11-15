@@ -55,3 +55,14 @@ cargo clippy --all-targets
 - `crates/app/tests/ui_shell.rs`: UI-only checks over the mock backend.
 
 Test names carry the feature id from `docs/FEATURES.md` (`f3_2_...`). Contributor notes: `AGENTS.md`.
+
+## License
+
+Copyright (C) 2026 the culm contributors.
+
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
+License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later
+version. It is distributed WITHOUT ANY WARRANTY; see [LICENSE](LICENSE) for the full text.
+
+Not affiliated with or endorsed by Blizzard Entertainment, CurseForge/Overwolf or WowUp. World of Warcraft is a
+trademark of Blizzard Entertainment, Inc.
