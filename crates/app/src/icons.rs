@@ -149,11 +149,11 @@ line_icon!(
     r#"<path d="M21 12a9 9 0 1 1-6.22-8.56"/>"#
 );
 
-/// The brand mark: a bamboo culm with two leaves under a crescent moon and a four-point star.
+/// The brand mark: a full moon with a bamboo culm and a spray of three leaves cut out of it.
 pub static EMBLEM: Icon = Icon {
     name: "ra-emblem",
     view: 128.0,
-    body: r#"<path d="M109.6 39.6 A21 21 0 1 1 87.5 11.1 A18 18 0 1 0 109.6 39.6Z" fill="currentColor"/><g transform="translate(54 16) rotate(-6)" fill="currentColor"><rect x="-7.5" y="0" width="15" height="28" rx="3.5"/><rect x="-7.5" y="32" width="15" height="32" rx="3.5"/><rect x="-7.5" y="68" width="15" height="36" rx="3.5"/><rect x="-10" y="28.3" width="20" height="3.4" rx="1.7"/><rect x="-10" y="64.3" width="20" height="3.4" rx="1.7"/><path d="M8 66 C20 70 32 78 40 90 C28 88 16 80 8 70Z"/><path d="M-8 30 C-20 22 -32 20 -42 24 C-32 32 -20 34 -8 34Z"/></g><path d="M104 61.0 L106.275 71.725 L117.0 74 L106.275 76.275 L104 87.0 L101.725 76.275 L91.0 74 L101.725 71.725Z" fill="currentColor"/>"#,
+    body: r##"<defs><mask id="culm-cut"><path d="M12 64 a52 52 0 1 0 104 0 a52 52 0 1 0 -104 0Z" fill="#fff"/><g transform="translate(50 0) rotate(6 0 64)"><path d="M-3.5 4 h7.0 a4.5 4.5 0 0 1 4.5 4.5 v25.0 a4.5 4.5 0 0 1 -4.5 4.5 h-7.0 a4.5 4.5 0 0 1 -4.5 -4.5 v-25.0 a4.5 4.5 0 0 1 4.5 -4.5Z M-3.5 42 h7.0 a4.5 4.5 0 0 1 4.5 4.5 v27.0 a4.5 4.5 0 0 1 -4.5 4.5 h-7.0 a4.5 4.5 0 0 1 -4.5 -4.5 v-27.0 a4.5 4.5 0 0 1 4.5 -4.5Z M-3.5 82 h7.0 a4.5 4.5 0 0 1 4.5 4.5 v35.0 a4.5 4.5 0 0 1 -4.5 4.5 h-7.0 a4.5 4.5 0 0 1 -4.5 -4.5 v-35.0 a4.5 4.5 0 0 1 4.5 -4.5Z M7.0 38.0 C22.5 36.0 34.6 25.3 40.2 15.6 C30.5 19.2 16.6 27.3 7.0 38.0Z M7.0 40.0 C23.5 43.6 40.3 37.9 50.0 30.9 C38.8 30.7 21.3 33.4 7.0 40.0Z M7.0 42.0 C17.7 50.0 31.4 50.6 40.5 47.9 C32.5 44.4 19.2 41.1 7.0 42.0Z" fill="#000"/></g></mask></defs><path d="M12 64 a52 52 0 1 0 104 0 a52 52 0 1 0 -104 0Z" fill="currentColor" mask="url(#culm-cut)"/>"##,
 };
 
 /// A small filled four-point star (empty states, sparkles).

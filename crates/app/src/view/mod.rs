@@ -142,7 +142,7 @@ fn sidebar(s: &State) -> El {
         .px(20.0)
         .gap(10.0)
         .center_y()
-        .child(el().size(32.0, 32.0).center().child(ui::brand_mark(22.0)))
+        .child(el().size(40.0, 40.0).center().child(ui::brand_mark(32.0)))
         .child(
             col()
                 .gap(2.0)
