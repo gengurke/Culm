@@ -13,10 +13,12 @@ pub enum Tex {
     Stone,
     /// Fine pebbled grain with creases.
     Leather,
+    /// Dark cracked flagstone with mottled moss.
+    Moss,
 }
 
 impl Tex {
-    pub const ALL: [Tex; 4] = [Tex::Wood, Tex::Parchment, Tex::Stone, Tex::Leather];
+    pub const ALL: [Tex; 5] = [Tex::Wood, Tex::Parchment, Tex::Stone, Tex::Leather, Tex::Moss];
 
     /// Pixel size; it tiles at one point per pixel.
     pub fn size(self) -> (u32, u32) {
@@ -37,6 +39,7 @@ impl Tex {
                     Tex::Parchment => parchment(x, y),
                     Tex::Stone => stone(x, y),
                     Tex::Leather => leather(x, y),
+                    Tex::Moss => moss(x, y),
                 }
                 .clamp(-1.0, 1.0);
                 let (rgb, a) = if v < 0.0 { ([12, 6, 2], -v) } else { ([255, 236, 200], v) };
@@ -148,6 +151,49 @@ fn leather(x: u32, y: u32) -> f32 {
     // Thin creases where a mid-scale noise crosses its middle.
     let crease = (1.0 - (fbm(fx / 64.0, fy / 64.0, 8, 8, 3, 23) - 0.5).abs() * 40.0).max(0.0);
     broad * 0.5 + grain * 0.22 - crease * 0.13
+}
+
+/// Irregular slabs (Worley cells on a tiling 6×6 grid, edges warped by noise) split by dark
+/// cracks, with soft moss blotches and grit on top.
+fn moss(x: u32, y: u32) -> f32 {
+    const CELLS: i32 = 6;
+    let (fx, fy) = (x as f32, y as f32);
+    let cell = 512.0 / CELLS as f32;
+    // Warp the lookup so cracks wander instead of running straight.
+    let wx = fx + (fbm(fx / 64.0, fy / 64.0, 8, 8, 3, 31) - 0.5) * 36.0;
+    let wy = fy + (fbm(fx / 64.0, fy / 64.0, 8, 8, 3, 32) - 0.5) * 36.0;
+    let (cx, cy) = ((wx / cell).floor() as i32, (wy / cell).floor() as i32);
+    let (mut d1, mut d2, mut id) = (f32::MAX, f32::MAX, 0);
+    for dy in -1..=1 {
+        for dx in -1..=1 {
+            let (gx, gy) = (cx + dx, cy + dy);
+            let (hx, hy) = (gx.rem_euclid(CELLS), gy.rem_euclid(CELLS));
+            let px = (gx as f32 + 0.15 + 0.7 * hash(hx, hy, 33)) * cell;
+            let py = (gy as f32 + 0.15 + 0.7 * hash(hx, hy, 34)) * cell;
+            let d = ((wx - px).powi(2) + (wy - py).powi(2)).sqrt();
+            if d < d1 {
+                (d2, d1, id) = (d1, d, hx + hy * CELLS);
+            } else if d < d2 {
+                d2 = d;
+            }
+        }
+    }
+    let edge = (d2 - d1) * 0.5;
+    if edge < 1.6 {
+        return -0.85;
+    }
+    let tone = (hash(id, 0, 35) - 0.5) * 0.3;
+    let mut v = tone + (fbm(fx / 32.0, fy / 32.0, 16, 16, 4, 36) - 0.5) * 0.4;
+    // A worn lip along each crack: lit just past it, then fading into the slab.
+    if edge < 5.0 {
+        v += 0.18 * (1.0 - (edge - 1.6) / 3.4) - 0.1;
+    }
+    // Moss: dark soft patches gathered toward the cracks.
+    let patch = fbm(fx / 64.0, fy / 64.0, 8, 8, 4, 37);
+    let near = (1.0 - edge / 40.0).max(0.0);
+    v -= ((patch - 0.45) * 2.5 + near * 0.4).clamp(0.0, 0.45);
+    let grit = if hash(x as i32, y as i32, 38) > 0.993 { 0.25 } else { 0.0 };
+    v + grit
 }
 
 #[cfg(test)]
