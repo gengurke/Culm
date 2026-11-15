@@ -1,0 +1,128 @@
+mod common;
+use addon_core::maintenance::{self, Cleanup};
+use addon_core::wow;
+use common::*;
+
+#[test]
+fn f6_1_clear_cache_removes_cache_dir() {
+    let w = fake_wow();
+    let root = &w.inst.root;
+    write(&root.join("Cache/WDB/enUS/creaturecache.wdb"), "12345");
+    write(&root.join("Cache/ADB/enUS/DBCache.bin"), "123");
+    write(&root.join("WTF/Config.wtf"), "keep");
+
+    assert_eq!(
+        maintenance::clear_cache(&w.inst, true).unwrap(),
+        Cleanup { files: 1, bytes: 5 }
+    );
+    assert!(!root.join("Cache/WDB").exists());
+    assert!(root.join("Cache/ADB/enUS/DBCache.bin").exists());
+
+    assert_eq!(
+        maintenance::clear_cache(&w.inst, false).unwrap(),
+        Cleanup { files: 1, bytes: 3 }
+    );
+    assert!(!root.join("Cache").exists());
+    assert!(root.join("WTF/Config.wtf").exists());
+    assert_eq!(
+        maintenance::clear_cache(&w.inst, false).unwrap(),
+        Cleanup::default()
+    );
+}
+
+#[test]
+fn f6_1_refuses_while_game_running() {
+    let w = fake_wow();
+    write(&w.inst.root.join("Cache/WDB/x.wdb"), "x");
+    assert!(!wow::is_game_running(&w.inst));
+    // A fake "Wow.exe" (a copy of sleep) running in the client folder.
+    let bin = w.tmp.path().join("bin/Wow.exe");
+    std::fs::create_dir_all(bin.parent().unwrap()).unwrap();
+    std::fs::copy("/bin/sleep", &bin).unwrap();
+    let mut child = std::process::Command::new(&bin)
+        .arg("30")
+        .current_dir(&w.inst.root)
+        .spawn()
+        .unwrap();
+    let mut running = false;
+    for _ in 0..50 {
+        running = wow::is_game_running(&w.inst);
+        if running {
+            break;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(20));
+    }
+    let results = [
+        maintenance::clear_cache(&w.inst, false).map(|_| ()),
+        maintenance::clean_backup_files(&w.inst).map(|_| ()),
+        maintenance::backup_wtf(&w.inst, &w.tmp.path().join("b")).map(|_| ()),
+    ];
+    child.kill().unwrap();
+    child.wait().unwrap();
+    assert!(running);
+    for r in results {
+        assert!(r.unwrap_err().to_string().contains("running"));
+    }
+    assert!(w.inst.root.join("Cache/WDB/x.wdb").exists());
+}
+
+#[test]
+fn f6_2_clean_backup_files() {
+    let w = fake_wow();
+    let wtf = w.inst.root.join("WTF");
+    write(&wtf.join("Account/ACC/SavedVariables/Details.lua"), "keep");
+    write(
+        &wtf.join("Account/ACC/SavedVariables/Details.lua.bak"),
+        "1234",
+    );
+    write(
+        &wtf.join("Account/ACC/Realm/Char/SavedVariables/Questie.lua.bak"),
+        "12",
+    );
+    write(&wtf.join("config-cache.old"), "1");
+    write(
+        &wtf.join("Account/ACC/bindings-cache.old"),
+        "deep .old files stay",
+    );
+    assert_eq!(
+        maintenance::clean_backup_files(&w.inst).unwrap(),
+        Cleanup { files: 3, bytes: 7 }
+    );
+    assert!(wtf.join("Account/ACC/SavedVariables/Details.lua").exists());
+    assert!(wtf.join("Account/ACC/bindings-cache.old").exists());
+    assert!(!wtf.join("config-cache.old").exists());
+}
+
+#[test]
+fn f6_3_backup_wtf_zips_and_lists() {
+    let w = fake_wow();
+    let wtf = w.inst.root.join("WTF");
+    write(&wtf.join("Config.wtf"), "SET a 1");
+    write(
+        &wtf.join("Account/ACC/SavedVariables/Details.lua"),
+        "Details = {}",
+    );
+    let backups = w.tmp.path().join("data/wtf_backups").join(&w.inst.id);
+    assert!(maintenance::list_wtf_backups(&backups).unwrap().is_empty());
+
+    let first = maintenance::backup_wtf(&w.inst, &backups).unwrap();
+    let second = maintenance::backup_wtf(&w.inst, &backups).unwrap();
+    assert_ne!(first, second);
+    let list = maintenance::list_wtf_backups(&backups).unwrap();
+    assert_eq!(list.len(), 2);
+    assert!(list.iter().all(|b| b.size > 0));
+
+    let mut zip = zip::ZipArchive::new(std::fs::File::open(&first).unwrap()).unwrap();
+    let mut names: Vec<String> = zip.file_names().map(|n| n.unwrap().to_string()).collect();
+    names.sort();
+    assert_eq!(
+        names,
+        [
+            "WTF/Account/ACC/SavedVariables/Details.lua",
+            "WTF/Config.wtf"
+        ]
+    );
+    let mut s = String::new();
+    std::io::Read::read_to_string(&mut zip.by_name("WTF/Config.wtf").unwrap(), &mut s).unwrap();
+    assert_eq!(s, "SET a 1");
+}
