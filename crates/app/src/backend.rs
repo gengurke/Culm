@@ -2,6 +2,7 @@
 //! (`worker.rs`), never on the UI thread. The real implementation wraps `addon-core`;
 //! [`crate::mock::MockBackend`] serves canned Forever data for snapshots and tests.
 
+use crate::theme::ThemeId;
 use addon_core::{Addon, Channel, Installation, RemoteAddon};
 use anyhow::Result;
 use std::path::Path;
@@ -13,6 +14,7 @@ pub struct Settings {
     pub default_channel: Channel,
     /// Id of the installation shown last.
     pub installation: Option<String>,
+    pub theme: ThemeId,
 }
 
 /// A result plus non-fatal problems to show (e.g. one provider offline).

@@ -97,6 +97,10 @@ What the addon manager does, one short paragraph per feature. Ids are referenced
   Settings hint; nothing calls CurseForge. (`f7_1_curseforge_unavailable_without_key`,
   e2e `f7_1_without_a_key_search_is_off_and_points_to_settings`, `f7_1_f7_2_saved_settings_survive_a_restart`)
 - **F7.2 Defaults** ✅ — Default channel for new addons, stored in prefs. (e2e `f7_1_f7_2_saved_settings_survive_a_restart`)
+- **F7.3 Themes** ✅ — Settings → Appearance picks the look (Moonlit, Hearthwood: carved wood, stone and gold); cards preview
+  each theme in its own skin, the choice applies at once, is kept in prefs (`theme`) and read before the first frame; an
+  unknown stored id falls back to Moonlit. Layout is the same in every theme. (e2e `f7_3_theme_choice_applies_and_survives_restart`,
+  `f7_3_unknown_stored_theme_falls_back_to_moonlit`, `f7_3_every_theme_renders_every_screen`)
 
 ## App wiring ✅
 `crates/app/src/core_backend.rs` implements `backend::Backend` over the core: data/cache dirs from `rune::dirs::AppDirs`
@@ -111,8 +115,8 @@ config and a FakeServer (helpers in `tests/common/mod.rs`); `tests/ui_shell.rs` 
 are dropped after a switch).
 
 ## UI shell ✅
-Rune UI in `crates/app` (Moonlit look): sidebar nav with update badge and
-installation picker, starry header band, My Addons (filter, virtual list, detail panel), Get Addons
+Rune UI in `crates/app` (themes in `src/theme/`, default Moonlit): sidebar nav with update badge and
+installation picker, header band (stars in Moonlit), My Addons (filter, virtual list, detail panel), Get Addons
 (debounced search, popular list, install from URL, no-key hint), Maintenance (confirm + result per
-card, locked while the game runs), Settings (API key, default channel, installations, WowUp import),
-toasts and onboarding.
+card, locked while the game runs), Settings (theme, API key, default channel, installations, WowUp import),
+toasts and onboarding. Every scene has a `<scene>@<theme>` variant (`--snap x.png --scene settings@hearthwood`).

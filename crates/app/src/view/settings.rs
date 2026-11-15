@@ -4,10 +4,10 @@ use super::{band, subtitle};
 use crate::brand;
 use crate::icons;
 use crate::state::{Intent, State, dispatch};
-use crate::theme::{self, StyleExt, pal};
+use crate::theme::{self, StyleExt, SurfaceExt, ThemeId, pal, t};
 use crate::ui::{self, Kind};
 use addon_core::Channel;
-use rune::{El, ScrollSpec, Tx, col, el, icon, row, text};
+use rune::{Cursor, El, ScrollSpec, Tx, col, el, icon, row, text};
 
 pub fn page(s: &State) -> El {
     let p = pal();
@@ -54,7 +54,7 @@ pub fn page(s: &State) -> El {
 
     let mut installs = section("Installations");
     if s.installations.is_empty() {
-        installs = installs.child(text("No World of Warcraft: Forever installation yet.").font(theme::NOTE).color(p.text_muted).py(12.0));
+        installs = installs.child(text("No World of Warcraft: Forever installation yet.").font(t().ty.note).color(p.text_muted).py(12.0));
     }
     for inst in &s.installations {
         let on = s.current.as_deref() == Some(&inst.id);
@@ -75,7 +75,7 @@ pub fn page(s: &State) -> El {
                 .gap(14.0)
                 .center_y()
                 .border_sides([0.0, 0.0, 1.0, 0.0], p.divider)
-                .child(el().size(36.0, 36.0).center().fill(p.panel_alt).border(1.0, p.border).child(icon(&icons::DRIVE, 18.0).color(p.text_dim)))
+                .child(ui::glyph_tile(&icons::DRIVE, 36.0))
                 .child(
                     col()
                         .grow(1.0)
@@ -85,10 +85,10 @@ pub fn page(s: &State) -> El {
                             row()
                                 .gap(10.0)
                                 .center_y()
-                                .child(text(inst.label.clone()).font(theme::BODY).color(p.text))
-                                .child(text(inst.version.clone().unwrap_or_default()).font(theme::MONO.size_of(11.0)).color(p.text_muted)),
+                                .child(text(inst.label.clone()).font(t().ty.body).color(p.text))
+                                .child(text(inst.version.clone().unwrap_or_default()).font(t().ty.mono.size_of(11.0)).color(p.text_muted)),
                         )
-                        .child(text(inst.root.display().to_string()).font(theme::MONO.size_of(11.5)).color(p.text_muted).truncate()),
+                        .child(text(inst.root.display().to_string()).font(t().ty.mono.size_of(11.5)).color(p.text_muted).truncate()),
                 )
                 .child(trailing),
         );
@@ -106,10 +106,16 @@ pub fn page(s: &State) -> El {
     let about = section("About").child(setting_row(
         brand::APP_NAME,
         "An addon manager for World of Warcraft: Forever. Free software under the MIT licence.",
-        text(format!("v{}", env!("CARGO_PKG_VERSION"))).key("settings/version").font(theme::MONO).color(p.text_dim),
+        text(format!("v{}", env!("CARGO_PKG_VERSION"))).key("settings/version").font(t().ty.mono).color(p.text_dim),
     ));
 
-    let content = col().key("settings").w_full().max_w(880.0).px(theme::PAD).pb(40.0).child(curseforge).child(defaults).child(installs).child(about);
+    let mut themes = row().key("settings/theme").role("radiogroup").w_full().pt(14.0).gap(14.0).flex_wrap().focus_group();
+    for id in ThemeId::ALL {
+        themes = themes.child(theme_card(s, *id));
+    }
+    let appearance = section("Appearance").child(themes);
+
+    let content = col().key("settings").w_full().max_w(880.0).px(theme::PAD).pb(40.0).child(appearance).child(curseforge).child(defaults).child(installs).child(about);
     col()
         .w_full()
         .h_full()
@@ -117,9 +123,70 @@ pub fn page(s: &State) -> El {
         .child(col().key("settings/scroll").grow(1.0).min_h(0.0).w_full().scroll(ScrollSpec { stick_bottom: false }).child(content))
 }
 
+/// A picker card: a miniature window painted in that theme's own skin, its name and a line.
+fn theme_card(s: &State, id: ThemeId) -> El {
+    let (th, p) = (id.theme(), pal());
+    let on = s.settings.theme == id;
+    let sk = &th.skin;
+    let preview = row()
+        .w_full()
+        .h(96.0)
+        .clip_rounded(0.0)
+        .skin(&sk.window)
+        .child(col().w(48.0).h_full().pt(10.0).items_center().skin(&sk.sidebar).child(icon(sk.emblem, 18.0).color(th.pal.accent)))
+        .child(
+            col()
+                .grow(1.0)
+                .min_w(0.0)
+                .h_full()
+                .child(row().w_full().h(38.0).px(10.0).center_y().skin(&sk.band).child(text(th.name).font(th.ty.heading).color(th.pal.heading).truncate()))
+                .child(
+                    row()
+                        .w_full()
+                        .grow(1.0)
+                        .px(10.0)
+                        .gap(6.0)
+                        .center_y()
+                        .child(el().w(52.0).h(18.0).skin(&sk.primary))
+                        .child(el().w(40.0).h(18.0).skin(&sk.secondary))
+                        .child(el().w(10.0).h(10.0).radius(5.0).fill(th.pal.success)),
+                ),
+        );
+    let card = col()
+        .key(format!("settings/theme/{}", th.id))
+        .role("radio")
+        .label(th.name)
+        .checked(on)
+        .focusable(true)
+        .w(260.0)
+        .padding(8.0)
+        .gap(10.0)
+        .border(if on { 2.0 } else { 1.0 }, if on { p.accent } else { p.border })
+        .hover(p.hover)
+        .cursor(Cursor::Pointer)
+        .on_press_tx(move |s: &mut State, tx: &mut Tx| dispatch(s, Intent::SetTheme(id), tx))
+        .child(preview);
+    card.child(
+        row()
+            .w_full()
+            .gap(8.0)
+            .px(4.0)
+            .center_y()
+            .child(
+                col()
+                    .grow(1.0)
+                    .min_w(0.0)
+                    .gap(2.0)
+                    .child(text(th.name).font(t().ty.body).color(p.text))
+                    .child(text(th.blurb).font(t().ty.small).color(p.text_muted).truncate()),
+            )
+            .child(icon(&icons::CHECK, 16.0).color(if on { p.accent } else { p.accent.alpha(0.0) })),
+    )
+}
+
 fn section(title: &str) -> El {
     let p = pal();
-    col().w_full().pt(28.0).child(text(title.to_string()).font(theme::HEADING).color(p.text).pb(4.0))
+    col().w_full().pt(28.0).child(text(title.to_string()).font(t().ty.heading).color(p.heading).pb(4.0))
 }
 
 fn setting_row(label: &str, description: &str, control: El) -> El {
@@ -135,8 +202,8 @@ fn setting_row(label: &str, description: &str, control: El) -> El {
                 .grow(1.0)
                 .min_w(0.0)
                 .gap(3.0)
-                .child(text(label.to_string()).font(theme::BODY).color(p.text))
-                .child(text(description.to_string()).font(theme::NOTE).color(p.text_muted).wrap()),
+                .child(text(label.to_string()).font(t().ty.body).color(p.text))
+                .child(text(description.to_string()).font(t().ty.note).color(p.text_muted).wrap()),
         )
         .child(control)
 }

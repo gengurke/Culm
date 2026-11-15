@@ -35,7 +35,7 @@ pub fn init() -> State {
 pub fn spec() -> AppSpec<State> {
     AppSpec {
         min_size: Some((960.0, 600.0)),
-        scenes: SCENES,
+        scenes: scenes(),
         families: theme::FAMILIES,
         setup: Some(setup),
         poll: Some(poll),
@@ -75,6 +75,32 @@ pub fn loaded(s: &mut State) {
     s.addons = mock::with_latest(&mock::installed_addons()).into_iter().map(|addon| AddonUi { addon, op: None }).collect();
     s.addons.sort_by_key(|a| a.addon.name.to_lowercase());
     s.job = Job::Idle;
+    scene_theme(s);
+}
+
+/// `--scene <name>@<theme>` draws a scene in that theme.
+// shortcut: scene fns are plain fn pointers, so the theme is read back from the command line;
+// in the playground (no `--scene`) every variant shows the stored theme.
+fn scene_theme(s: &mut State) {
+    if rune::tooling::headless_run().is_none() {
+        return;
+    }
+    let args: Vec<String> = std::env::args().collect();
+    let scene = args.iter().skip_while(|a| *a != "--scene").nth(1);
+    if let Some((_, id)) = scene.and_then(|n| n.split_once('@')) {
+        s.settings.theme = theme::ThemeId::from_id(id);
+    }
+}
+
+/// Every scene, plus a `<scene>@<theme>` variant per theme.
+fn scenes() -> &'static [Scene] {
+    let mut all = SCENES.to_vec();
+    for id in theme::ThemeId::ALL {
+        for (name, f) in SCENES {
+            all.push((String::leak(format!("{name}@{}", id.id())), *f));
+        }
+    }
+    all.leak()
 }
 
 fn set_op(s: &mut State, id: &str, op: Op) {
@@ -148,6 +174,7 @@ const SCENES: &[Scene] = &[
     ("onboarding", |s| {
         s.settings = s.backend.load_settings();
         s.job = Job::Idle;
+        scene_theme(s);
     }),
 ];
 
