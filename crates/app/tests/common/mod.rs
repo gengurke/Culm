@@ -178,6 +178,24 @@ impl World {
         );
         s.bytes("GET", "/files/0/30/3.0.zip", zip("Cee", "3.0", "Core.lua"));
         s.respond("GET", "/media/*", 200, "image/svg+xml", THUMB_SVG);
+        let cat = |id: u32, name: &str, slug: &str, parent: u32| json!({ "id": id, "gameId": 1, "name": name, "slug": slug, "classId": 1, "parentCategoryId": parent });
+        s.json(
+            "GET",
+            "/v1/categories",
+            &cf_envelope(json!([
+                { "id": 1, "gameId": 1, "name": "Addons", "slug": "addons", "isClass": true },
+                cat(1009, "Bags & Inventory", "bags-inventory", 1),
+                cat(1020, "Class", "class", 1),
+                cat(1028, "Warrior", "warrior", 1020),
+            ])),
+        );
+        s.json(
+            "GET",
+            "/v1/mods/3/description",
+            &cf_envelope(json!(
+                "<p>Cee keeps your <b>bags</b> tidy.</p><ul><li>Sorts</li><li>Stacks</li></ul>"
+            )),
+        );
         s.json(
             "GET",
             "/repos/Questie/Questie",
@@ -296,6 +314,14 @@ impl App {
         self.frame();
     }
 
+    pub fn press(&mut self, key: Key) {
+        self.rt.key(KeyEvent {
+            key,
+            mods: Mods::default(),
+        });
+        self.frame();
+    }
+
     pub fn has(&self, key: &str) -> bool {
         self.rt.find(key).is_some()
     }
@@ -354,7 +380,7 @@ impl App {
     pub fn wait_idle(&mut self) {
         self.wait_for("the app to settle", |s| {
             s.job == Job::Idle
-                && !s.url_busy
+                && s.link != addon_app::state::Fetch::Loading
                 && s.installing.is_empty()
                 && !s.addons.iter().any(|a| a.op.as_ref().is_some_and(Op::busy))
         });

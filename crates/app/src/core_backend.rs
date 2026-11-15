@@ -7,14 +7,18 @@ use crate::theme::ThemeId;
 use crate::ui::bytes;
 use addon_core::providers::{self, CurseForge, Provider, ProviderConfig};
 use addon_core::{
-    Addon, Channel, Flavor, Installation, RemoteAddon, http, install, maintenance, scan, store,
-    updates, wow, wowup_import,
+    Addon, Category, Channel, Flavor, Installation, RemoteAddon, SearchFilter, http, install,
+    maintenance, scan, store, updates, wow, wowup_import,
 };
 use anyhow::{Context, Result, bail};
 use rune::prefs::Prefs;
 use std::hash::{DefaultHasher, Hash, Hasher};
 use std::path::{Path, PathBuf};
 use std::sync::{Mutex, RwLock};
+use std::time::Duration;
+
+/// How long the cached CurseForge category list is used before it is fetched again.
+const CATEGORIES_MAX_AGE: Duration = Duration::from_secs(7 * 24 * 3600);
 
 /// Where the backend reads and writes. Tests build one over temp dirs and a fake server.
 pub struct Config {
@@ -312,8 +316,46 @@ impl Backend for CoreBackend {
         })
     }
 
-    fn search(&self, query: &str) -> Result<Vec<RemoteAddon>> {
-        self.curseforge().search(Flavor::Forever, query)
+    fn search(&self, filter: &SearchFilter) -> Result<Vec<RemoteAddon>> {
+        self.curseforge().search_filtered(filter)
+    }
+
+    /// From `<cache>/curseforge-categories.json` while it is fresh; a failed refresh falls back
+    /// to a stale copy.
+    fn categories(&self) -> Result<Vec<Category>> {
+        let path = self.cache_dir.join("curseforge-categories.json");
+        let cached = || -> Option<Vec<Category>> {
+            serde_json::from_slice(&std::fs::read(&path).ok()?).ok()
+        };
+        let fresh = std::fs::metadata(&path)
+            .and_then(|m| m.modified())
+            .ok()
+            .and_then(|t| t.elapsed().ok())
+            .is_some_and(|age| age < CATEGORIES_MAX_AGE);
+        if fresh && let Some(list) = cached() {
+            return Ok(list);
+        }
+        match self.curseforge().categories() {
+            Ok(list) => {
+                // Best effort, like thumbnails: a failed write only costs a refetch.
+                let tmp = path.with_extension("part");
+                if std::fs::create_dir_all(&self.cache_dir).is_ok()
+                    && serde_json::to_vec(&list).is_ok_and(|b| std::fs::write(&tmp, b).is_ok())
+                {
+                    let _ = std::fs::rename(&tmp, &path);
+                }
+                Ok(list)
+            }
+            Err(e) => cached().ok_or(e),
+        }
+    }
+
+    fn description(&self, remote: &RemoteAddon) -> Result<Option<String>> {
+        if remote.provider != providers::curseforge::NAME {
+            return Ok(None);
+        }
+        let text = self.curseforge().description(&remote.external_id)?;
+        Ok((!text.is_empty()).then_some(text))
     }
 
     fn featured(&self) -> Result<Vec<RemoteAddon>> {

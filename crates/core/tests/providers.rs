@@ -3,7 +3,7 @@
 use addon_core::providers::{
     self, CurseForge, GitHub, Provider, ProviderConfig, ScannedFolder, WowInterface,
 };
-use addon_core::{Channel, DependencyKind, Flavor, http};
+use addon_core::{Channel, DependencyKind, Flavor, SearchFilter, Sort, http};
 use addon_testkit::{
     FakeServer, cf_envelope, cf_file, cf_mod, cf_mod_with_files, fixture, fixture_at,
 };
@@ -86,6 +86,8 @@ fn f4_1_search_curseforge_filters_forever_files() {
         ]
     );
     assert_eq!(stable.dependencies[0].external_id, "1001");
+    assert_eq!(a.categories, ["Combat"]);
+    assert_eq!(a.updated_at.as_deref(), Some("2026-10-12T10:00:00Z"));
     // Null downloadUrl falls back to the CDN path.
     assert_eq!(
         a.files[0].download_url,
@@ -211,6 +213,129 @@ fn f4_4_curseforge_url_resolves_slug() {
         "{err}"
     );
     assert!(cf.from_url(F, "https://github.com/a/b").unwrap().is_none());
+}
+
+#[test]
+fn f4_4_link_source_tells_links_from_search_text() {
+    for (input, source) in [
+        (
+            "https://www.curseforge.com/wow/addons/details",
+            Some("CurseForge"),
+        ),
+        (
+            "curseforge.com/wow/addons/dbm-core/files",
+            Some("CurseForge"),
+        ),
+        ("https://github.com/Questie/Questie", Some("GitHub")),
+        ("  Questie/Questie ", Some("GitHub")),
+        ("details", None),
+        ("damage meter", None),
+        ("bag / bank", None),
+        ("https://example.com/a/b", None),
+    ] {
+        assert_eq!(providers::link_source(input), source, "{input:?}");
+    }
+}
+
+#[test]
+fn f4_5_description_is_plain_text() {
+    let s = FakeServer::start();
+    s.json(
+        "GET",
+        "/v1/mods/61284/description",
+        &cf_envelope(json!(
+            "<h2>&nbsp;</h2><p><img src=\"x.png\"><em>Most powerful</em> meter &amp; more.</p>\
+             <script>alert(1)</script><ul><li>Raids</li><li>Dungeons</li></ul>"
+        )),
+    );
+    let text = curseforge(&s).description("61284").unwrap();
+    assert_eq!(text, "Most powerful meter & more.\n\n• Raids\n• Dungeons");
+    assert_eq!(
+        s.requests_to("/v1/mods/61284/description")[0].header("x-api-key"),
+        Some("test-key")
+    );
+    assert!(
+        curseforge(&s).description("../x").is_err(),
+        "ids are numbers"
+    );
+}
+
+#[test]
+fn f4_6_categories_are_the_addon_tree() {
+    let s = FakeServer::start();
+    let cat = |id: u32, name: &str, parent: u32| {
+        json!({ "id": id, "gameId": 1, "name": name, "slug": name.to_lowercase().replace(' ', "-"),
+                "classId": 1, "parentCategoryId": parent, "isClass": null })
+    };
+    s.json(
+        "GET",
+        "/v1/categories",
+        &cf_envelope(json!([
+            { "id": 1, "gameId": 1, "name": "Addons", "slug": "addons", "isClass": true },
+            cat(1009, "Bags & Inventory", 1),
+            cat(1020, "Class", 1),
+            cat(1028, "Warrior", 1020),
+            { "id": 6, "gameId": 1, "name": "Other class root", "slug": "x", "classId": 99, "parentCategoryId": 99 },
+        ])),
+    );
+    let cats = curseforge(&s).categories().unwrap();
+    let got: Vec<(u32, &str, Option<u32>)> = cats
+        .iter()
+        .map(|c| (c.id, c.name.as_str(), c.parent))
+        .collect();
+    assert_eq!(
+        got,
+        [
+            (1009, "Bags & Inventory", None),
+            (1020, "Class", None),
+            (1028, "Warrior", Some(1020))
+        ]
+    );
+    assert_eq!(cats[2].slug, "warrior");
+    let req = &s.requests_to("/v1/categories")[0];
+    assert_eq!(req.query_param("gameId").as_deref(), Some("1"));
+}
+
+#[test]
+fn f4_6_search_sends_category_and_sort() {
+    let s = FakeServer::start();
+    s.json("GET", "/v1/mods/search", &fixture("cf_search.json"));
+    let cf = curseforge(&s);
+    let results = cf
+        .search_filtered(&SearchFilter {
+            text: String::new(),
+            category: Some(1009),
+            sort: Sort::Name,
+        })
+        .unwrap();
+    assert_eq!(results.len(), 1);
+    let req = &s.requests_to("/v1/mods/search")[0];
+    for (k, v) in [
+        ("categoryId", Some("1009")),
+        ("sortField", Some("4")),
+        ("sortOrder", Some("asc")),
+        ("gameVersionTypeId", Some("88568")),
+        ("searchFilter", None),
+    ] {
+        assert_eq!(req.query_param(k).as_deref(), v, "query param {k}");
+    }
+    for (sort, field) in [
+        (Sort::Popularity, "2"),
+        (Sort::LastUpdated, "3"),
+        (Sort::TotalDownloads, "6"),
+    ] {
+        cf.search_filtered(&SearchFilter {
+            text: "bag".into(),
+            category: None,
+            sort,
+        })
+        .unwrap();
+        let req = s.requests_to("/v1/mods/search").pop().unwrap();
+        assert_eq!(req.query_param("sortField").as_deref(), Some(field));
+        assert_eq!(req.query_param("sortOrder").as_deref(), Some("desc"));
+        assert_eq!(req.query_param("searchFilter").as_deref(), Some("bag"));
+        assert_eq!(req.query_param("categoryId"), None);
+    }
 }
 
 fn github_server() -> FakeServer {

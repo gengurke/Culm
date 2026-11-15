@@ -2,6 +2,7 @@
 //! the app calls it from worker threads, tests call it directly.
 
 pub mod fingerprint;
+pub mod html;
 pub mod http;
 pub mod install;
 pub mod maintenance;
