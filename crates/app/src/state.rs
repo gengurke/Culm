@@ -1227,6 +1227,7 @@ pub fn poll(s: &mut State, clock: f64, tx: &mut Tx) -> bool {
     }
     changed |= s.take_search();
     changed |= s.take_link();
+    changed |= crate::theme::textures_landed();
     let before = s.toasts.len();
     s.toasts.retain(|t| t.due > clock);
     changed |= s.toasts.len() != before;
@@ -1240,5 +1241,9 @@ pub fn setup(s: &mut State, waker: Waker) {
     s.search.set_waker(waker.clone());
     s.resolve.set_waker(waker.clone());
     s.images = Some(ImageCache::new(waker.clone()));
+    // Headless runs make textures in the view, so the first snapshot already shows them.
+    if rune::tooling::headless_run().is_none() {
+        crate::theme::prewarm(&waker);
+    }
     s.waker = waker;
 }
