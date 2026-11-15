@@ -125,3 +125,48 @@ fn f2_4_overlapping_wowup_records_get_one_owner_per_folder() {
     assert_eq!(merged.len(), 2);
     assert_eq!(merged[0].folders, ["Questie"]);
 }
+
+#[test]
+fn f2_4_wowup_link_is_not_taken_over_by_another_providers_toc_match() {
+    let w = fake_wow();
+    for f in ["EnhanceQoL", "EnhanceQoLBags"] {
+        w.add_folder(f, &format!("{f}.toc"), &simple_toc(f, "13.21.3"), &[]);
+    }
+    let wowup = w.tmp.path().join("WowUpCf");
+    let client = w.inst.root.display().to_string();
+    let prefs = serde_json::json!({
+        "wow_installations": [{"id": "fev", "location": format!("{client}/Wow.exe")}]
+    });
+    let addons = serde_json::json!({
+        "e": {
+            "id": "e", "name": "Enhance QoL", "providerName": "Curse", "externalId": "1076354",
+            "installedVersion": "13.21.3-forever", "installedFolderList": ["EnhanceQoL", "EnhanceQoLBags"],
+            "installationId": "fev"
+        }
+    });
+    write(&wowup.join("preferences.json"), prefs.to_string());
+    write(&wowup.join("addons.json"), addons.to_string());
+    let imported = wowup_import::import_wowup(&wowup, &w.inst).unwrap();
+
+    // Without a CurseForge key another provider matches the main folder by its TOC id
+    // (on the real install: WowInterface, whose file is not the Forever build).
+    let other = remote_addon(
+        "26888",
+        "Enhance QoL",
+        vec![remote_file("26888-1", "13.21.3", Channel::Stable, &[])],
+    );
+    let providers: Vec<Box<dyn addon_core::providers::Provider>> = vec![Box::new(FakeProvider {
+        matches: vec![("EnhanceQoL".into(), other, None)],
+        fail: false,
+    })];
+    let fresh = scan::scan_installation(&w.inst, &providers).unwrap().addons;
+    let merged = store::merge_rescan(&imported, fresh);
+    assert_eq!(merged.len(), 1, "{merged:#?}");
+    let e = &merged[0];
+    assert_eq!(
+        (e.provider.as_deref(), e.external_id.as_deref()),
+        (Some("CurseForge"), Some("1076354"))
+    );
+    assert_eq!(e.folders, ["EnhanceQoL", "EnhanceQoLBags"]);
+    assert_eq!(e.installed_version.as_deref(), Some("13.21.3-forever"));
+}

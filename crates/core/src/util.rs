@@ -3,6 +3,8 @@
 use anyhow::{Context, Result};
 use std::collections::hash_map::RandomState;
 use std::hash::{BuildHasher, Hasher};
+use std::io::Write;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -94,12 +96,24 @@ pub(crate) fn write_atomic(path: &Path, bytes: &[u8]) -> Result<()> {
     let dir = path.parent().context("path has no parent")?;
     std::fs::create_dir_all(dir).with_context(|| format!("creating {}", dir.display()))?;
     let name = path.file_name().context("path has no file name")?;
+    // Unique per process *and* call, so two threads never share a temp file.
+    static SEQ: AtomicU64 = AtomicU64::new(0);
     let tmp = dir.join(format!(
-        ".{}.tmp-{}",
+        ".{}.tmp-{}-{}",
         name.to_string_lossy(),
-        std::process::id()
+        std::process::id(),
+        SEQ.fetch_add(1, Ordering::Relaxed)
     ));
-    std::fs::write(&tmp, bytes).with_context(|| format!("writing {}", tmp.display()))?;
+    let write = || -> std::io::Result<()> {
+        let mut f = std::fs::File::create(&tmp)?;
+        f.write_all(bytes)?;
+        // On disk before the rename, so a crash can't leave an empty list behind.
+        f.sync_all()
+    };
+    if let Err(e) = write() {
+        let _ = std::fs::remove_file(&tmp);
+        return Err(e).with_context(|| format!("writing {}", tmp.display()));
+    }
     std::fs::rename(&tmp, path).with_context(|| format!("replacing {}", path.display()))
 }
 

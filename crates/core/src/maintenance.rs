@@ -36,7 +36,16 @@ impl WtfBackup {
     }
 }
 
-fn refuse_if_running(inst: &Installation) -> Result<()> {
+/// Every tool deletes below `inst.root`: only ever act on a real Forever client folder (the stored
+/// installation list is a plain JSON file), and never while the game runs.
+fn refuse_unsafe(inst: &Installation) -> Result<()> {
+    let is_client = inst
+        .root
+        .file_name()
+        .is_some_and(|n| n.eq_ignore_ascii_case("_forever_"));
+    if !is_client || !inst.root.is_dir() {
+        bail!("{} is not a WoW Forever client folder", inst.root.display());
+    }
     if is_game_running(inst) {
         bail!("World of Warcraft is running - close the game first");
     }
@@ -56,12 +65,15 @@ fn remove_files(files: &[PathBuf]) -> Result<Cleanup> {
 
 /// Deletes `Cache/` (or only `Cache/WDB`) of the client.
 pub fn clear_cache(inst: &Installation, wdb_only: bool) -> Result<Cleanup> {
-    refuse_if_running(inst)?;
+    refuse_unsafe(inst)?;
     let dir = if wdb_only {
         inst.root.join("Cache/WDB")
     } else {
         inst.root.join("Cache")
     };
+    if dir.symlink_metadata().is_ok_and(|m| m.file_type().is_symlink()) {
+        bail!("{} is a link - not following it", dir.display());
+    }
     let c = remove_files(&walk_files(&dir)?)?;
     if dir.exists() {
         std::fs::remove_dir_all(&dir).with_context(|| format!("deleting {}", dir.display()))?;
@@ -71,7 +83,7 @@ pub fn clear_cache(inst: &Installation, wdb_only: bool) -> Result<Cleanup> {
 
 /// Deletes `WTF/**/*.lua.bak` (previous SavedVariables) and `WTF/*.old`.
 pub fn clean_backup_files(inst: &Installation) -> Result<Cleanup> {
-    refuse_if_running(inst)?;
+    refuse_unsafe(inst)?;
     let wtf = inst.root.join("WTF");
     let files: Vec<PathBuf> = walk_files(&wtf)?
         .into_iter()
@@ -89,7 +101,7 @@ pub fn clean_backup_files(inst: &Installation) -> Result<Cleanup> {
 
 /// Zips the client's `WTF` folder into `backups_dir/WTF-<timestamp>.zip`.
 pub fn backup_wtf(inst: &Installation, backups_dir: &Path) -> Result<PathBuf> {
-    refuse_if_running(inst)?;
+    refuse_unsafe(inst)?;
     let wtf = inst.root.join("WTF");
     if !wtf.is_dir() {
         bail!("{} has no WTF folder", inst.root.display());

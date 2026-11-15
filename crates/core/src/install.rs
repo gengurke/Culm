@@ -52,6 +52,7 @@ fn extract(zip_bytes: &[u8], dest: &Path) -> Result<Vec<String>> {
         .context("the download is not a valid zip file")?;
     let mut entries: Vec<(usize, Vec<String>, bool)> = Vec::new();
     let mut tops: BTreeSet<String> = BTreeSet::new();
+    let mut with_toc: BTreeSet<String> = BTreeSet::new();
     for i in 0..ar.len() {
         let f = ar.by_index(i).context("reading zip entry")?;
         let raw = f.name().context("zip entry name")?.to_string();
@@ -66,11 +67,16 @@ fn extract(zip_bytes: &[u8], dest: &Path) -> Result<Vec<String>> {
         if parts.len() == 1 && !is_dir {
             continue; // loose top-level files (README etc.) are not addons
         }
+        if parts.len() == 2 && !is_dir && parts[1].to_ascii_lowercase().ends_with(".toc") {
+            with_toc.insert(parts[0].clone());
+        }
         tops.insert(parts[0].clone());
         entries.push((i, parts, is_dir));
     }
-    if tops.is_empty() {
-        bail!("the zip contains no addon folders");
+    // A zip with only a wrapper folder (`Repo-v1/MyAddon/...`) would replace the addon with a
+    // folder WoW never loads: refuse it before anything is touched.
+    if with_toc.is_empty() {
+        bail!("the zip contains no addon folders (no top-level folder has a .toc file)");
     }
     std::fs::create_dir_all(dest).with_context(|| format!("creating {}", dest.display()))?;
     let mut budget = MAX_UNPACKED;

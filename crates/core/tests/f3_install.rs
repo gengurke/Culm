@@ -126,6 +126,8 @@ fn f3_2_update_swaps_folders_and_rolls_back_on_bad_zip() {
         zip_bytes(&[("Bar/Bar.toc", "x"), ("../evil.lua", "pwned")]),
         zip_bytes(&[("/abs/Bar.toc", "x")]),
         zip_bytes(&[("README.md", "no folders")]),
+        // A wrapper folder without a TOC would replace Bar with a folder WoW never loads.
+        zip_bytes(&[("Bar-v3/Bar/Bar.toc", "x"), ("Bar-v3/README.md", "x")]),
         b"not a zip".to_vec(),
     ] {
         let v3 = remote_file("333", "3.0", Channel::Stable, &[]);
@@ -241,4 +243,55 @@ fn f5_2_reinstall_restores_modified_files() {
     assert_eq!(again.id, addon.id);
     assert_eq!(read(&w, "R/Core.lua"), "original");
     assert!(!w.addons().join("R/stray.lua").exists());
+}
+
+#[test]
+fn f4_3_install_takes_only_shared_folders_from_other_records() {
+    let base = addon_core::Addon {
+        id: "a".into(),
+        name: "A".into(),
+        author: String::new(),
+        summary: String::new(),
+        provider: Some("Fake".into()),
+        external_id: Some("1".into()),
+        url: None,
+        thumbnail_url: None,
+        folders: vec!["A".into(), "LibShared".into()],
+        installed_version: None,
+        installed_file_id: None,
+        installed_at: None,
+        game_version: None,
+        channel: Channel::Beta,
+        latest: None,
+        ignored: None,
+        auto_update: false,
+        dependencies: vec![],
+    };
+    let unknown = addon_core::Addon {
+        id: "u".into(),
+        name: "B".into(),
+        provider: None,
+        folders: vec!["B".into()],
+        ..base.clone()
+    };
+    let b = addon_core::Addon {
+        id: "b".into(),
+        name: "B".into(),
+        external_id: Some("2".into()),
+        folders: vec!["B".into(), "LibShared".into()],
+        ..base.clone()
+    };
+    let mut list = vec![base.clone(), unknown];
+    store::upsert_addon(&mut list, b.clone());
+    // A keeps its own folder and settings; the Unknown record of B's folder is gone.
+    assert_eq!(list.len(), 2, "{list:#?}");
+    assert_eq!(list[0].folders, ["A"]);
+    assert_eq!(list[0].channel, Channel::Beta);
+    assert_eq!(list[1], b);
+
+    // Removing never touches a folder another record also lists.
+    let mut overlapping = list.clone();
+    overlapping[0].folders.push("LibShared".into());
+    assert_eq!(store::owned_folders(&overlapping, &b), ["B"]);
+    assert_eq!(store::owned_folders(&list, &b), ["B", "LibShared"]);
 }

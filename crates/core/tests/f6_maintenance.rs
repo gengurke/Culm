@@ -126,3 +126,23 @@ fn f6_3_backup_wtf_zips_and_lists() {
     std::io::Read::read_to_string(&mut zip.by_name("WTF/Config.wtf").unwrap(), &mut s).unwrap();
     assert_eq!(s, "SET a 1");
 }
+
+#[test]
+fn f6_1_only_touches_a_forever_client_folder() {
+    let w = fake_wow();
+    // A broken installations.json pointing at the WoW root (or anywhere else) must not clear it.
+    let mut wrong = w.inst.clone();
+    wrong.root = w.wow_root.clone();
+    write(&w.wow_root.join("Cache/keep.bin"), "x");
+    let err = maintenance::clear_cache(&wrong, false).unwrap_err();
+    assert!(err.to_string().contains("not a WoW Forever client"), "{err:#}");
+    assert!(maintenance::clean_backup_files(&wrong).is_err());
+    assert!(w.wow_root.join("Cache/keep.bin").exists());
+
+    // A Cache link is not followed into the folder it points at.
+    let elsewhere = w.tmp.path().join("elsewhere");
+    write(&elsewhere.join("precious.txt"), "keep");
+    std::os::unix::fs::symlink(&elsewhere, w.inst.root.join("Cache")).unwrap();
+    assert!(maintenance::clear_cache(&w.inst, false).is_err());
+    assert!(elsewhere.join("precious.txt").exists());
+}

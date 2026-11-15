@@ -196,7 +196,8 @@ pub fn toc_names(folder: &Path) -> Result<Vec<String>> {
         .flatten()
         .filter(|e| e.file_type().is_ok_and(|t| t.is_file()))
         .map(|e| e.file_name().to_string_lossy().into_owned())
-        .filter(|n| n.len() > 4 && n[n.len() - 4..].eq_ignore_ascii_case(".toc"))
+        // Byte-wise: slicing a name like "Über" at len-4 would split a char and panic.
+        .filter(|n| n.len() > 4 && n.as_bytes()[n.len() - 4..].eq_ignore_ascii_case(b".toc"))
         .collect())
 }
 
@@ -252,6 +253,17 @@ mod tests {
         let names = n(&["Q_Mainline.toc", "Q.toc"]);
         assert_eq!(select_toc("Q", &names), Some("Q.toc"));
         assert_eq!(select_toc("Q", &n(&["Q_Mainline.toc"])), None);
+    }
+
+    #[test]
+    fn toc_names_survive_non_ascii_file_names() {
+        let dir = tempfile::tempdir().unwrap();
+        for n in ["Über", "€ab", "A.toc", "B.TOC", "x.toc.bak"] {
+            std::fs::write(dir.path().join(n), "").unwrap();
+        }
+        let mut names = toc_names(dir.path()).unwrap();
+        names.sort();
+        assert_eq!(names, ["A.toc", "B.TOC"]);
     }
 
     #[test]

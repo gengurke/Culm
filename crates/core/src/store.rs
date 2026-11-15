@@ -47,8 +47,8 @@ pub fn save_installations(data_dir: &Path, installations: &[Installation]) -> Re
 /// Combines a fresh scan with the previous records:
 /// - a fresh provider match takes over the previous record of the same addon (id, channel,
 ///   auto-update, user ignore, install date; installed file if the provider could not tell);
-/// - previous provider-linked records whose folders all still exist and are not claimed by a fresh
-///   match are kept (so links survive an offline scan, a missing API key or an import);
+/// - previous provider-linked records whose folders all still exist are kept (so links survive an
+///   offline scan, a missing API key or an import); see below for shared folders;
 /// - fresh unmatched records lose folders claimed above and keep the id / user ignore of a previous
 ///   record with the same folders.
 pub fn merge_rescan(previous: &[Addon], fresh: Vec<Addon>) -> Vec<Addon> {
@@ -75,22 +75,33 @@ pub fn merge_rescan(previous: &[Addon], fresh: Vec<Addon>) -> Vec<Addon> {
         out.push(a);
     }
 
-    // Only fresh matches displace old links; overlaps among old records are resolved at the end.
-    let kept: Vec<Addon> = previous
-        .iter()
-        .filter(|p| p.provider.is_some())
-        .filter(|p| {
-            let taken = out.iter().any(|a| {
-                (a.provider == p.provider && a.external_id == p.external_id)
-                    || a.folders.iter().any(|f| p.folders.contains(f))
-            });
-            let present =
-                !p.folders.is_empty() && p.folders.iter().all(|f| all_folders.contains(f));
-            !taken && present
-        })
-        .cloned()
-        .collect();
-    out.extend(kept);
+    // Previous links whose folders all still exist are kept unless the same addon matched again.
+    // On a shared folder, a fresh match of the *same* provider wins it (fresh data), but a link
+    // to another provider stays with the previous record: without a CurseForge key, an imported
+    // CurseForge record must not be taken over by a TOC `X-WoWI-ID` match, whose WowInterface
+    // file may be a build for another game version. Overlaps among old records are resolved at the end.
+    let fresh_matches = out.len();
+    for p in previous.iter().filter(|p| p.provider.is_some()) {
+        let same_addon = out[..fresh_matches]
+            .iter()
+            .any(|a| a.provider == p.provider && a.external_id == p.external_id);
+        let present = !p.folders.is_empty() && p.folders.iter().all(|f| all_folders.contains(f));
+        if same_addon || !present {
+            continue;
+        }
+        let mut kept = p.clone();
+        for a in &mut out[..fresh_matches] {
+            if a.provider == kept.provider {
+                kept.folders.retain(|f| !a.folders.contains(f));
+            } else {
+                a.folders.retain(|f| !kept.folders.contains(f));
+            }
+        }
+        if !kept.folders.is_empty() {
+            out.push(kept);
+        }
+    }
+    out.retain(|a| !a.folders.is_empty());
 
     let claimed: Vec<String> = out.iter().flat_map(|a| a.folders.clone()).collect();
     for mut a in unmatched {
@@ -138,10 +149,26 @@ fn carry_user_choices(prev: &Addon, a: &mut Addon) {
     }
 }
 
-/// Inserts or replaces `addon` (by id) and drops other records that share one of its folders
-/// (e.g. the `Unknown` record of a folder that was just installed from a provider).
+/// Inserts or replaces `addon` (by id). It now owns its folders: other records lose them, and
+/// records left without folders are dropped (e.g. the `Unknown` record of a folder that was just
+/// installed). A record that only shared a library folder keeps its own folders and settings.
 pub fn upsert_addon(addons: &mut Vec<Addon>, addon: Addon) {
-    addons.retain(|a| a.id != addon.id && !a.folders.iter().any(|f| addon.folders.contains(f)));
+    addons.retain(|a| a.id != addon.id);
+    for a in addons.iter_mut() {
+        a.folders.retain(|f| !addon.folders.contains(f));
+    }
+    addons.retain(|a| !a.folders.is_empty());
     addons.push(addon);
     addons.sort_by_key(|a| a.name.to_lowercase());
+}
+
+/// The folders `addon` may delete or replace: its stored folders (by id, else its own list)
+/// minus any folder another stored record also lists.
+pub fn owned_folders(addons: &[Addon], addon: &Addon) -> Vec<String> {
+    let mine = addons.iter().find(|a| a.id == addon.id).unwrap_or(addon);
+    mine.folders
+        .iter()
+        .filter(|f| !addons.iter().any(|o| o.id != addon.id && o.folders.contains(f)))
+        .cloned()
+        .collect()
 }
