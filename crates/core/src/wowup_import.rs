@@ -72,8 +72,7 @@ pub fn import_wowup(wowup_dir: &Path, inst: &Installation) -> Result<Vec<Addon>>
 }
 
 /// WowUp sometimes stores the zip name as the version ("ForeverQuestTint-0.7.3.zip"): show the
-/// main folder's TOC `## Version` instead (else the name without `.zip`), also for the latest
-/// release when it is the installed one.
+/// main folder's TOC `## Version` instead (else the name without `.zip`).
 fn clean_file_name_version(a: &mut Addon, addons_dir: &Path) {
     let is_file = |v: &str| v.to_ascii_lowercase().ends_with(".zip");
     let strip = |v: &str| v[..v.len() - 4].to_string();
@@ -85,11 +84,7 @@ fn clean_file_name_version(a: &mut Addon, addons_dir: &Path) {
         a.installed_version = Some(toc.unwrap_or_else(|| strip(&v)));
     }
     if let Some(latest) = a.latest.as_mut().filter(|l| is_file(&l.version)) {
-        latest.version = if a.installed_file_id.as_ref() == Some(&latest.id) {
-            a.installed_version.clone().unwrap_or_default()
-        } else {
-            strip(&latest.version)
-        };
+        latest.version = strip(&latest.version);
     }
 }
 
@@ -128,7 +123,10 @@ fn map_record(r: &Value) -> Option<Addon> {
         .flatten()
         .filter_map(|v| v.as_str().map(str::to_string))
         .collect();
+    // Only a newer release WowUp knew of is kept (it can be installed without a key); "latest is
+    // what's installed" was WowUp's check, not ours, so the addon shows "Not checked" until we check.
     let latest = match (s("externalLatestReleaseId"), s("latestVersion")) {
+        (Some(id), _) if Some(&id) == s("installedExternalReleaseId").as_ref() => None,
         (Some(id), Some(version)) => Some(RemoteFile {
             id,
             version,

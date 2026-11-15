@@ -18,9 +18,11 @@ pub fn page(s: &State) -> El {
     let n = s.update_count();
     let installed = s.addons.len();
     let unchecked = s.not_checked_count();
+    // Without a key CurseForge addons only carry the imported last known release: don't claim more.
+    let cf_unchecked = !s.curseforge_ready() && s.addons.iter().any(|a| a.addon.ignored.is_none() && a.addon.provider.as_deref() == Some("CurseForge"));
     let state = match (n, unchecked) {
         (1.., _) => format!("{n} update{} available", if n == 1 { "" } else { "s" }),
-        (0, 1..) if !s.curseforge_ready() => format!("{unchecked} not checked — add a CurseForge key"),
+        _ if cf_unchecked => "CurseForge updates not checked — add a CurseForge key".to_string(),
         (0, 1..) => format!("{unchecked} not checked"),
         (0, 0) => "everything up to date".to_string(),
     };

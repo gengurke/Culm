@@ -30,6 +30,8 @@ What the addon manager does, one short paragraph per feature. Ids are referenced
   (Questie also lists QuestieTrace), the record with fewer folders keeps it.
   A WowUp link is not taken over by another provider's TOC-id match (WowInterface's file for Enhance QoL is not the
   Forever build). Versions stored as zip names (`ForeverQuestTint-0.7.3.zip`) show the TOC `## Version`.
+  Only a newer release WowUp knew of is imported as `latest`; "WowUp's latest is what's installed" is not our check,
+  so those addons show "Not checked" until a CurseForge key lets us check.
   (`f2_4_imports_wowup_records`, `f2_4_overlapping_wowup_records_get_one_owner_per_folder`,
   `f2_4_wowup_link_is_not_taken_over_by_another_providers_toc_match`, `f2_4_zip_file_name_versions_show_the_toc_version`,
   e2e `f2_4_first_scan_imports_wowup_records_without_a_key`)
@@ -43,8 +45,8 @@ What the addon manager does, one short paragraph per feature. Ids are referenced
 - **F3.1 Check for updates** ✅ — After each scan and on demand, `updates::check_updates` asks each available provider
   once for all managed (linked, not ignored) addons and marks "Update available"; a failing provider (or GitHub repo) is
   reported without stopping the rest, providers without a key are skipped. A managed addon no check has answered for
-  (no `latest`, e.g. CurseForge without a key) shows a muted "Not checked", never "Up to date", and the header says
-  "N not checked — add a CurseForge key". (`f3_1_never_checked_addons_say_not_checked`, `f3_1_get_many_reports_latest_file_per_channel`,
+  (no `latest`, e.g. CurseForge without a key) shows a muted "Not checked", never "Up to date", and without a key the header says
+  "CurseForge updates not checked — add a CurseForge key" (the imported last known releases are all it has). (`f3_1_never_checked_addons_say_not_checked`, `f3_1_get_many_reports_latest_file_per_channel`,
   `f3_1_check_updates_batches_per_provider_and_isolates_failures`, `f3_1_check_updates_without_key_skips_curseforge_quietly`,
   e2e `f3_1_check_shows_update_available`)
 - **F3.2 Update / Update all** ✅ — Downloads the release zip (progress in the row), validates it (no `..`/absolute paths/symlinks,

@@ -219,7 +219,7 @@ fn f3_1_never_checked_addons_say_not_checked() {
     assert_eq!(app.status("Ace"), Status::NotChecked);
     assert!(app.shows_in(&app.row("Ace", ""), "Not checked"));
     assert!(!app.shows("Up to date") && !app.shows("everything up to date"));
-    assert!(app.shows("1 not checked — add a CurseForge key"));
+    assert!(app.shows("CurseForge updates not checked — add a CurseForge key"));
 }
 
 #[test]
