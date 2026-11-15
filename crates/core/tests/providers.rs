@@ -22,6 +22,7 @@ fn folder(name: &str, fingerprint: u32) -> ScannedFolder {
     ScannedFolder {
         name: name.into(),
         fingerprint,
+        hub_fingerprint: String::new(),
         toc_ids: vec![],
     }
 }
@@ -348,6 +349,7 @@ fn f2_3_wowinterface_matches_toc_ids() {
         ScannedFolder {
             name: "Clique".into(),
             fingerprint: 1,
+            hub_fingerprint: String::new(),
             toc_ids: vec![("WowInterface".into(), "5108".into())],
         },
         folder("Other", 2),

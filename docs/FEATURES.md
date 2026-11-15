@@ -73,6 +73,22 @@ What the addon manager does, one short paragraph per feature. Ids are referenced
   GitHub (`owner/repo`, newest 5 non-draft releases, prerelease = Beta; plain-zip fallback skips zips tagged for other
   flavors) and WowInterface (`info<ID>-...`) (`f4_4_curseforge_url_resolves_slug`, `f4_4_github_url_picks_forever_asset`,
   `f4_4_github_plain_zip_fallback_skips_other_flavors`, e2e `f4_4_install_from_github_url_without_a_key`).
+- **F4.5 WowUp Hub provider** 🚧 — `providers::Hub` (hub.wowup.io, no key, gameType `forever`, base URL in
+  `ProviderConfig::hub_base_url`): search, featured (popular + recent, deduped), batch `get_many` for update checks,
+  `wowup.io/addons/<id>` URLs, and folder matching by WowUp's md5 fingerprint (`POST /addons/fingerprint`, exact matches
+  of a Forever release only; scans now compute it next to the CurseForge one). Only releases with a `forever` game version
+  and an http(s) download count; file id = GitHub asset id, version = tag, folders from `addonFolders`. Core only: not yet
+  in `providers::all` (scan/update list) or the UI. (`f4_5_hub_search_keeps_forever_releases`,
+  `f4_5_hub_featured_dedupes_popular_and_recent`, `f4_5_hub_install_and_update`, `f4_5_hub_fingerprint_matches_folders`,
+  `f4_5_hub_url_resolves_id`, `f2_3_fingerprint_matches_golden_value`)
+- **F4.6 Multi-source search** 🚧 — `discover::search` / `discover::featured` ask every available provider in parallel
+  and group the results into one entry per addon (`sources[0]` preferred: CurseForge if present, else the first provider).
+  Results merge only on an exact shared id (`curse:`, `hub:`, `wowi:`, `github:<owner/repo>` lowercased; a CurseForge
+  `links.sourceUrl` or Hub `repository` counts only when it is exactly a GitHub repo URL). Never on name, slug, author
+  or folder; a merge that would join two different ids of one kind does not happen ("better a duplicate than a wrong
+  merge"). A failing provider is reported per source, the rest still answer. Core only, no UI yet.
+  (`f4_6_merges_curseforge_and_hub_on_exact_github_repo`, `f4_6_same_name_with_different_repos_is_not_merged`,
+  `f4_6_conflicting_ids_are_not_merged`, `f4_6_failing_provider_returns_partial_results`)
 
 ## F5 Manage
 - **F5.1 Remove** ✅ — Deletes the addon's stored folders after a confirm in the detail panel, never a folder another

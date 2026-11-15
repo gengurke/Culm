@@ -1,0 +1,263 @@
+{
+ "addons": [
+  {
+   "id": 47671,
+   "repository": "https://github.com/Questie/Questie",
+   "repository_name": "Questie",
+   "source": "GitHub",
+   "description": "<h1>Questie</h1><p><a href=\"https://discord.gg/s33MAYKeZd\"><img src=\"https://img.shields.io/badge/discord-Questie-738bd7\" alt=\"Discord\"></a><a href=\"https://img.shields.io/github/stars/Questie/Questie\"><img src=\"https://img.shields.io/github/stars/Questie/Questie\" alt=\"Stars\"></a></p><p><a href=\"htt",
+   "homepage": "",
+   "image_url": null,
+   "owner_image_url": "https://avatars.githubusercontent.com/u/75445548?v=4",
+   "owner_name": "Questie",
+   "total_download_count": 4835393,
+   "funding_links": [],
+   "topics": [],
+   "releases": [
+    {
+     "download_count": 24774,
+     "download_url": "http://FAKE/dl/Questie/Questie/releases/download/bundle/v12.9.0%2Bv1.1.1/Questie-v12.9.0%2Bv1.1.1.zip",
+     "external_id": "745727013",
+     "game_version": "50504",
+     "game_versions": [
+      {
+       "game_type": "unknown",
+       "interface": "00000",
+       "title": "Questie game client not supported",
+       "version": "",
+       "authors": ""
+      },
+      {
+       "game_type": "classic",
+       "interface": "11509",
+       "title": "Questie v12.9.0",
+       "version": "12.9.0",
+       "authors": "Aero/Logon/Muehe/TheCrux(BreakBB)/Drejjmit/Dyaxler/Cheeq/TechnoHunter/Yttrium/Everyone else"
+      },
+      {
+       "game_type": "forever",
+       "interface": "16001",
+       "title": "Questie v12.9.0",
+       "version": "12.9.0",
+       "authors": "Aero/Logon/Muehe/TheCrux(BreakBB)/Drejjmit/Dyaxler/Cheeq/TechnoHunter/Yttrium/Everyone else"
+      },
+      {
+       "game_type": "classic",
+       "interface": "11509",
+       "title": "QuestieDB",
+       "version": "1.1.1",
+       "authors": "Code: Logonz Data: Muehe/TheCrux(BreakBB)/Drejjmit/Dyaxler/Cheeq/TechnoHunter/Yttrium/Everyone else"
+      },
+      {
+       "game_type": "forever",
+       "interface": "16001",
+       "title": "QuestieDB",
+       "version": "1.1.1",
+       "authors": "Code: Logonz Data: Muehe/TheCrux(BreakBB)/Drejjmit/Dyaxler/Cheeq/TechnoHunter/Yttrium/Everyone else"
+      },
+      {
+       "game_type": "classic",
+       "interface": "11509",
+       "title": "QuestieTrace",
+       "version": "1.11.0",
+       "authors": "Logon/TheCrux(BreakBB)"
+      },
+      {
+       "game_type": "forever",
+       "interface": "16001",
+       "title": "QuestieTrace",
+       "version": "1.11.0",
+       "authors": "Logon/TheCrux(BreakBB)"
+      }
+     ],
+     "id": 252481,
+     "name": "Questie-v12.9.0+v1.1.1.zip",
+     "prerelease": false,
+     "published_at": "2026-11-14T00:31:36.000Z",
+     "tag_name": "bundle/v12.9.0+v1.1.1",
+     "url": "https://api.github.com/repos/Questie/Questie/releases/assets/745727013",
+     "game_type": "mists",
+     "toc_title": "Questie v12.9.0",
+     "toc_titles": {
+      "mists": "Questie v12.9.0",
+      "wotlk": "Questie v12.9.0",
+      "classic": "Questie v12.9.0",
+      "forever": "Questie v12.9.0",
+      "burningCrusade": "Questie v12.9.0"
+     },
+     "toc_version": "12.9.0",
+     "addonFolders": [
+      {
+       "fingerprint": "be16779b077093cc124335fcf69517e4",
+       "folder_name": "Questie",
+       "id": 43323
+      },
+      {
+       "fingerprint": "87b66ee24ef5b4eb297084543775efa7",
+       "folder_name": "QuestieDB",
+       "id": 43324
+      },
+      {
+       "fingerprint": "0eba7b686c3980b25f84b57c6532c1eb",
+       "folder_name": "QuestieTrace",
+       "id": 43325
+      }
+     ]
+    },
+    {
+     "download_count": 635,
+     "download_url": "http://FAKE/dl/Questie/Questie/releases/download/bundle/v12.0.0-pre.c24dba5%2Bv1.0.3/Questie-v12.0.0-pre.c24dba5%2Bv1.0.3.zip",
+     "external_id": "583456199",
+     "game_version": "50504",
+     "game_versions": [
+      {
+       "game_type": "classic",
+       "interface": "11509",
+       "title": "QuestieDB",
+       "version": "1.0.3",
+       "authors": "Code: Logonz Data: Muehe/TheCrux(BreakBB)/Drejjmit/Dyaxler/Cheeq/TechnoHunter/Yttrium/Everyone else"
+      },
+      {
+       "game_type": "forever",
+       "interface": "16001",
+       "title": "QuestieDB",
+       "version": "1.0.3",
+       "authors": "Code: Logonz Data: Muehe/TheCrux(BreakBB)/Drejjmit/Dyaxler/Cheeq/TechnoHunter/Yttrium/Everyone else"
+      },
+      {
+       "game_type": "unknown",
+       "interface": "00000",
+       "title": "Questie game client not supported",
+       "version": "",
+       "authors": ""
+      },
+      {
+       "game_type": "classic",
+       "interface": "11509",
+       "title": "Questie v12.0.0",
+       "version": "12.0.0",
+       "authors": "Aero/Logon/Muehe/TheCrux(BreakBB)/Drejjmit/Dyaxler/Cheeq/TechnoHunter/Yttrium/Everyone else"
+      },
+      {
+       "game_type": "forever",
+       "interface": "16001",
+       "title": "Questie v12.0.0",
+       "version": "12.0.0",
+       "authors": "Aero/Logon/Muehe/TheCrux(BreakBB)/Drejjmit/Dyaxler/Cheeq/TechnoHunter/Yttrium/Everyone else"
+      }
+     ],
+     "id": 250499,
+     "name": "Questie-v12.0.0-pre.c24dba5+v1.0.3.zip",
+     "prerelease": true,
+     "published_at": "2026-09-23T09:39:43.000Z",
+     "tag_name": "bundle/v12.0.0-pre.c24dba5+v1.0.3",
+     "url": "https://api.github.com/repos/Questie/Questie/releases/assets/583456199",
+     "game_type": "mists",
+     "toc_title": "Questie v12.0.0",
+     "toc_titles": {
+      "mists": "Questie v12.0.0",
+      "wotlk": "Questie v12.0.0",
+      "classic": "Questie v12.0.0",
+      "forever": "Questie v12.0.0",
+      "burningCrusade": "Questie v12.0.0"
+     },
+     "toc_version": "12.0.0",
+     "addonFolders": [
+      {
+       "fingerprint": "8ba85921d0cd102ed6fd88b6f55f32bb",
+       "folder_name": "QuestieDB",
+       "id": 41261
+      },
+      {
+       "fingerprint": "f649e7ffa6d532fd5c9599f2e5a4ff87",
+       "folder_name": "Questie",
+       "id": 41260
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": 2797963,
+   "repository": "https://github.com/xenathe/XenQuest",
+   "repository_name": "XenQuest",
+   "source": "GitHub",
+   "description": "<p>A lightweight, customisable quest tracker for World of Warcraft.</p>",
+   "homepage": "",
+   "image_url": "https://repository-images.githubusercontent.com/1421040360/64c6760a-642b-4b3f-aca6-89cc3c004440",
+   "owner_image_url": "https://avatars.githubusercontent.com/u/189380765?u=aefccba750518c215248b8eaf1687946ef0c16b5&v=4",
+   "owner_name": "xenathe",
+   "total_download_count": 253,
+   "funding_links": [],
+   "topics": [],
+   "releases": [
+    {
+     "download_count": 164,
+     "download_url": "http://FAKE/dl/xenathe/XenQuest/releases/download/v1.0.4/XenQuest-v1.0.4-Forever.zip",
+     "external_id": "713233517",
+     "game_version": "16001",
+     "game_versions": [
+      {
+       "game_type": "forever",
+       "interface": "16001",
+       "title": "XenQuest",
+       "version": "1.0.4",
+       "authors": "XenQuest"
+      }
+     ],
+     "id": 252001,
+     "name": "XenQuest-v1.0.4-Forever.zip",
+     "prerelease": false,
+     "published_at": "2026-11-05T11:50:54.000Z",
+     "tag_name": "v1.0.4",
+     "url": "https://api.github.com/repos/xenathe/XenQuest/releases/assets/713233517",
+     "game_type": "forever",
+     "toc_title": "XenQuest",
+     "toc_titles": {
+      "forever": "XenQuest"
+     },
+     "toc_version": "1.0.4",
+     "addonFolders": [
+      {
+       "fingerprint": "a204bf9bcf6ab09267db847f53385a2b",
+       "folder_name": "XenQuest",
+       "id": 42955
+      }
+     ]
+    },
+    {
+     "download_count": 7,
+     "download_url": "http://FAKE/dl/xenathe/XenQuest/releases/download/v0.2.14-beta/XenQuest-v0.2.14-beta.zip",
+     "external_id": "654908214",
+     "game_version": "16001",
+     "game_versions": [
+      {
+       "game_type": "forever",
+       "interface": "16001",
+       "title": "XenQuest",
+       "version": "0.2.14-beta",
+       "authors": "XenQuest"
+      }
+     ],
+     "id": 251135,
+     "name": "XenQuest-v0.2.14-beta.zip",
+     "prerelease": true,
+     "published_at": "2026-10-19T01:17:21.000Z",
+     "tag_name": "v0.2.14-beta",
+     "url": "https://api.github.com/repos/xenathe/XenQuest/releases/assets/654908214",
+     "game_type": "forever",
+     "toc_title": "XenQuest",
+     "toc_version": "0.2.14-beta",
+     "addonFolders": [
+      {
+       "fingerprint": "bad28112210b4cecc44ea6838dce7c40",
+       "folder_name": "XenQuest",
+       "id": 42069
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "count": 2
+}

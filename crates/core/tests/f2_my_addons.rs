@@ -65,7 +65,8 @@ fn f2_1_scan_picks_forever_toc() {
     assert!(ids.contains(&("CurseForge".into(), "61284".into())));
 }
 
-/// Golden fixture: CurseForge fingerprint 3501589137, 5 files.
+/// Golden fixture: CurseForge fingerprint 3501589137, md5
+/// df5900e9e7c37399f8a51f67495b9317, 5 files.
 #[test]
 fn f2_3_fingerprint_matches_golden_value() {
     let tmp = tempfile::tempdir().unwrap();
@@ -92,6 +93,11 @@ fn f2_3_fingerprint_matches_golden_value() {
     write(&dir.join("README.md"), "ignored");
     assert_eq!(fingerprint::fingerprint_files(&dir).unwrap().len(), 5);
     assert_eq!(fingerprint::folder_fingerprint(&dir).unwrap(), 3501589137);
+    // The Hub's md5 fingerprint of the same fixture.
+    assert_eq!(
+        fingerprint::folder_fingerprints(&dir).unwrap().1,
+        "df5900e9e7c37399f8a51f67495b9317"
+    );
 }
 
 #[test]

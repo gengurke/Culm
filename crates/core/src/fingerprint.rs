@@ -33,14 +33,73 @@ pub fn murmur2(data: &[u8]) -> u32 {
 
 /// The fingerprint CurseForge knows the folder by.
 pub fn folder_fingerprint(folder: &Path) -> Result<u32> {
-    let mut hashes: Vec<u32> = fingerprint_files(folder)?
+    Ok(folder_fingerprints(folder)?.0)
+}
+
+/// The CurseForge fingerprint and the Hub's md5 fingerprint, reading each file once.
+/// md5: hex md5 per file, hex strings sorted and concatenated, md5 of that.
+// shortcut: the md5 uses the CurseForge file selection; the Hub's scanner takes every XML include of
+// a line, not just the first. Same result unless one XML line has two includes; port it if Hub misses show up.
+pub fn folder_fingerprints(folder: &Path) -> Result<(u32, String)> {
+    let files: Vec<Vec<u8>> = fingerprint_files(folder)?
         .iter()
         .filter_map(|f| std::fs::read(f).ok()) // unreadable files are skipped
-        .map(|bytes| murmur2(&bytes))
         .collect();
+    let mut hashes: Vec<u32> = files.iter().map(|b| murmur2(b)).collect();
     hashes.sort_unstable();
     let concat: String = hashes.iter().map(u32::to_string).collect();
-    Ok(murmur2(concat.as_bytes()))
+    let mut md5s: Vec<String> = files.iter().map(|b| md5_hex(b)).collect();
+    md5s.sort_unstable();
+    Ok((
+        murmur2(concat.as_bytes()),
+        md5_hex(md5s.concat().as_bytes()),
+    ))
+}
+
+/// MD5 (RFC 1321) as lowercase hex. Not for security, only to match the Hub's fingerprints.
+pub fn md5_hex(data: &[u8]) -> String {
+    const S: [u32; 64] = [
+        7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22, 5, 9, 14, 20, 5, 9, 14, 20, 5,
+        9, 14, 20, 5, 9, 14, 20, 4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23, 6, 10,
+        15, 21, 6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21,
+    ];
+    let k: Vec<u32> = (0..64)
+        .map(|i| ((i as f64 + 1.0).sin().abs() * 4294967296.0) as u32)
+        .collect();
+    let mut msg = data.to_vec();
+    msg.push(0x80);
+    while msg.len() % 64 != 56 {
+        msg.push(0);
+    }
+    msg.extend_from_slice(&((data.len() as u64).wrapping_mul(8)).to_le_bytes());
+    let mut h: [u32; 4] = [0x67452301, 0xefcdab89, 0x98badcfe, 0x10325476];
+    for chunk in msg.chunks(64) {
+        let m: Vec<u32> = chunk
+            .chunks(4)
+            .map(|w| u32::from_le_bytes([w[0], w[1], w[2], w[3]]))
+            .collect();
+        let [mut a, mut b, mut c, mut d] = h;
+        for i in 0..64 {
+            let (f, g) = match i / 16 {
+                0 => ((b & c) | (!b & d), i),
+                1 => ((d & b) | (!d & c), (5 * i + 1) % 16),
+                2 => (b ^ c ^ d, (3 * i + 5) % 16),
+                _ => (c ^ (b | !d), (7 * i) % 16),
+            };
+            let f = f.wrapping_add(a).wrapping_add(k[i]).wrapping_add(m[g]);
+            a = d;
+            d = c;
+            c = b;
+            b = b.wrapping_add(f.rotate_left(S[i]));
+        }
+        for (x, y) in h.iter_mut().zip([a, b, c, d]) {
+            *x = x.wrapping_add(y);
+        }
+    }
+    h.iter()
+        .flat_map(|x| x.to_le_bytes())
+        .map(|b| format!("{b:02x}"))
+        .collect()
 }
 
 const TOC_SUFFIXES: [&str; 11] = [
@@ -244,6 +303,20 @@ mod tests {
         // Whitespace is ignored entirely.
         assert_eq!(murmur2(b"a b\r\n"), murmur2(b"ab"));
         assert_ne!(murmur2(b"ab"), murmur2(b"ba"));
+    }
+
+    #[test]
+    fn md5_rfc_vectors() {
+        assert_eq!(md5_hex(b""), "d41d8cd98f00b204e9800998ecf8427e");
+        assert_eq!(
+            md5_hex(b"The quick brown fox jumps over the lazy dog"),
+            "9e107d9d372bb6826bd81d3542a419d6"
+        );
+        assert_eq!(md5_hex(b"abc"), "900150983cd24fb0d6963f7d28e17f72");
+        assert_eq!(
+            md5_hex("1234567890".repeat(8).as_bytes()),
+            "57edf4a22be3c955ac49da2e2107b67a"
+        );
     }
 
     #[test]

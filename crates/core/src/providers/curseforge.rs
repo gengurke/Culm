@@ -202,6 +202,7 @@ fn to_addon(m: &CfMod) -> RemoteAddon {
         thumbnail_url: m.logo.as_ref().and_then(|l| l.thumbnail_url.clone()),
         download_count: m.download_count as u64,
         files: newest_per_channel(files.into_iter().map(to_file)),
+        source_url: m.links.source_url.clone().filter(|u| !u.is_empty()),
     }
 }
 
@@ -304,6 +305,7 @@ struct CfMod {
 #[serde(default, rename_all = "camelCase")]
 struct Links {
     website_url: Option<String>,
+    source_url: Option<String>,
 }
 
 #[derive(Deserialize, Default)]

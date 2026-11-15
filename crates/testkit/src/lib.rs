@@ -303,6 +303,45 @@ pub fn cf_mod_with_files(id: u64, name: &str, files: Vec<Value>) -> Value {
     })
 }
 
+/// A WowUp Hub addon (`repository` = `https://github.com/<repo>`) with one stable Forever release
+/// (GitHub asset id `asset_id`) that installs `folders` from `download_url`.
+pub fn hub_addon(
+    id: u64,
+    repo: &str,
+    folders: &[&str],
+    asset_id: u64,
+    download_url: &str,
+) -> Value {
+    let (owner, name) = repo.split_once('/').expect("owner/repo");
+    json!({
+        "id": id,
+        "repository": format!("https://github.com/{repo}"),
+        "repository_name": name,
+        "source": "GitHub",
+        "description": format!("<p>{name} on the Hub</p>"),
+        "homepage": "",
+        "image_url": null,
+        "owner_image_url": format!("https://avatars.example/{owner}.png"),
+        "owner_name": owner,
+        "total_download_count": 100 * id,
+        "funding_links": [],
+        "topics": [],
+        "releases": [{
+            "id": 900_000 + id,
+            "external_id": asset_id.to_string(),
+            "tag_name": format!("v{asset_id}"),
+            "name": format!("{name}-v{asset_id}.zip"),
+            "download_url": download_url,
+            "download_count": 5,
+            "prerelease": false,
+            "published_at": format!("2026-11-{:02}T00:00:00.000Z", 1 + asset_id % 28),
+            "game_type": "forever",
+            "game_versions": [{ "game_type": "forever", "interface": "16001", "title": name, "version": "1", "authors": owner }],
+            "addonFolders": folders.iter().map(|f| json!({ "folder_name": f, "fingerprint": "00" })).collect::<Vec<_>>()
+        }]
+    })
+}
+
 /// Build an in-memory zip from `(path, contents)` pairs (deflate).
 pub fn make_zip(entries: &[(&str, &[u8])]) -> Vec<u8> {
     let mut zip = zip::ZipWriter::new(Cursor::new(Vec::new()));
@@ -366,6 +405,10 @@ mod tests {
             "github_releases.json",
             "github_release.json",
             "wowi_filedetails.json",
+            "hub_search.json",
+            "hub_featured.json",
+            "hub_batch.json",
+            "hub_fingerprint.json",
         ] {
             fixture(f);
         }

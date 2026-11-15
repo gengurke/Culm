@@ -1,6 +1,6 @@
 //! Scanning `Interface/AddOns` (F2.1), provider matching (F2.3) and grouping folders into addons (F2.2).
 
-use crate::fingerprint::folder_fingerprint;
+use crate::fingerprint::folder_fingerprints;
 use crate::model::{Addon, Channel, Flavor, IgnoreReason, Installation};
 use crate::providers::{FolderMatch, Provider, ScannedFolder};
 use crate::toc::{Toc, read_folder_toc, toc_names};
@@ -16,6 +16,8 @@ pub struct LocalFolder {
     /// The Forever TOC, None if the folder only has TOCs for other flavors.
     pub toc: Option<Toc>,
     pub fingerprint: u32,
+    /// md5 fingerprint (WowUp Hub).
+    pub hub_fingerprint: String,
     /// The folder is a git checkout (developer addon).
     pub is_git: bool,
 }
@@ -25,6 +27,7 @@ impl LocalFolder {
         ScannedFolder {
             name: self.name.clone(),
             fingerprint: self.fingerprint,
+            hub_fingerprint: self.hub_fingerprint.clone(),
             toc_ids: self.toc.as_ref().map(Toc::provider_ids).unwrap_or_default(),
         }
     }
@@ -83,10 +86,12 @@ fn scan_folder(path: &Path) -> Result<Option<LocalFolder>> {
         .file_name()
         .map(|n| n.to_string_lossy().into_owned())
         .unwrap_or_default();
+    let (fingerprint, hub_fingerprint) =
+        folder_fingerprints(path).with_context(|| format!("fingerprinting {}", path.display()))?;
     Ok(Some(LocalFolder {
         toc: read_folder_toc(path)?,
-        fingerprint: folder_fingerprint(path)
-            .with_context(|| format!("fingerprinting {}", path.display()))?,
+        fingerprint,
+        hub_fingerprint,
         is_git: path.join(".git").exists(),
         name,
     }))

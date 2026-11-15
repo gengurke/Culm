@@ -1,0 +1,710 @@
+{
+ "addons": [
+  {
+   "id": 1158475,
+   "repository": "https://github.com/RaiderIO/raiderio-addon",
+   "repository_name": "raiderio-addon",
+   "source": "GitHub",
+   "description": "<h1>Raider.IO Mythic Plus, Raiding, and Recruitment</h1><p>This is a companion addon to go along with the Raiding, Recruitment, and Mythic+ Rankings site, Raider.IO: https://raider.io. With this addon installed, you'll gain access to an easy way to view Mythic Keystone scores, Raid Progress, and Rec",
+   "homepage": "https://raider.io/addon",
+   "image_url": null,
+   "owner_image_url": "https://avatars.githubusercontent.com/u/26493840?v=4",
+   "owner_name": "RaiderIO",
+   "total_download_count": 9980564,
+   "funding_links": [
+    {
+     "platform": "PATREON",
+     "url": "https://hub.wowup.io/addons/1158475/funding/patreon"
+    }
+   ],
+   "topics": [],
+   "releases": [
+    {
+     "download_count": 1120,
+     "download_url": "http://FAKE/dl/RaiderIO/raiderio-addon/releases/download/v202611150600/RaiderIO-v202611150600.zip",
+     "external_id": "750182293",
+     "game_version": "50504",
+     "game_versions": [
+      {
+       "game_type": "classic",
+       "interface": "11509",
+       "title": "Raider.IO Mythic Plus, Raiding, and Recruitment",
+       "version": "1.15.9 (v202611150600)",
+       "authors": "Vladinator (Vladinator-TarrenMill), Aspyr (Aspyrox-Skullcrusher) and Isak (Isak-Sargeras)"
+      },
+      {
+       "game_type": "forever",
+       "interface": "16001",
+       "title": "Raider.IO Mythic Plus, Raiding, and Recruitment",
+       "version": "1.60.1 (v202611150600)",
+       "authors": "Vladinator (Vladinator-TarrenMill), Aspyr (Aspyrox-Skullcrusher) and Isak (Isak-Sargeras)"
+      },
+      {
+       "game_type": "classic",
+       "interface": "11509",
+       "title": "Raider.IO Recruitment (Europe)",
+       "version": "1.15.9 (v202611150600)",
+       "authors": "Vladinator (Vladinator-TarrenMill), Aspyr (Aspyrox-Skullcrusher) and Isak (Isak-Sargeras)"
+      },
+      {
+       "game_type": "classic",
+       "interface": "11509",
+       "title": "Raider.IO Mythic Plus (Europe)",
+       "version": "1.15.9 (v202611150600)",
+       "authors": "Vladinator (Vladinator-TarrenMill), Aspyr (Aspyrox-Skullcrusher) and Isak (Isak-Sargeras)"
+      },
+      {
+       "game_type": "classic",
+       "interface": "11509",
+       "title": "Raider.IO Raiding (Europe)",
+       "version": "1.15.9 (v202611150600)",
+       "authors": "Vladinator (Vladinator-TarrenMill), Aspyr (Aspyrox-Skullcrusher) and Isak (Isak-Sargeras)"
+      },
+      {
+       "game_type": "classic",
+       "interface": "11509",
+       "title": "Raider.IO Recruitment (Korea)",
+       "version": "1.15.9 (v202611150600)",
+       "authors": "Vladinator (Vladinator-TarrenMill), Aspyr (Aspyrox-Skullcrusher) and Isak (Isak-Sargeras)"
+      },
+      {
+       "game_type": "classic",
+       "interface": "11509",
+       "title": "Raider.IO Mythic Plus (Korea)",
+       "version": "1.15.9 (v202611150600)",
+       "authors": "Vladinator (Vladinator-TarrenMill), Aspyr (Aspyrox-Skullcrusher) and Isak (Isak-Sargeras)"
+      },
+      {
+       "game_type": "classic",
+       "interface": "11509",
+       "title": "Raider.IO Raiding (Korea)",
+       "version": "1.15.9 (v202611150600)",
+       "authors": "Vladinator (Vladinator-TarrenMill), Aspyr (Aspyrox-Skullcrusher) and Isak (Isak-Sargeras)"
+      },
+      {
+       "game_type": "classic",
+       "interface": "11509",
+       "title": "Raider.IO Recruitment (Taiwan)",
+       "version": "1.15.9 (v202611150600)",
+       "authors": "Vladinator (Vladinator-TarrenMill), Aspyr (Aspyrox-Skullcrusher) and Isak (Isak-Sargeras)"
+      },
+      {
+       "game_type": "classic",
+       "interface": "11509",
+       "title": "Raider.IO Mythic Plus (Taiwan)",
+       "version": "1.15.9 (v202611150600)",
+       "authors": "Vladinator (Vladinator-TarrenMill), Aspyr (Aspyrox-Skullcrusher) and Isak (Isak-Sargeras)"
+      },
+      {
+       "game_type": "classic",
+       "interface": "11509",
+       "title": "Raider.IO Raiding (Taiwan)",
+       "version": "1.15.9 (v202611150600)",
+       "authors": "Vladinator (Vladinator-TarrenMill), Aspyr (Aspyrox-Skullcrusher) and Isak (Isak-Sargeras)"
+      },
+      {
+       "game_type": "classic",
+       "interface": "11509",
+       "title": "Raider.IO Recruitment (Americas)",
+       "version": "1.15.9 (v202611150600)",
+       "authors": "Vladinator (Vladinator-TarrenMill), Aspyr (Aspyrox-Skullcrusher) and Isak (Isak-Sargeras)"
+      },
+      {
+       "game_type": "classic",
+       "interface": "11509",
+       "title": "Raider.IO Mythic Plus (Americas)",
+       "version": "1.15.9 (v202611150600)",
+       "authors": "Vladinator (Vladinator-TarrenMill), Aspyr (Aspyrox-Skullcrusher) and Isak (Isak-Sargeras)"
+      },
+      {
+       "game_type": "classic",
+       "interface": "11509",
+       "title": "Raider.IO Raiding (Americas)",
+       "version": "1.15.9 (v202611150600)",
+       "authors": "Vladinator (Vladinator-TarrenMill), Aspyr (Aspyrox-Skullcrusher) and Isak (Isak-Sargeras)"
+      },
+      {
+       "game_type": "classic",
+       "interface": "11509",
+       "title": "Raider.IO Recruitment (China)",
+       "version": "1.15.9 (v202611150600)",
+       "authors": "Vladinator (Vladinator-TarrenMill), Aspyr (Aspyrox-Skullcrusher) and Isak (Isak-Sargeras)"
+      },
+      {
+       "game_type": "classic",
+       "interface": "11509",
+       "title": "Raider.IO Mythic Plus (China)",
+       "version": "1.15.9 (v202611150600)",
+       "authors": "Vladinator (Vladinator-TarrenMill), Aspyr (Aspyrox-Skullcrusher) and Isak (Isak-Sargeras)"
+      },
+      {
+       "game_type": "classic",
+       "interface": "11509",
+       "title": "Raider.IO Raiding (China)",
+       "version": "1.15.9 (v202611150600)",
+       "authors": "Vladinator (Vladinator-TarrenMill), Aspyr (Aspyrox-Skullcrusher) and Isak (Isak-Sargeras)"
+      }
+     ],
+     "id": 252561,
+     "name": "RaiderIO-v202611150600.zip",
+     "prerelease": false,
+     "published_at": "2026-11-15T07:16:56.000Z",
+     "tag_name": "v202611150600",
+     "url": "https://api.github.com/repos/RaiderIO/raiderio-addon/releases/assets/750182293",
+     "game_type": "mists",
+     "toc_title": "Raider.IO Mythic Plus, Raiding, and Recruitment",
+     "toc_titles": {
+      "mists": "Raider.IO Mythic Plus, Raiding, and Recruitment",
+      "retail": "Raider.IO Mythic Plus, Raiding, and Recruitment",
+      "classic": "Raider.IO Mythic Plus, Raiding, and Recruitment",
+      "forever": "Raider.IO Mythic Plus, Raiding, and Recruitment"
+     },
+     "toc_version": "12.1.0 (v202611150600)",
+     "previews": [],
+     "addonFolders": [
+      {
+       "fingerprint": "6516c15d32b76c84e518c0053e0117fe",
+       "folder_name": "RaiderIO",
+       "id": 43384
+      },
+      {
+       "fingerprint": "abf9babdcb68e6e589793cd04f9d3b10",
+       "folder_name": "RaiderIO_DB_EU_F",
+       "id": 43385
+      },
+      {
+       "fingerprint": "167f98e51164f888e705a2977ff03345",
+       "folder_name": "RaiderIO_DB_EU_M",
+       "id": 43386
+      },
+      {
+       "fingerprint": "e2f03a9461765d73cf9a0be3972a9f51",
+       "folder_name": "RaiderIO_DB_EU_R",
+       "id": 43387
+      },
+      {
+       "fingerprint": "a9ce5dcfd34339930f74027f119c80c7",
+       "folder_name": "RaiderIO_DB_KR_F",
+       "id": 43388
+      },
+      {
+       "fingerprint": "cfb92f3b31d0f826094f0d941f7010c4",
+       "folder_name": "RaiderIO_DB_KR_M",
+       "id": 43389
+      },
+      {
+       "fingerprint": "0651f5d8b987990bd3868affaf2e74bc",
+       "folder_name": "RaiderIO_DB_KR_R",
+       "id": 43390
+      },
+      {
+       "fingerprint": "8cbb60824106f33e737a0d7bb8815208",
+       "folder_name": "RaiderIO_DB_TW_F",
+       "id": 43391
+      },
+      {
+       "fingerprint": "b4e3cce47e86b08929266bc1769169d3",
+       "folder_name": "RaiderIO_DB_TW_M",
+       "id": 43392
+      },
+      {
+       "fingerprint": "d96d9ffac6f98e9798f0af2a5594a22a",
+       "folder_name": "RaiderIO_DB_TW_R",
+       "id": 43393
+      },
+      {
+       "fingerprint": "a2094d557310e5d3d60ce359084b382c",
+       "folder_name": "RaiderIO_DB_US_F",
+       "id": 43394
+      },
+      {
+       "fingerprint": "28bfdaffed5cedbf96f53da2ba353900",
+       "folder_name": "RaiderIO_DB_US_M",
+       "id": 43395
+      },
+      {
+       "fingerprint": "2697e3aff64ae19eb95f9273fcaf03f8",
+       "folder_name": "RaiderIO_DB_US_R",
+       "id": 43396
+      },
+      {
+       "fingerprint": "f17266057c788c7feedc14f37b588e8c",
+       "folder_name": "RaiderIO_DB_CN_F",
+       "id": 43397
+      },
+      {
+       "fingerprint": "e9d6de4c738831cad619318d770e38f1",
+       "folder_name": "RaiderIO_DB_CN_M",
+       "id": 43398
+      },
+      {
+       "fingerprint": "145b606e3d642dcbe4f18b2de4dfc6b0",
+       "folder_name": "RaiderIO_DB_CN_R",
+       "id": 43399
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": 47671,
+   "repository": "https://github.com/Questie/Questie",
+   "repository_name": "Questie",
+   "source": "GitHub",
+   "description": "<h1>Questie</h1><p><a href=\"https://discord.gg/s33MAYKeZd\"><img src=\"https://img.shields.io/badge/discord-Questie-738bd7\" alt=\"Discord\"></a><a href=\"https://img.shields.io/github/stars/Questie/Questie\"><img src=\"https://img.shields.io/github/stars/Questie/Questie\" alt=\"Stars\"></a></p><p><a href=\"htt",
+   "homepage": "",
+   "image_url": null,
+   "owner_image_url": "https://avatars.githubusercontent.com/u/75445548?v=4",
+   "owner_name": "Questie",
+   "total_download_count": 4835393,
+   "funding_links": [],
+   "topics": [],
+   "releases": [
+    {
+     "download_count": 24774,
+     "download_url": "http://FAKE/dl/Questie/Questie/releases/download/bundle/v12.9.0%2Bv1.1.1/Questie-v12.9.0%2Bv1.1.1.zip",
+     "external_id": "745727013",
+     "game_version": "50504",
+     "game_versions": [
+      {
+       "game_type": "unknown",
+       "interface": "00000",
+       "title": "Questie game client not supported",
+       "version": "",
+       "authors": ""
+      },
+      {
+       "game_type": "classic",
+       "interface": "11509",
+       "title": "Questie v12.9.0",
+       "version": "12.9.0",
+       "authors": "Aero/Logon/Muehe/TheCrux(BreakBB)/Drejjmit/Dyaxler/Cheeq/TechnoHunter/Yttrium/Everyone else"
+      },
+      {
+       "game_type": "forever",
+       "interface": "16001",
+       "title": "Questie v12.9.0",
+       "version": "12.9.0",
+       "authors": "Aero/Logon/Muehe/TheCrux(BreakBB)/Drejjmit/Dyaxler/Cheeq/TechnoHunter/Yttrium/Everyone else"
+      },
+      {
+       "game_type": "classic",
+       "interface": "11509",
+       "title": "QuestieDB",
+       "version": "1.1.1",
+       "authors": "Code: Logonz Data: Muehe/TheCrux(BreakBB)/Drejjmit/Dyaxler/Cheeq/TechnoHunter/Yttrium/Everyone else"
+      },
+      {
+       "game_type": "forever",
+       "interface": "16001",
+       "title": "QuestieDB",
+       "version": "1.1.1",
+       "authors": "Code: Logonz Data: Muehe/TheCrux(BreakBB)/Drejjmit/Dyaxler/Cheeq/TechnoHunter/Yttrium/Everyone else"
+      },
+      {
+       "game_type": "classic",
+       "interface": "11509",
+       "title": "QuestieTrace",
+       "version": "1.11.0",
+       "authors": "Logon/TheCrux(BreakBB)"
+      },
+      {
+       "game_type": "forever",
+       "interface": "16001",
+       "title": "QuestieTrace",
+       "version": "1.11.0",
+       "authors": "Logon/TheCrux(BreakBB)"
+      }
+     ],
+     "id": 252481,
+     "name": "Questie-v12.9.0+v1.1.1.zip",
+     "prerelease": false,
+     "published_at": "2026-11-14T00:31:36.000Z",
+     "tag_name": "bundle/v12.9.0+v1.1.1",
+     "url": "https://api.github.com/repos/Questie/Questie/releases/assets/745727013",
+     "game_type": "mists",
+     "toc_title": "Questie v12.9.0",
+     "toc_titles": {
+      "mists": "Questie v12.9.0",
+      "wotlk": "Questie v12.9.0",
+      "classic": "Questie v12.9.0",
+      "forever": "Questie v12.9.0",
+      "burningCrusade": "Questie v12.9.0"
+     },
+     "toc_version": "12.9.0",
+     "previews": [],
+     "addonFolders": [
+      {
+       "fingerprint": "be16779b077093cc124335fcf69517e4",
+       "folder_name": "Questie",
+       "id": 43323
+      },
+      {
+       "fingerprint": "87b66ee24ef5b4eb297084543775efa7",
+       "folder_name": "QuestieDB",
+       "id": 43324
+      },
+      {
+       "fingerprint": "0eba7b686c3980b25f84b57c6532c1eb",
+       "folder_name": "QuestieTrace",
+       "id": 43325
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": 3,
+   "repository": "https://github.com/mooreatv/BetterVendorPrice",
+   "repository_name": "BetterVendorPrice",
+   "source": "GitHub",
+   "description": "<img src=\"https://raw.githubusercontent.com/mooreatv/BetterVendorPrice/master/BetterVendorPrice.png\" height=150 width=150 align=right><h1>Better Vendor Price (BVP) - WoW Forever edition</h1><p>BVP shows what your items are really worth to a vendor (per item and per full stack, not just the stack you",
+   "homepage": "",
+   "image_url": "https://repository-images.githubusercontent.com/199213685/cdb24100-48f9-11eb-9670-d9d02fa3a683",
+   "owner_image_url": "https://avatars.githubusercontent.com/u/46745059?u=b32ba22b1941ab2dbdb582482b9a5b7dae66e7d6&v=4",
+   "owner_name": "mooreatv",
+   "total_download_count": 770564,
+   "funding_links": [],
+   "topics": [],
+   "releases": [
+    {
+     "download_count": 18759,
+     "download_url": "http://FAKE/dl/mooreatv/BetterVendorPrice/releases/download/v2.1.3/BetterVendorPrice-v2.1.3.zip",
+     "external_id": "675980554",
+     "game_version": "16001",
+     "game_versions": [
+      {
+       "game_type": "forever",
+       "interface": "16001",
+       "title": "Better Vendor Price",
+       "version": "v2.1.3",
+       "authors": "MooreaTV moorea@ymail.com"
+      }
+     ],
+     "id": 251221,
+     "name": "BetterVendorPrice-v2.1.3.zip",
+     "prerelease": false,
+     "published_at": "2026-10-25T19:57:34.000Z",
+     "tag_name": "v2.1.3",
+     "url": "https://api.github.com/repos/mooreatv/BetterVendorPrice/releases/assets/675980554",
+     "game_type": "forever",
+     "toc_title": "Better Vendor Price",
+     "toc_titles": {
+      "retail": "Better Vendor Price",
+      "forever": "Better Vendor Price"
+     },
+     "toc_version": "v2.1.3",
+     "previews": [],
+     "addonFolders": [
+      {
+       "fingerprint": "d10d51073e021ef54dd262490e8d1c3c",
+       "folder_name": "BetterVendorPrice",
+       "id": 42234
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "recent": [
+  {
+   "id": 1158475,
+   "repository": "https://github.com/RaiderIO/raiderio-addon",
+   "repository_name": "raiderio-addon",
+   "source": "GitHub",
+   "description": "<h1>Raider.IO Mythic Plus, Raiding, and Recruitment</h1><p>This is a companion addon to go along with the Raiding, Recruitment, and Mythic+ Rankings site, Raider.IO: https://raider.io. With this addon installed, you'll gain access to an easy way to view Mythic Keystone scores, Raid Progress, and Rec",
+   "homepage": "https://raider.io/addon",
+   "image_url": null,
+   "owner_image_url": "https://avatars.githubusercontent.com/u/26493840?v=4",
+   "owner_name": "RaiderIO",
+   "total_download_count": 9980564,
+   "funding_links": [
+    {
+     "platform": "PATREON",
+     "url": "https://hub.wowup.io/addons/1158475/funding/patreon"
+    }
+   ],
+   "topics": [],
+   "releases": [
+    {
+     "download_count": 1120,
+     "download_url": "http://FAKE/dl/RaiderIO/raiderio-addon/releases/download/v202611150600/RaiderIO-v202611150600.zip",
+     "external_id": "750182293",
+     "game_version": "50504",
+     "game_versions": [
+      {
+       "game_type": "classic",
+       "interface": "11509",
+       "title": "Raider.IO Mythic Plus, Raiding, and Recruitment",
+       "version": "1.15.9 (v202611150600)",
+       "authors": "Vladinator (Vladinator-TarrenMill), Aspyr (Aspyrox-Skullcrusher) and Isak (Isak-Sargeras)"
+      },
+      {
+       "game_type": "forever",
+       "interface": "16001",
+       "title": "Raider.IO Mythic Plus, Raiding, and Recruitment",
+       "version": "1.60.1 (v202611150600)",
+       "authors": "Vladinator (Vladinator-TarrenMill), Aspyr (Aspyrox-Skullcrusher) and Isak (Isak-Sargeras)"
+      },
+      {
+       "game_type": "classic",
+       "interface": "11509",
+       "title": "Raider.IO Recruitment (Europe)",
+       "version": "1.15.9 (v202611150600)",
+       "authors": "Vladinator (Vladinator-TarrenMill), Aspyr (Aspyrox-Skullcrusher) and Isak (Isak-Sargeras)"
+      },
+      {
+       "game_type": "classic",
+       "interface": "11509",
+       "title": "Raider.IO Mythic Plus (Europe)",
+       "version": "1.15.9 (v202611150600)",
+       "authors": "Vladinator (Vladinator-TarrenMill), Aspyr (Aspyrox-Skullcrusher) and Isak (Isak-Sargeras)"
+      },
+      {
+       "game_type": "classic",
+       "interface": "11509",
+       "title": "Raider.IO Raiding (Europe)",
+       "version": "1.15.9 (v202611150600)",
+       "authors": "Vladinator (Vladinator-TarrenMill), Aspyr (Aspyrox-Skullcrusher) and Isak (Isak-Sargeras)"
+      },
+      {
+       "game_type": "classic",
+       "interface": "11509",
+       "title": "Raider.IO Recruitment (Korea)",
+       "version": "1.15.9 (v202611150600)",
+       "authors": "Vladinator (Vladinator-TarrenMill), Aspyr (Aspyrox-Skullcrusher) and Isak (Isak-Sargeras)"
+      },
+      {
+       "game_type": "classic",
+       "interface": "11509",
+       "title": "Raider.IO Mythic Plus (Korea)",
+       "version": "1.15.9 (v202611150600)",
+       "authors": "Vladinator (Vladinator-TarrenMill), Aspyr (Aspyrox-Skullcrusher) and Isak (Isak-Sargeras)"
+      },
+      {
+       "game_type": "classic",
+       "interface": "11509",
+       "title": "Raider.IO Raiding (Korea)",
+       "version": "1.15.9 (v202611150600)",
+       "authors": "Vladinator (Vladinator-TarrenMill), Aspyr (Aspyrox-Skullcrusher) and Isak (Isak-Sargeras)"
+      },
+      {
+       "game_type": "classic",
+       "interface": "11509",
+       "title": "Raider.IO Recruitment (Taiwan)",
+       "version": "1.15.9 (v202611150600)",
+       "authors": "Vladinator (Vladinator-TarrenMill), Aspyr (Aspyrox-Skullcrusher) and Isak (Isak-Sargeras)"
+      },
+      {
+       "game_type": "classic",
+       "interface": "11509",
+       "title": "Raider.IO Mythic Plus (Taiwan)",
+       "version": "1.15.9 (v202611150600)",
+       "authors": "Vladinator (Vladinator-TarrenMill), Aspyr (Aspyrox-Skullcrusher) and Isak (Isak-Sargeras)"
+      },
+      {
+       "game_type": "classic",
+       "interface": "11509",
+       "title": "Raider.IO Raiding (Taiwan)",
+       "version": "1.15.9 (v202611150600)",
+       "authors": "Vladinator (Vladinator-TarrenMill), Aspyr (Aspyrox-Skullcrusher) and Isak (Isak-Sargeras)"
+      },
+      {
+       "game_type": "classic",
+       "interface": "11509",
+       "title": "Raider.IO Recruitment (Americas)",
+       "version": "1.15.9 (v202611150600)",
+       "authors": "Vladinator (Vladinator-TarrenMill), Aspyr (Aspyrox-Skullcrusher) and Isak (Isak-Sargeras)"
+      },
+      {
+       "game_type": "classic",
+       "interface": "11509",
+       "title": "Raider.IO Mythic Plus (Americas)",
+       "version": "1.15.9 (v202611150600)",
+       "authors": "Vladinator (Vladinator-TarrenMill), Aspyr (Aspyrox-Skullcrusher) and Isak (Isak-Sargeras)"
+      },
+      {
+       "game_type": "classic",
+       "interface": "11509",
+       "title": "Raider.IO Raiding (Americas)",
+       "version": "1.15.9 (v202611150600)",
+       "authors": "Vladinator (Vladinator-TarrenMill), Aspyr (Aspyrox-Skullcrusher) and Isak (Isak-Sargeras)"
+      },
+      {
+       "game_type": "classic",
+       "interface": "11509",
+       "title": "Raider.IO Recruitment (China)",
+       "version": "1.15.9 (v202611150600)",
+       "authors": "Vladinator (Vladinator-TarrenMill), Aspyr (Aspyrox-Skullcrusher) and Isak (Isak-Sargeras)"
+      },
+      {
+       "game_type": "classic",
+       "interface": "11509",
+       "title": "Raider.IO Mythic Plus (China)",
+       "version": "1.15.9 (v202611150600)",
+       "authors": "Vladinator (Vladinator-TarrenMill), Aspyr (Aspyrox-Skullcrusher) and Isak (Isak-Sargeras)"
+      },
+      {
+       "game_type": "classic",
+       "interface": "11509",
+       "title": "Raider.IO Raiding (China)",
+       "version": "1.15.9 (v202611150600)",
+       "authors": "Vladinator (Vladinator-TarrenMill), Aspyr (Aspyrox-Skullcrusher) and Isak (Isak-Sargeras)"
+      }
+     ],
+     "id": 252561,
+     "name": "RaiderIO-v202611150600.zip",
+     "prerelease": false,
+     "published_at": "2026-11-15T07:16:56.000Z",
+     "tag_name": "v202611150600",
+     "url": "https://api.github.com/repos/RaiderIO/raiderio-addon/releases/assets/750182293",
+     "game_type": "mists",
+     "toc_title": "Raider.IO Mythic Plus, Raiding, and Recruitment",
+     "toc_titles": {
+      "mists": "Raider.IO Mythic Plus, Raiding, and Recruitment",
+      "retail": "Raider.IO Mythic Plus, Raiding, and Recruitment",
+      "classic": "Raider.IO Mythic Plus, Raiding, and Recruitment",
+      "forever": "Raider.IO Mythic Plus, Raiding, and Recruitment"
+     },
+     "toc_version": "12.1.0 (v202611150600)",
+     "previews": [],
+     "addonFolders": [
+      {
+       "fingerprint": "6516c15d32b76c84e518c0053e0117fe",
+       "folder_name": "RaiderIO",
+       "id": 43384
+      },
+      {
+       "fingerprint": "abf9babdcb68e6e589793cd04f9d3b10",
+       "folder_name": "RaiderIO_DB_EU_F",
+       "id": 43385
+      },
+      {
+       "fingerprint": "167f98e51164f888e705a2977ff03345",
+       "folder_name": "RaiderIO_DB_EU_M",
+       "id": 43386
+      },
+      {
+       "fingerprint": "e2f03a9461765d73cf9a0be3972a9f51",
+       "folder_name": "RaiderIO_DB_EU_R",
+       "id": 43387
+      },
+      {
+       "fingerprint": "a9ce5dcfd34339930f74027f119c80c7",
+       "folder_name": "RaiderIO_DB_KR_F",
+       "id": 43388
+      },
+      {
+       "fingerprint": "cfb92f3b31d0f826094f0d941f7010c4",
+       "folder_name": "RaiderIO_DB_KR_M",
+       "id": 43389
+      },
+      {
+       "fingerprint": "0651f5d8b987990bd3868affaf2e74bc",
+       "folder_name": "RaiderIO_DB_KR_R",
+       "id": 43390
+      },
+      {
+       "fingerprint": "8cbb60824106f33e737a0d7bb8815208",
+       "folder_name": "RaiderIO_DB_TW_F",
+       "id": 43391
+      },
+      {
+       "fingerprint": "b4e3cce47e86b08929266bc1769169d3",
+       "folder_name": "RaiderIO_DB_TW_M",
+       "id": 43392
+      },
+      {
+       "fingerprint": "d96d9ffac6f98e9798f0af2a5594a22a",
+       "folder_name": "RaiderIO_DB_TW_R",
+       "id": 43393
+      },
+      {
+       "fingerprint": "a2094d557310e5d3d60ce359084b382c",
+       "folder_name": "RaiderIO_DB_US_F",
+       "id": 43394
+      },
+      {
+       "fingerprint": "28bfdaffed5cedbf96f53da2ba353900",
+       "folder_name": "RaiderIO_DB_US_M",
+       "id": 43395
+      },
+      {
+       "fingerprint": "2697e3aff64ae19eb95f9273fcaf03f8",
+       "folder_name": "RaiderIO_DB_US_R",
+       "id": 43396
+      },
+      {
+       "fingerprint": "f17266057c788c7feedc14f37b588e8c",
+       "folder_name": "RaiderIO_DB_CN_F",
+       "id": 43397
+      },
+      {
+       "fingerprint": "e9d6de4c738831cad619318d770e38f1",
+       "folder_name": "RaiderIO_DB_CN_M",
+       "id": 43398
+      },
+      {
+       "fingerprint": "145b606e3d642dcbe4f18b2de4dfc6b0",
+       "folder_name": "RaiderIO_DB_CN_R",
+       "id": 43399
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": 2797979,
+   "repository": "https://github.com/jakubwarchol/last-watch-releases",
+   "repository_name": "last-watch-releases",
+   "source": "GitHub",
+   "description": "<h1>last-watch-releases</h1><p>Release zips of The Last Watch guild addons (read by WowUp). Source: last-watch-addons.</p>",
+   "homepage": null,
+   "image_url": "https://repository-images.githubusercontent.com/1449233609/1834d08f-ee55-4b08-b981-c21e3b7128ab",
+   "owner_image_url": "https://avatars.githubusercontent.com/u/6187167?u=f327a83f74f4b534135998768d5118b0a37f5247&v=4",
+   "owner_name": "jakubwarchol",
+   "total_download_count": 200,
+   "funding_links": [],
+   "topics": [],
+   "releases": [
+    {
+     "download_count": 0,
+     "download_url": "http://FAKE/dl/jakubwarchol/last-watch-releases/releases/download/v0.15.1/LastWatch-v0.15.1-forever.zip",
+     "external_id": "750493217",
+     "game_version": "16001",
+     "game_versions": [
+      {
+       "game_type": "forever",
+       "interface": "16001",
+       "title": "Last Watch",
+       "version": "0.15.1",
+       "authors": "Kuba"
+      }
+     ],
+     "id": 252565,
+     "name": "LastWatch-v0.15.1-forever.zip",
+     "prerelease": false,
+     "published_at": "2026-11-15T09:32:40.000Z",
+     "tag_name": "v0.15.1",
+     "url": "https://api.github.com/repos/jakubwarchol/last-watch-releases/releases/assets/750493217",
+     "game_type": "forever",
+     "toc_title": "Last Watch",
+     "toc_titles": {
+      "forever": "Last Watch"
+     },
+     "toc_version": "0.15.1",
+     "previews": [],
+     "addonFolders": [
+      {
+       "fingerprint": "7cf41ef6782d41648dd2b5a67be897b6",
+       "folder_name": "LastWatch",
+       "id": 43401
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "count": 3,
+ "recentCount": 2
+}

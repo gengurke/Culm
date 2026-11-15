@@ -740,6 +740,7 @@ fn remote(row: &Row) -> RemoteAddon {
         thumbnail_url: None,
         download_count: downloads,
         files: vec![f],
+        source_url: None,
     }
 }
 
