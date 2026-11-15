@@ -4,18 +4,19 @@ mod get_addons;
 mod maintenance;
 mod my_addons;
 mod settings;
+mod toasts;
 
 use crate::brand;
 use crate::icons;
-use crate::state::{Intent, Job, Screen, State, Tone, dispatch};
+use crate::state::{Intent, Job, Screen, State, dispatch};
 use crate::theme::{self, StyleExt, SurfaceExt, pal, t};
 use crate::theme::{BandDeco, Surface};
 use crate::ui::{self, Kind};
 use rune::{Cursor, Cx, El, Icon, Tx, col, el, icon, row, text};
-use rune_kit::{Toast, ToastRegion};
 
-pub fn view(s: &State, _cx: &mut Cx<State>) -> El {
+pub fn view(s: &State, cx: &mut Cx<State>) -> El {
     theme::begin(s);
+    cx.help_look(ui::help_look());
     let page = match (s.screen, s.installation()) {
         (Screen::Settings, _) => settings::page(s),
         (_, None) if s.job == Job::Booting || s.job == Job::Scanning => loading_page(s),
@@ -31,7 +32,7 @@ pub fn view(s: &State, _cx: &mut Cx<State>) -> El {
         .skin(&t().skin.window)
         .child(theme::framed(|| sidebar(s)))
         .child(col().key("main").grow(1.0).min_w(0.0).h_full().child(page))
-        .child(toasts(s))
+        .child(toasts::region(s))
 }
 
 /// The slim band every page starts with: the title, muted meta pieces beside it (built by `meta`
@@ -312,15 +313,16 @@ fn nav_row(
         })
         .cursor(Cursor::Pointer)
         .on_press_tx(move |s: &mut State, tx: &mut Tx| dispatch(s, Intent::Navigate(screen), tx));
-    if on {
-        r = r.child(el().absolute(0.0, 0.0).w(2.0).h(36.0).fill(p.accent));
-    }
     r = r
         .child(icon(theme::glyph(glyph), 16.0).color(if on { p.accent } else { p.text_muted }))
         .child(
             text(label)
-                .font(th.ty.body)
-                .color(if on { p.text } else { p.text_dim })
+                .font(if on {
+                    th.ty.body.weight_of(600.0)
+                } else {
+                    th.ty.body
+                })
+                .color(if on { p.heading } else { p.text_dim })
                 .grow(1.0),
         );
     if count > 0 {
@@ -518,33 +520,4 @@ fn onboarding_page() -> El {
             vec![],
         ))
         .child(centered(card))
-}
-
-fn toasts(s: &State) -> El {
-    let (sk, p) = (&t().skin.toast, pal());
-    let k = ui::kit();
-    let mut region = ToastRegion::new();
-    for t in &s.toasts {
-        let (tone, glyph) = match t.tone {
-            Tone::Success => (p.success, &icons::CHECK),
-            Tone::Info => (p.accent, &icons::DOWNLOAD),
-            Tone::Danger => (p.danger, &icons::ALERT),
-        };
-        let id = t.id;
-        let mut toast = Toast::new(format!("toast/{id}"), t.title.clone())
-            .lead(icon(glyph, 16.0).color(tone))
-            .on_close(move |s: &mut State| s.dismiss_toast(id));
-        if !t.body.is_empty() {
-            toast = toast.description(t.body.clone());
-        }
-        region = region.toast(
-            // The tone bar replaces the skin's border; the kit hard-codes its own radius (AGENTS.md).
-            toast
-                .build(&k)
-                .w(340.0)
-                .skin(sk)
-                .border_sides([0.0, 0.0, 0.0, 2.0], tone),
-        );
-    }
-    region.build(&k).pin(None, None, Some(24.0), Some(24.0))
 }

@@ -8,7 +8,6 @@ use super::{Medal, BASE_TYPE, BandDeco, Border, Corners, Overlay, Pal, Skin, Sur
 use crate::icons;
 use rune::tok::{Family, TextStyle};
 use rune::{Color, Shadow};
-use std::f32::consts::FRAC_PI_2;
 use std::sync::LazyLock;
 
 /// Only Noto Serif ships with the system; the others are used when the user has them.
@@ -145,11 +144,11 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
         menu: Surface { shadows: vec![lit(0.7), shade(0.12), cast(4.0, 12.0, 0.45)], ..page.clone() },
         list_header: Surface { fill: rim.alpha(0.1), border: Some(Border::sides([0.0, 0.0, 1.0, 0.0], rim.alpha(0.35))), ..Default::default() },
         row: Surface { border: under, hover: p.hover, ..Default::default() },
-        // The quest log's highlight: a warm bar fading to the right.
+        // The quest log's highlight: a warm wash over the whole line in a bronze rule.
         row_selected: Surface {
             fill: p.selected,
-            overlay: Some(Overlay::Linear { angle: FRAC_PI_2, stops: vec![(0.0, h("#c08a24").alpha(0.28)), (0.7, h("#c08a24").alpha(0.0))] }),
             border: Some(Border::sides([0.0, 0.0, 1.0, 0.0], h("#a06a14").alpha(0.45))),
+            shadows: vec![Shadow { spread: 1.0, color: h("#a06a14").alpha(0.55), inset: true, ..Shadow::default() }],
             hover: p.hover,
             ..Default::default()
         },

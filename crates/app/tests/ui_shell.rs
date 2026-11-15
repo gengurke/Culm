@@ -292,7 +292,50 @@ fn f1_3_installation_names_show_the_prefix_only_for_twins() {
     twin.id = "forever-lutris".into();
     twin.root = "~/Games/lutris/drive_c/Program Files (x86)/World of Warcraft/_forever_".into();
     rt.state.installations.push(twin);
-    rt.state.inst_menu = true;
-    rt.frame(1.0 / 60.0);
+    tap(&mut rt, "installation/selector");
     assert!(shows(&rt, "WoW Forever (battlenet)") && shows(&rt, "WoW Forever (lutris)"));
+}
+
+/// Meaningful actions carry a short help text (a tooltip after a rest of the pointer), and it
+/// shows when the pointer rests on the button.
+#[test]
+fn ui_buttons_explain_themselves() {
+    let mut rt = app(|s| {
+        loaded(s);
+        s.selected = Some("questie".into());
+    });
+    rt.frame(1.0 / 60.0);
+    let help = |rt: &Runtime<State>, key: &str| {
+        rt.elements()
+            .iter()
+            .find(|e| e.key.as_deref() == Some(key))
+            .unwrap_or_else(|| panic!("no element keyed {key}"))
+            .help
+            .clone()
+            .unwrap_or_default()
+    };
+    for (key, needle) in [
+        ("my-addons/rescan", "Read the AddOns folder again"),
+        ("my-addons/check", "newer versions"),
+        ("my-addons/update-all", "every waiting update"),
+        ("addons/sort/status", "Sort by status"),
+        ("detail/reinstall", "replace the addon's folders"),
+        ("detail/ignore", "Skip this addon"),
+        ("detail/channel/beta", "betas"),
+        ("detail/website", "browser"),
+    ] {
+        let h = help(&rt, key);
+        assert!(h.contains(needle), "{key}: help {h:?} lacks {needle:?}");
+    }
+    // A glyph-only button's help names it.
+    assert_eq!(help(&rt, "detail/close"), "Close details");
+
+    let (x, y) = rt.find("my-addons/rescan").expect("rescan button");
+    rt.pointer_move(x, y);
+    rt.frame(1.0 / 60.0);
+    rt.frame(1.0);
+    let (tip, _) = rt
+        .help_tooltip()
+        .expect("a tooltip after resting on Rescan");
+    assert!(tip.starts_with("Read the AddOns folder again"), "{tip}");
 }

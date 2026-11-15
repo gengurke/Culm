@@ -53,7 +53,7 @@ pub fn page(s: &State) -> El {
                 .gap(8.0)
                 .center_y()
                 .child(key_field)
-                .child(ui::button("settings/api-key/save", "Save", Kind::Primary, None, dirty, |s, tx| dispatch(s, Intent::SaveApiKey, tx))),
+                .child(ui::button("settings/api-key/save", "Save", Kind::Primary, None, dirty, |s, tx| dispatch(s, Intent::SaveApiKey, tx)).help("Store the key on this computer and turn on CurseForge")),
         ))
         .child(setting_row("Status", "Whether CurseForge features are available.", key_status));
 
@@ -62,7 +62,11 @@ pub fn page(s: &State) -> El {
         "Release channel for newly installed addons. Beta also accepts stable files, Alpha accepts everything.",
         ui::segmented(
             "settings/channel",
-            &[(Channel::Stable, "Stable"), (Channel::Beta, "Beta"), (Channel::Alpha, "Alpha")],
+            &[
+                (Channel::Stable, "Stable", ui::CHANNEL_HELP[0]),
+                (Channel::Beta, "Beta", ui::CHANNEL_HELP[1]),
+                (Channel::Alpha, "Alpha", ui::CHANNEL_HELP[2]),
+            ],
             s.settings.default_channel,
             true,
             |s: &mut State, c, tx: &mut Tx| dispatch(s, Intent::SetDefaultChannel(c), tx),
@@ -92,6 +96,7 @@ pub fn page(s: &State) -> El {
                 true,
                 move |s, tx| dispatch(s, Intent::SelectInstallation(id.clone()), tx),
             )
+            .help("Manage this installation's addons")
             .h(28.0)
         };
         installs = installs.child(
@@ -133,22 +138,28 @@ pub fn page(s: &State) -> El {
         row()
             .pt(14.0)
             .gap(8.0)
-            .child(ui::button(
-                "settings/add-installation",
-                "Add installation…",
-                Kind::Secondary,
-                Some(&icons::PLUS),
-                true,
-                |s, tx| dispatch(s, Intent::AddInstallation, tx),
-            ))
-            .child(ui::button(
-                "settings/import-wowup",
-                "Import from WowUp",
-                Kind::Ghost,
-                Some(&icons::DOWNLOAD),
-                s.installation().is_some(),
-                |s, tx| dispatch(s, Intent::ImportWowUp, tx),
-            )),
+            .child(
+                ui::button(
+                    "settings/add-installation",
+                    "Add installation…",
+                    Kind::Secondary,
+                    Some(&icons::PLUS),
+                    true,
+                    |s, tx| dispatch(s, Intent::AddInstallation, tx),
+                )
+                .help("Pick another World of Warcraft: Forever folder"),
+            )
+            .child(
+                ui::button(
+                    "settings/import-wowup",
+                    "Import from WowUp",
+                    Kind::Ghost,
+                    Some(&icons::DOWNLOAD),
+                    s.installation().is_some(),
+                    |s, tx| dispatch(s, Intent::ImportWowUp, tx),
+                )
+                .help("Take over which addons WowUp installed and where it got them from"),
+            ),
     );
 
     let about = section("About").child(setting_row(

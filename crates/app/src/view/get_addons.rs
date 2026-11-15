@@ -353,21 +353,16 @@ fn error(e: &str) -> El {
 /// Without a key: WowUp Hub still answers, a key adds CurseForge (F7.1).
 fn no_key_hint() -> El {
     let p = pal();
-    // The accent bar replaces the panel's border; an inset hairline keeps the other edges.
-    ui::edge(
-        row()
-            .key("get-addons/no-key")
-            .w_full()
-            .max_w(760.0)
-            .gap(14.0)
-            .px(16.0)
-            .py(12.0)
-            .center_y()
-            .skin(&t().skin.panel),
-        p.border,
-    )
-    .border_sides([0.0, 0.0, 0.0, 2.0], p.accent)
-    .child(icon(&icons::KEY, 16.0).color(p.accent))
+    row()
+        .key("get-addons/no-key")
+        .w_full()
+        .max_w(760.0)
+        .gap(14.0)
+        .px(16.0)
+        .py(12.0)
+        .center_y()
+        .skin(&t().skin.panel)
+        .child(ui::badge(&icons::KEY, p.accent))
     .child(
         col()
             .grow(1.0)
@@ -430,6 +425,10 @@ fn dropdown(
         .key(key)
         .role("button")
         .label(label)
+        .help(match menu {
+            Menu::Category => "Show only addons of one category",
+            Menu::Sort => "Change the order of the results",
+        })
         .expanded(open)
         .focusable(enabled)
         .h(theme::CONTROL_H)
@@ -668,7 +667,12 @@ fn install_action(s: &State, remote: &RemoteAddon, key: &str, label: &str, prima
                 Some(&icons::DOWNLOAD),
                 true,
                 move |s, tx| dispatch(s, Intent::Install(Box::new(r.clone())), tx),
-            );
+            )
+            .help(format!(
+                "Download {} from {} into your AddOns folder",
+                remote.name,
+                source_label(&remote.provider)
+            ));
             if primary { b.w_full() } else { b.h(28.0) }
         }
     }
@@ -844,6 +848,7 @@ fn detail(s: &State, d: &Detail) -> El {
                         true,
                         move |s, tx| dispatch(s, Intent::Update(id.clone()), tx),
                     )
+                    .help("Download and install the newest version")
                     .w_full(),
                 );
             }
@@ -856,6 +861,7 @@ fn detail(s: &State, d: &Detail) -> El {
                     true,
                     show,
                 )
+                .help("Open this addon's details in My Addons")
                 .w_full(),
             )
         }
@@ -921,6 +927,7 @@ fn detail(s: &State, d: &Detail) -> El {
             }
         },
     )
+    .help("Open the addon's page in your browser")
     .w_full();
 
     let about = match &d.description {
@@ -1045,6 +1052,10 @@ fn source_picker(s: &State, d: &Detail) -> El {
                 .key(format!("remote-detail/source/{}", ui::slug(&r.provider)))
                 .role("radio")
                 .label(source_label(&r.provider))
+                .help(format!(
+                    "Install and update from {}",
+                    source_label(&r.provider)
+                ))
                 .checked(on)
                 .focusable(true)
                 .w_full()

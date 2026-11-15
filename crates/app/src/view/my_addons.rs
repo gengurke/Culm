@@ -2,6 +2,7 @@
 
 use super::{band, band_note};
 use crate::backend::SortBy;
+use crate::brand;
 use crate::icons;
 use crate::state::{AddonUi, Intent, Job, Op, Screen, State, Status, dispatch};
 use crate::theme::{self, StyleExt, SurfaceExt, pal, t};
@@ -60,7 +61,8 @@ pub fn page(s: &State) -> El {
         Some(&icons::DOWNLOAD),
         n > 0,
         |s, tx| dispatch(s, Intent::UpdateAll, tx),
-    );
+    )
+    .help("Download and install every waiting update");
     let body = if s.addons.is_empty() && s.job != Job::Idle {
         busy(s)
     } else {
@@ -143,22 +145,31 @@ fn toolbar(s: &State) -> El {
                 .child(text(label).font(t().ty.small).color(p.text_dim)),
         );
     }
-    bar.child(ui::button(
-        "my-addons/check",
-        "Check for updates",
-        Kind::Secondary,
-        Some(&icons::REFRESH),
-        idle,
-        |s, tx| dispatch(s, Intent::CheckUpdates, tx),
-    ))
-    .child(ui::button(
-        "my-addons/rescan",
-        "Rescan",
-        Kind::Ghost,
-        Some(&icons::FOLDER),
-        idle,
-        |s, tx| dispatch(s, Intent::Rescan, tx),
-    ))
+    bar.child(
+        ui::button(
+            "my-addons/check",
+            "Check for updates",
+            Kind::Secondary,
+            Some(&icons::REFRESH),
+            idle,
+            |s, tx| dispatch(s, Intent::CheckUpdates, tx),
+        )
+        .help("Ask the addon sites whether newer versions are out"),
+    )
+    .child(
+        ui::button(
+            "my-addons/rescan",
+            "Rescan",
+            Kind::Ghost,
+            Some(&icons::FOLDER),
+            idle,
+            |s, tx| dispatch(s, Intent::Rescan, tx),
+        )
+        .help(format!(
+            "Read the AddOns folder again, e.g. after you changed addons outside {}",
+            brand::APP_NAME
+        )),
+    )
 }
 
 fn busy(s: &State) -> El {
@@ -207,6 +218,10 @@ fn column(s: &State, label: &str, by: Option<SortBy>) -> El {
         .key(format!("addons/sort/{}", ui::slug(label)))
         .role("button")
         .label(format!("Sort by {label}{dir}"))
+        .help(format!(
+            "Sort by {}; press again to reverse",
+            label.to_lowercase()
+        ))
         .focusable(true)
         .h(24.0)
         .gap(4.0)
@@ -329,14 +344,6 @@ fn addon_row(s: &State, a: &AddonUi) -> El {
                 };
             }
         });
-    if selected {
-        r = r.child(
-            el().absolute(0.0, 0.0)
-                .w(2.0)
-                .h(theme::ROW_H)
-                .fill(p.accent),
-        );
-    }
     r = r
         .child(ui::addon_tile(
             &addon.name,
@@ -470,6 +477,7 @@ fn action_cell(a: &AddonUi) -> El {
             true,
             move |s, tx| dispatch(s, Intent::Update(id.clone()), tx),
         )
+        .help("Download and install the newest version")
         .h(28.0),
         Status::Error => ui::button(
             format!("addon/{id}/retry"),
@@ -479,6 +487,7 @@ fn action_cell(a: &AddonUi) -> El {
             true,
             move |s, tx| dispatch(s, Intent::Update(id.clone()), tx),
         )
+        .help("Try the update again")
         .h(28.0),
         _ => el(),
     }
@@ -526,6 +535,7 @@ fn detail(s: &State, a: &AddonUi) -> El {
                 true,
                 move |s, tx| dispatch(s, Intent::Update(id.clone()), tx),
             )
+            .help("Download and install the newest version")
             .w_full(),
         );
     }
@@ -548,7 +558,8 @@ fn detail(s: &State, a: &AddonUi) -> El {
                     let id = id.clone();
                     move |s, tx| dispatch(s, Intent::Reinstall(id.clone()), tx)
                 },
-            ),
+            )
+            .help("Download the current version again and replace the addon's folders"),
             ui::button(
                 key("ignore"),
                 if ignored { "Unignore" } else { "Ignore" },
@@ -563,7 +574,12 @@ fn detail(s: &State, a: &AddonUi) -> El {
                     let id = id.clone();
                     move |s, tx| dispatch(s, Intent::SetIgnored(id.clone(), !ignored), tx)
                 },
-            ),
+            )
+            .help(if ignored {
+                "Check this addon for updates again"
+            } else {
+                "Skip this addon when checking for updates"
+            }),
         ))
         .child(row2(
             ui::button(
@@ -576,7 +592,8 @@ fn detail(s: &State, a: &AddonUi) -> El {
                     let id = id.clone();
                     move |s, tx| dispatch(s, Intent::OpenWebsite(id.clone()), tx)
                 },
-            ),
+            )
+            .help("Open the addon's page in your browser"),
             ui::button(
                 key("folder"),
                 "Folder",
@@ -587,7 +604,8 @@ fn detail(s: &State, a: &AddonUi) -> El {
                     let id = id.clone();
                     move |s, tx| dispatch(s, Intent::OpenFolder(id.clone()), tx)
                 },
-            ),
+            )
+            .help("Show the addon's folder in your file manager"),
         ));
 
     let remove = if s.confirm_remove.as_deref() == Some(&addon.id) {
@@ -644,15 +662,16 @@ fn detail(s: &State, a: &AddonUi) -> El {
                 move |s, tx| dispatch(s, Intent::Remove(id.clone()), tx)
             },
         )
+        .help("Delete the addon's folders from AddOns (asks first)")
         .w_full()
     };
 
     let channel = ui::segmented(
         "detail/channel",
         &[
-            (Channel::Stable, "Stable"),
-            (Channel::Beta, "Beta"),
-            (Channel::Alpha, "Alpha"),
+            (Channel::Stable, "Stable", ui::CHANNEL_HELP[0]),
+            (Channel::Beta, "Beta", ui::CHANNEL_HELP[1]),
+            (Channel::Alpha, "Alpha", ui::CHANNEL_HELP[2]),
         ],
         addon.channel,
         managed && !busy,

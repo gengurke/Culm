@@ -6,7 +6,7 @@ use super::{Medal, BASE_TYPE, BandDeco, Border, Corners, Overlay, Pal, Skin, Sur
 use crate::icons;
 use rune::tok::{Family, TextStyle};
 use rune::{Color, Shadow};
-use std::f32::consts::{FRAC_PI_2, PI};
+use std::f32::consts::PI;
 use std::sync::LazyLock;
 
 /// Only Noto Serif ships with the system; the others are used when the user has them.
@@ -125,10 +125,12 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
         },
         list_header: Surface { fill: Color::BLACK.alpha(0.3), border: Some(Border::sides([0.0, 0.0, 1.0, 0.0], bronze.alpha(0.3))), ..Default::default() },
         row: Surface { border: under, hover: p.hover, ..Default::default() },
+        // Lit amber from below, like the open tab, in a thin gold ring.
         row_selected: Surface {
             fill: p.selected,
-            overlay: Some(Overlay::Linear { angle: FRAC_PI_2, stops: vec![(0.0, amber.alpha(0.18)), (0.6, amber.alpha(0.0))] }),
+            overlay: Some(Overlay::Radial { center: [0.5, 1.3], radius: [700.0, 50.0], stops: vec![(0.0, amber.alpha(0.2)), (1.0, amber.alpha(0.0))] }),
             border: under,
+            shadows: vec![Shadow { spread: 1.0, color: gold.alpha(0.45), inset: true, ..Shadow::default() }],
             hover: p.hover,
             ..Default::default()
         },

@@ -200,4 +200,7 @@ installation picker, a slim header band per page (title, muted meta pieces set a
 stars in Moonlit; My Addons: addon count and update state, the game version stays in the picker), My Addons (filter, sortable column headers, virtual list, detail panel), Get Addons
 (one search-or-link field, category and sort dropdowns, class medallion chips, clear filters, popular list, result detail panel, no-key hint), Maintenance (confirm + result per
 card, locked while the game runs), Settings (theme, API key, default channel, installations, WowUp import),
-toasts and onboarding. Every scene has a `<scene>@<theme>` variant (`--snap x.png --scene settings@hearthwood`).
+toasts and onboarding. Meaningful actions explain themselves in a short tooltip after a rest of the pointer, drawn in
+the theme's floating (menu) look (`ui_buttons_explain_themselves`). Active nav rows are inset plaques and the selected row a
+tinted line in a thin ring: no coloured side stripes. Toast looks are being compared: `ADDONS_TOAST_STYLE=0..5` (scene
+`toasts`; 0 is the current kit toast). Every scene has a `<scene>@<theme>` variant (`--snap x.png --scene settings@hearthwood`).

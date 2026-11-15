@@ -16,6 +16,11 @@ fn drop(y: f32, blur: f32, a: f32) -> Shadow {
     Shadow { y, blur, color: Color::BLACK.alpha(a), ..Shadow::default() }
 }
 
+/// A 1 pt line just inside the box's edge.
+fn ring(color: Color) -> Shadow {
+    Shadow { spread: 1.0, color, inset: true, ..Shadow::default() }
+}
+
 pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
     let gold = h("#ccaa44");
     let tile = h("#282322");
@@ -84,9 +89,9 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
         menu: Surface { fill: h("#24201f"), border: frame, radius: 8.0, shadows: vec![lip, drop(6.0, 18.0, 0.6)], ..Default::default() },
         list_header: Surface { fill: Color::WHITE.alpha(0.025), border: under, ..Default::default() },
         row: Surface { border: under, hover: p.hover, ..Default::default() },
-        row_selected: Surface { fill: p.selected, border: Some(Border::sides([0.0, 0.0, 1.0, 0.0], gold.alpha(0.25))), hover: p.hover, ..Default::default() },
+        row_selected: Surface { fill: p.selected, border: under, shadows: vec![ring(gold.alpha(0.35))], hover: p.hover, ..Default::default() },
         nav: Surface { fill: tile, border: gap(p.sidebar), radius: 14.0, hover: p.hover, ..Default::default() },
-        nav_active: Surface { fill: h("#3a3230"), border: gap(p.sidebar), radius: 14.0, hover: p.hover, ..Default::default() },
+        nav_active: Surface { fill: h("#3a3230"), border: gap(p.sidebar), radius: 14.0, shadows: vec![ring(gold.alpha(0.35))], hover: p.hover, ..Default::default() },
         primary: Surface {
             fill: h("#6e0808"),
             ink: p.heading,
