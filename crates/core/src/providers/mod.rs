@@ -7,10 +7,12 @@ use anyhow::Result;
 
 pub mod curseforge;
 pub mod github;
+pub mod hub;
 pub mod wowinterface;
 
 pub use curseforge::CurseForge;
 pub use github::GitHub;
+pub use hub::Hub;
 pub use wowinterface::WowInterface;
 
 /// Provider settings (from user prefs). `Default` points at the real services.
@@ -20,6 +22,7 @@ pub struct ProviderConfig {
     pub curseforge_base_url: String,
     pub github_token: Option<String>,
     pub github_base_url: String,
+    pub hub_base_url: String,
     pub wowinterface_base_url: String,
 }
 
@@ -30,6 +33,7 @@ impl Default for ProviderConfig {
             curseforge_base_url: curseforge::DEFAULT_BASE_URL.into(),
             github_token: None,
             github_base_url: github::DEFAULT_API_BASE.into(),
+            hub_base_url: hub::DEFAULT_BASE_URL.into(),
             wowinterface_base_url: wowinterface::DEFAULT_BASE_URL.into(),
         }
     }
@@ -81,6 +85,8 @@ pub struct ScannedFolder {
     pub name: String,
     /// CurseForge fingerprint (murmur2) of the folder.
     pub fingerprint: u32,
+    /// md5 fingerprint (hex) of the folder, matched by the WowUp Hub.
+    pub hub_fingerprint: String,
     /// Ids from TOC metadata, e.g. ("CurseForge", "1234") from `X-Curse-Project-ID`.
     pub toc_ids: Vec<(String, String)>,
 }

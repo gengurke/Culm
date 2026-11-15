@@ -88,7 +88,8 @@ impl GitHub {
             name: info.name,
             author: info.owner.login,
             summary: info.description.unwrap_or_default(),
-            url: Some(info.html_url),
+            url: Some(info.html_url.clone()),
+            source_url: Some(info.html_url),
             thumbnail_url: info.owner.avatar_url,
             download_count: releases
                 .iter()

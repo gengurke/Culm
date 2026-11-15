@@ -11,11 +11,18 @@ const JSON_LIMIT: u64 = 64 << 20;
 /// Max download size; addon zips are far below this.
 const DOWNLOAD_LIMIT: u64 = 512 << 20;
 
+/// Sent with every request. Generic on purpose: the product name lives in the app crate only.
+pub const USER_AGENT: &str = concat!(
+    "addon-manager/",
+    env!("CARGO_PKG_VERSION"),
+    " (World of Warcraft: Forever addon manager)"
+);
+
 fn agent() -> &'static ureq::Agent {
     static AGENT: OnceLock<ureq::Agent> = OnceLock::new();
     AGENT.get_or_init(|| {
         ureq::Agent::config_builder()
-            .user_agent(concat!("addon-manager/", env!("CARGO_PKG_VERSION")))
+            .user_agent(USER_AGENT)
             .http_status_as_error(false)
             .timeout_connect(Some(Duration::from_secs(15)))
             .timeout_recv_response(Some(Duration::from_secs(30)))

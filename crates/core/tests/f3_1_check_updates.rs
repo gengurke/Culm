@@ -37,6 +37,7 @@ fn config(s: &FakeServer, key: Option<&str>) -> ProviderConfig {
         curseforge_base_url: s.url().into(),
         github_token: None,
         github_base_url: s.url().into(),
+        hub_base_url: format!("{}/hub", s.url()),
         wowinterface_base_url: format!("{}/wowi", s.url()),
     }
 }

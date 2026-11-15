@@ -1,0 +1,51 @@
+{
+ "exactMatches": [
+  {
+   "id": 2797963,
+   "repository": "https://github.com/xenathe/XenQuest",
+   "repository_name": "XenQuest",
+   "source": "GitHub",
+   "homepage": "",
+   "image_url": "https://repository-images.githubusercontent.com/1421040360/64c6760a-642b-4b3f-aca6-89cc3c004440",
+   "owner_image_url": "https://avatars.githubusercontent.com/u/189380765?u=aefccba750518c215248b8eaf1687946ef0c16b5&v=4",
+   "owner_name": "xenathe",
+   "total_download_count": 253,
+   "funding_links": [],
+   "topics": [],
+   "matched_release": {
+    "download_count": 164,
+    "download_url": "http://FAKE/dl/xenathe/XenQuest/releases/download/v1.0.4/XenQuest-v1.0.4-Forever.zip",
+    "external_id": "713233517",
+    "game_version": "16001",
+    "game_versions": [
+     {
+      "game_type": "forever",
+      "interface": "16001",
+      "title": "XenQuest",
+      "version": "1.0.4",
+      "authors": "XenQuest"
+     }
+    ],
+    "id": 252001,
+    "name": "XenQuest-v1.0.4-Forever.zip",
+    "prerelease": false,
+    "published_at": "2026-11-05T11:50:54.000Z",
+    "tag_name": "v1.0.4",
+    "url": "https://api.github.com/repos/xenathe/XenQuest/releases/assets/713233517",
+    "game_type": "forever",
+    "toc_title": "XenQuest",
+    "toc_titles": {
+     "forever": "XenQuest"
+    },
+    "toc_version": "1.0.4",
+    "addonFolders": [
+     {
+      "fingerprint": "a204bf9bcf6ab09267db847f53385a2b",
+      "folder_name": "XenQuest",
+      "id": 42955
+     }
+    ]
+   }
+  }
+ ]
+}

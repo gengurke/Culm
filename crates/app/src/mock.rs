@@ -832,6 +832,7 @@ fn remote(row: &Row) -> RemoteAddon {
         thumbnail_url: None,
         download_count: downloads,
         files: vec![f],
+        source_url: None,
         categories: categories_of(name),
         updated_at: Some(format!("2026-11-{:02}T10:00:00Z", 1 + downloads % 14)),
     }

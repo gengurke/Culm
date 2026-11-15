@@ -85,6 +85,11 @@ pub struct RemoteAddon {
     pub download_count: u64,
     /// Latest files for this flavor, newest first, at most one per channel is enough.
     pub files: Vec<RemoteFile>,
+    /// The source repository the author or provider names (CurseForge `links.sourceUrl`, the Hub's
+    /// `repository`, a GitHub repo's page). Used as a cross-provider id only when it is exactly a
+    /// GitHub repo URL (see [`crate::discover`]).
+    #[serde(default)]
+    pub source_url: Option<String>,
     /// Provider category names (CurseForge), for display.
     #[serde(default)]
     pub categories: Vec<String>,
