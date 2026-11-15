@@ -15,6 +15,11 @@ fn drop(y: f32, blur: f32, a: f32) -> Shadow {
     Shadow { y, blur, color: Color::BLACK.alpha(a), ..Shadow::default() }
 }
 
+/// A 1 pt line just inside the box's edge.
+fn ring(color: Color) -> Shadow {
+    Shadow { spread: 1.0, color, inset: true, ..Shadow::default() }
+}
+
 pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
     let gold = h("#c9a04a");
     let parchment = h("#f4e7cc");
@@ -97,16 +102,27 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
         menu: Surface { overlay: None, shadows: vec![inset(1.0, h("#ffcf80").alpha(0.1)), drop(6.0, 18.0, 0.65)], ..leather.clone() },
         list_header: Surface { fill: Color::BLACK.alpha(0.22), border: Some(Border::sides([0.0, 0.0, 1.0, 0.0], gold.alpha(0.25))), ..Default::default() },
         row: Surface { border: under, hover: p.hover, ..Default::default() },
+        // A warm-lit row in a thin gold ring.
         row_selected: Surface {
             fill: p.selected,
-            overlay: Some(Overlay::Linear { angle: std::f32::consts::FRAC_PI_2, stops: vec![(0.0, gold.alpha(0.18)), (0.6, gold.alpha(0.0))] }),
+            vertical: Some((gold.alpha(0.16), gold.alpha(0.07))),
             border: under,
+            shadows: vec![ring(gold.alpha(0.45))],
             hover: p.hover,
             ..Default::default()
         },
         nav: Surface { hover: p.hover, ..Default::default() },
+        // A gilt plaque on the wood, inset from the sidebar's edges: the clear border is its
+        // margin, and a wide inset shadow paints its face (a fill would run under the border).
         nav_active: Surface {
-            overlay: Some(Overlay::Linear { angle: std::f32::consts::FRAC_PI_2, stops: vec![(0.0, gold.alpha(0.26)), (0.9, gold.alpha(0.0))] }),
+            border: Some(Border { sides: [3.0, 10.0, 3.0, 10.0], top: Color::TRANSPARENT, bottom: Color::TRANSPARENT }),
+            radius: 2.0,
+            shadows: vec![
+                Shadow { spread: 40.0, color: h("#3a2814").alpha(0.92), inset: true, ..Shadow::default() },
+                inset(2.0, h("#ffcf80").alpha(0.14)),
+                inset(-2.0, Color::BLACK.alpha(0.35)),
+                ring(gold.alpha(0.6)),
+            ],
             hover: p.hover,
             ..Default::default()
         },

@@ -52,6 +52,11 @@ Build needs `libxkbcommon-devel wayland-devel` (Fedora). Without root, a gitigno
   anything created there (the thumbnail `ImageCache`) must be set by the test.
 - `resolve_file_dialog` returns a `#[must_use]` Result.
 - rune-kit `Toast` hard-codes radius 8: override with `.radius(0.0)`.
+- A clear border insets a box's children and inset shadows, not its fill or gradient: an inset plaque (`nav_active`) paints
+  its face with a wide inset shadow (`spread` past half its height).
+- Tooltips (`.help(..)`) take the theme through `cx.help_look(ui::help_look())` in `view`; tests read them as
+  `ElementInfo::help` and `rt.help_tooltip()`.
+- A text's `max_w` + `truncate` cuts what it draws, but a row hugging its content still sizes to the full text.
 - `ElementInfo::rect` is the animated rect (a row entering can be 1 px tall); use `target` for layout assertions.
 - `.pixels(img)` paints when the image decodes without re-running the view: put it over a fallback instead of
   branching on `is_ready()`.

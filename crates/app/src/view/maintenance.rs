@@ -19,18 +19,16 @@ pub fn page(s: &State) -> El {
         .py(24.0);
     if s.game_running {
         content = content.child(
-            ui::edge(
-                row()
-                    .key("maintenance/game-running")
-                    .w_full()
-                    .gap(12.0)
-                    .padding(14.0)
-                    .center_y()
-                    .fill(p.warning_soft)
-                    .border_sides([0.0, 0.0, 0.0, 2.0], p.warning),
-                p.warning.alpha(0.3),
-            )
-            .child(icon(&icons::ALERT, 16.0).color(p.warning))
+            row()
+                .key("maintenance/game-running")
+                .w_full()
+                .gap(12.0)
+                .padding(12.0)
+                .center_y()
+                .radius(t().skin.panel.radius)
+                .fill(p.warning_soft)
+                .border(1.0, p.warning.alpha(0.4))
+                .child(ui::badge(&icons::ALERT, p.warning))
             .child(
                 text(
                     "World of Warcraft is running. Close the game to clean or back up its folders.",
@@ -42,7 +40,14 @@ pub fn page(s: &State) -> El {
     }
     let scope = ui::segmented(
         "maint/cache/scope",
-        &[(false, "Whole cache"), (true, "Only WDB")],
+        &[
+            (false, "Whole cache", "Delete the whole Cache folder"),
+            (
+                true,
+                "Only WDB",
+                "Delete only Cache/WDB, the cached item, quest and creature data",
+            ),
+        ],
         s.cache_wdb_only,
         !s.game_running,
         |s: &mut State, v, _| s.cache_wdb_only = v,
@@ -135,14 +140,25 @@ fn card(
                         .wrap(),
                 ),
         )
-        .child(ui::button(
-            format!("{key}/run"),
-            action,
-            Kind::Secondary,
-            None,
-            enabled,
-            move |s, tx| dispatch(s, Intent::Maintain(which), tx),
-        ));
+        .child(
+            ui::button(
+                format!("{key}/run"),
+                action,
+                Kind::Secondary,
+                None,
+                enabled,
+                move |s, tx| dispatch(s, Intent::Maintain(which), tx),
+            )
+            .help(match which {
+                MaintCard::Cache => "Delete the game's cache; you confirm first",
+                MaintCard::Leftovers => {
+                    "Delete the leftover .bak and .old files; you confirm first"
+                }
+                MaintCard::Wtf => {
+                    "Zip your WTF folder into the app's data folder; you confirm first"
+                }
+            }),
+        );
     let mut c = ui::card(key).w_full().child(head);
     if let Some(e) = extra {
         c = c.child(row().pl(52.0).child(e));

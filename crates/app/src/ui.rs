@@ -4,7 +4,7 @@
 use crate::icons;
 use crate::state::State;
 use crate::theme::{self, StyleExt, Surface, SurfaceExt, pal, t};
-use rune::{Color, Cursor, El, Icon, Shadow, TextEdit, Tx, col, el, icon, row, text};
+use rune::{Color, Cursor, El, HelpLook, Icon, Shadow, TextEdit, Tx, col, el, icon, row, text};
 use rune_kit::{Kit, PaletteSeed, TextInput};
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -262,6 +262,37 @@ impl FieldBuilder {
     }
 }
 
+/// Tooltips (`El::help`) in the theme's floating look (its `menu` surface: dropdowns, the
+/// installation menu), after a short rest of the pointer.
+pub fn help_look() -> HelpLook {
+    let (th, p) = (t(), pal());
+    let sk = &th.skin.menu;
+    // A tooltip has one flat fill: the middle of the menu's gradient where it has one.
+    let fill = match sk.vertical {
+        Some((top, bottom)) => top.mix(bottom, 0.5),
+        None => sk.fill,
+    };
+    let edge = sk.border.map_or(p.border_strong, |b| b.top);
+    HelpLook::system(true)
+        .fill(fill.alpha(1.0))
+        .ink(p.text)
+        .ring(1.0, edge)
+        .radius(sk.radius.min(6.0))
+        .padding(9.0, 5.0)
+        .font(th.ty.small.weight_of(400.0))
+        .max_width(Some(280.0))
+        .keycaps(p.chip, p.text_muted, th.ty.caption, false)
+        .delay(0.6)
+        .skip_delay(0.4)
+        .fade(0.12, 0.08, 0.96)
+        .shadows([Shadow {
+            y: 3.0,
+            blur: 10.0,
+            color: Color::BLACK.alpha(0.4),
+            ..Shadow::default()
+        }])
+}
+
 /// rune-kit, tinted for the few kit parts we use (text fields).
 pub fn kit() -> Kit {
     let p = pal();
@@ -279,14 +310,19 @@ pub fn kit() -> Kit {
     k
 }
 
-/// A 1 pt inset hairline that leaves `border` free for a coloured side bar.
-pub fn edge(e: El, c: Color) -> El {
-    e.box_shadow(Shadow {
-        spread: 1.0,
-        color: c,
-        inset: true,
-        ..Shadow::default()
-    })
+/// A status glyph in a small round badge: a soft wash of `tone` in a faint ring of it (notices).
+pub fn badge(glyph: &'static Icon, tone: Color) -> El {
+    el().size(28.0, 28.0)
+        .radius(14.0)
+        .center()
+        .fill(tone.alpha(0.16))
+        .box_shadow(Shadow {
+            spread: 1.0,
+            color: tone.alpha(0.4),
+            inset: true,
+            ..Shadow::default()
+        })
+        .child(icon(glyph, 14.0).color(tone))
 }
 
 /// A key hint box (`/`).
@@ -298,10 +334,18 @@ pub fn kbd(label: &str) -> El {
         .child(text(label).font(t().ty.caption).color(sk.ink))
 }
 
-/// A segmented control: options in a hairline box, the active one raised.
+/// What each release channel means, for the channel pickers' help (Stable, Beta, Alpha).
+pub const CHANNEL_HELP: [&str; 3] = [
+    "Finished releases only",
+    "Releases and betas, which may still have bugs",
+    "Every build, even untested alphas",
+];
+
+/// A segmented control: options (value, label, help; "" for none) in a hairline box, the
+/// active one raised.
 pub fn segmented<T: Copy + PartialEq + 'static>(
     key: &str,
-    options: &[(T, &str)],
+    options: &[(T, &str, &str)],
     current: T,
     enabled: bool,
     f: impl Fn(&mut State, T, &mut Tx) + Clone + 'static,
@@ -315,12 +359,13 @@ pub fn segmented<T: Copy + PartialEq + 'static>(
         .padding(2.0)
         .gap(2.0)
         .focus_group();
-    for &(value, label) in options {
+    for &(value, label, help) in options {
         let on = value == current;
         let mut item = row()
             .key(format!("{key}/{}", slug(label)))
             .role("radio")
             .label(label)
+            .help(help)
             .checked(on)
             .focusable(enabled)
             .h_full()

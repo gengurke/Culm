@@ -6,6 +6,16 @@ use crate::icons;
 use rune::{Color, Shadow, oklcha};
 use std::sync::LazyLock;
 
+/// A 1 pt line just inside the box's edge.
+fn ring(color: Color) -> Shadow {
+    Shadow { spread: 1.0, color, inset: true, ..Default::default() }
+}
+
+/// Paints the whole inside of a box's border (its padding box), unlike a fill.
+fn face(color: Color) -> Shadow {
+    Shadow { spread: 40.0, color, inset: true, ..Default::default() }
+}
+
 pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
     let p = Pal {
         sidebar: h("#121624"),
@@ -68,10 +78,15 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
         },
         list_header: Surface { border: under, ..Default::default() },
         row: Surface { border: under, hover: p.hover, ..Default::default() },
-        row_selected: Surface { fill: p.selected, border: under, hover: p.hover, ..Default::default() },
+        // A tinted row in a faint gold ring.
+        row_selected: Surface { fill: p.accent.alpha(0.07), border: under, shadows: vec![ring(p.accent.alpha(0.32))], hover: p.hover, ..Default::default() },
         nav: Surface { hover: p.hover, ..Default::default() },
+        // A gold-tinted plaque inset from the sidebar's edges: the clear border is its margin, and
+        // a wide inset shadow paints its face (a fill would run under the border).
         nav_active: Surface {
-            overlay: Some(Overlay::Linear { angle: std::f32::consts::FRAC_PI_2, stops: vec![(0.0, p.accent.alpha(0.12)), (0.85, p.accent.alpha(0.0))] }),
+            border: Some(Border { sides: [2.0, 10.0, 2.0, 10.0], top: Color::TRANSPARENT, bottom: Color::TRANSPARENT }),
+            radius: 2.0,
+            shadows: vec![face(p.accent.alpha(0.11)), ring(p.accent.alpha(0.24))],
             hover: p.hover,
             ..Default::default()
         },

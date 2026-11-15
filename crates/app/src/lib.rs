@@ -139,6 +139,26 @@ const SCENES: &[Scene] = &[
             "20261113.15433",
         );
     }),
+    // Every toast tone at once (compare looks with ADDONS_TOAST_STYLE).
+    ("toasts", |s| {
+        loaded(s);
+        s.toast(Tone::Info, "3 updates available", "");
+        s.toast(
+            Tone::Danger,
+            "Could not update WeakAuras",
+            "Download failed: GitHub answered 503 Service Unavailable",
+        );
+        s.toast(
+            Tone::Success,
+            "Updated Details! Damage Meter",
+            "20261113.15433",
+        );
+        s.toast(
+            Tone::Info,
+            "CurseForge key removed",
+            "CurseForge search is off",
+        );
+    }),
     // Every status on one screen.
     ("my-addons-badges", |s| {
         loaded(s);
