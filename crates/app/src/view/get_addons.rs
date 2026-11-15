@@ -174,7 +174,7 @@ fn result_card(s: &State, remote: &RemoteAddon) -> El {
     let p = pal();
     let key = format!("remote/{}", remote.external_id);
     let action = if s.is_installed(remote) {
-        ui::badge("Installed", p.success, p.success_soft, true).key(format!("{key}/installed"))
+        ui::tag("Installed", ui::Mark::Good).key(format!("{key}/installed"))
     } else {
         match s.installing.get(&remote.external_id) {
             Some(Op::Downloading(done)) => col()

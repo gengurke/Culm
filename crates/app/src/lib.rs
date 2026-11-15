@@ -134,6 +134,28 @@ const SCENES: &[Scene] = &[
             "20261113.15433",
         );
     }),
+    // shortcut: temporary, every status on one screen for the badge style comparison.
+    ("my-addons-badges", |s| {
+        loaded(s);
+        let keep = [
+            "ace3",
+            "baganator",
+            "bagnon",
+            "bartender4",
+            "foreverlootsparkles",
+            "foreverquesttint",
+            "questie",
+            "recount",
+            "spoken",
+            "details",
+        ];
+        s.addons.retain(|a| keep.contains(&a.addon.id.as_str()));
+        if let Some(a) = s.addons.iter_mut().find(|a| a.addon.id == "bagnon") {
+            a.addon.latest = None;
+        }
+        set_op(s, "spoken", Op::Failed("GitHub answered 503".into()));
+        s.selected = Some("bartender4".into());
+    }),
     ("my-addons-detail", |s| {
         loaded(s);
         s.selected = Some("questie".into());

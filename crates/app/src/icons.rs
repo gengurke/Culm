@@ -77,6 +77,16 @@ line_icon!(
     "alert",
     r#"<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/>"#
 );
+line_icon!(
+    ARROW_UP,
+    "arrow-up",
+    r#"<path d="m5 12 7-7 7 7"/><path d="M12 19V5"/>"#
+);
+line_icon!(
+    HELP,
+    "help",
+    r#"<circle cx="12" cy="12" r="9.5"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3"/><path d="M12 17h.01"/>"#
+);
 line_icon!(PLUS, "plus", r#"<path d="M5 12h14"/><path d="M12 5v14"/>"#);
 line_icon!(
     LINK,

@@ -4,7 +4,7 @@ use super::{band, subtitle};
 use crate::icons;
 use crate::state::{AddonUi, Intent, Job, Op, Screen, State, Status, dispatch};
 use crate::theme::{self, StyleExt, SurfaceExt, pal, t};
-use crate::ui::{self, Kind};
+use crate::ui::{self, Kind, Mark};
 use addon_core::{Channel, IgnoreReason};
 use rune::{Cursor, El, GrowthSpec, ScrollSpec, Tx, col, el, rich, row, text};
 use std::borrow::Cow;
@@ -340,6 +340,11 @@ fn version_cell(a: &AddonUi) -> El {
             .color(p.text_muted)
             .truncate()
         }
+        // The icon-only badge style moves the status colour onto the version.
+        _ if ui::badge_style() == ui::BadgeStyle::Icon => text(installed)
+            .font(t().ty.mono)
+            .color(status_mark(a).1.colors().0)
+            .truncate(),
         _ => text(installed)
             .font(t().ty.mono)
             .color(p.text_dim)
@@ -347,21 +352,29 @@ fn version_cell(a: &AddonUi) -> El {
     }
 }
 
-pub(crate) fn status_badge(a: &AddonUi) -> El {
-    let p = pal();
+/// What the status says and how it is marked.
+fn status_mark(a: &AddonUi) -> (&'static str, Mark) {
     match a.status() {
-        Status::UpToDate => ui::badge("Up to date", p.success, p.success_soft, true),
-        Status::NotChecked => ui::badge("Not checked", p.text_muted, p.chip, false).help(
-            "No update check has answered for this addon yet (CurseForge needs your API key).",
-        ),
-        Status::UpdateAvailable => ui::badge("Update available", p.warning, p.warning_soft, false),
+        Status::UpToDate => ("Up to date", Mark::Good),
+        Status::NotChecked => ("Not checked", Mark::Muted),
+        Status::UpdateAvailable => ("Update available", Mark::Update),
         Status::Ignored if a.addon.ignored == Some(IgnoreReason::GitRepo) => {
-            ui::badge("Git checkout", p.text_dim, p.chip, false)
+            ("Git checkout", Mark::Off)
         }
-        Status::Ignored => ui::badge("Ignored", p.text_dim, p.chip, false),
-        Status::Unknown => ui::badge("Unknown", p.text_muted, p.chip, false),
-        Status::Error => ui::badge("Error", p.danger, p.danger.alpha(0.14), false),
-        Status::Working => ui::badge("Working", p.accent, p.accent_soft, false),
+        Status::Ignored => ("Ignored", Mark::Off),
+        Status::Unknown => ("Unknown", Mark::Muted),
+        Status::Error => ("Error", Mark::Bad),
+        Status::Working => ("Working", Mark::Busy),
+    }
+}
+
+pub(crate) fn status_badge(a: &AddonUi) -> El {
+    let (label, mark) = status_mark(a);
+    let b = ui::tag(label, mark);
+    if a.status() == Status::NotChecked {
+        b.help("No update check has answered for this addon yet (CurseForge needs your API key).")
+    } else {
+        b
     }
 }
 
