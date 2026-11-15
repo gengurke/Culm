@@ -97,7 +97,7 @@ What the addon manager does, one short paragraph per feature. Ids are referenced
   Settings hint; nothing calls CurseForge. (`f7_1_curseforge_unavailable_without_key`,
   e2e `f7_1_without_a_key_search_is_off_and_points_to_settings`, `f7_1_f7_2_saved_settings_survive_a_restart`)
 - **F7.2 Defaults** ✅ — Default channel for new addons, stored in prefs. (e2e `f7_1_f7_2_saved_settings_survive_a_restart`)
-- **F7.3 Themes** ✅ — Settings → Appearance picks the look (Moonlit, Hearthwood: carved wood, stone and gold); cards preview
+- **F7.3 Themes** ✅ — Settings → Appearance picks the look (Moonlit, Hearthwood: carved wood, stone and gold; Goblin Ledger: calm charcoal menus, ochre gold); cards preview
   each theme in its own skin, the choice applies at once, is kept in prefs (`theme`) and read before the first frame; an
   unknown stored id falls back to Moonlit. Layout is the same in every theme. (e2e `f7_3_theme_choice_applies_and_survives_restart`,
   `f7_3_unknown_stored_theme_falls_back_to_moonlit`, `f7_3_every_theme_renders_every_screen`)
