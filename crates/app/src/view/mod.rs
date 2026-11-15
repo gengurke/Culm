@@ -34,49 +34,44 @@ pub fn view(s: &State, _cx: &mut Cx<State>) -> El {
         .child(toasts(s))
 }
 
-/// The band every page starts with: title, a subtitle and actions on the right.
-pub(crate) fn band(title: &str, subtitle: El, actions: Vec<El>) -> El {
-    theme::framed(|| band_in_frame(title, subtitle, actions))
+/// The slim band every page starts with: the title, muted meta pieces beside it (built by `meta`
+/// inside the band's frame, so they take its palette) set apart by hairlines, and actions at the right.
+pub(crate) fn band(title: &str, meta: impl FnOnce() -> Vec<El>, actions: Vec<El>) -> El {
+    theme::framed(|| band_in_frame(title, meta(), actions))
 }
 
-fn band_in_frame(title: &str, subtitle: El, actions: Vec<El>) -> El {
+fn band_in_frame(title: &str, meta: Vec<El>, actions: Vec<El>) -> El {
     let (th, p) = (t(), pal());
     let mut b = row()
         .key("band")
         .w_full()
         .h(theme::BAND_H)
         .px(theme::PAD)
-        .pb(22.0)
-        .gap(16.0)
-        .items_end()
+        .gap(14.0)
+        .center_y()
         .skin(&th.skin.band);
     if let Some(deco) = band_deco(th.skin.band_deco) {
         b = b.child(deco);
     }
-    b.child(
-        col()
-            .grow(1.0)
-            .min_w(0.0)
-            .gap(6.0)
-            .child(
-                text(title)
-                    .key("page-title")
-                    .role("heading")
-                    .font(th.ty.hero)
-                    .color(p.heading),
-            )
-            .child(subtitle),
-    )
-    .child(row().gap(8.0).center_y().children(actions))
+    b = b.child(
+        text(title)
+            .key("page-title")
+            .role("heading")
+            .font(th.ty.hero)
+            .color(p.heading),
+    );
+    if !meta.is_empty() {
+        b = b
+            .child(ui::hairline(18.0))
+            .child(ui::meta_line(meta).key("page-meta").shrink());
+    }
+    b.child(el().grow(1.0))
+        .child(row().gap(8.0).center_y().children(actions))
 }
 
-pub(crate) fn subtitle(s: impl Into<String>) -> El {
-    theme::framed(|| {
-        text(s.into())
-            .font(t().ty.note)
-            .color(pal().text_dim)
-            .truncate()
-    })
+/// A muted piece of the band's meta line.
+pub(crate) fn band_note(s: impl Into<String>) -> El {
+    text(s.into()).font(t().ty.note).color(pal().text_dim)
 }
 
 /// The band's decoration layer: a fixed scatter (a tiny LCG keeps it the same every frame).
@@ -95,7 +90,7 @@ fn band_deco(deco: BandDeco) -> Option<El> {
     match deco {
         BandDeco::None => return None,
         BandDeco::Stars => {
-            for _ in 0..46 {
+            for _ in 0..28 {
                 let (x, y, size, a) = (
                     next() * 1600.0,
                     next() * theme::BAND_H,
@@ -112,7 +107,7 @@ fn band_deco(deco: BandDeco) -> Option<El> {
         }
         BandDeco::Embers => {
             // Sparks thin out and fade as they rise from the bottom edge.
-            for _ in 0..40 {
+            for _ in 0..26 {
                 let (x, rise, size) = (
                     next() * 1600.0,
                     next() * next(),
@@ -138,28 +133,12 @@ fn sidebar(s: &State) -> El {
     let updates = s.update_count();
     let brand_block = row()
         .key("brand")
-        .h(72.0)
+        .h(theme::BAND_H)
         .px(20.0)
         .gap(10.0)
         .center_y()
         .child(el().size(40.0, 40.0).center().child(ui::brand_mark(32.0)))
-        .child(
-            col()
-                .gap(2.0)
-                .min_w(0.0)
-                .child(
-                    text(brand::APP_NAME.to_uppercase())
-                        .font(t().ty.wordmark)
-                        .color(p.heading)
-                        .truncate(),
-                )
-                .child(
-                    text(brand::TAGLINE)
-                        .font(t().ty.eyebrow)
-                        .color(p.text_muted)
-                        .truncate(),
-                ),
-        );
+        .child(wordmark());
     let nav = col()
         .key("nav")
         .role("list")
@@ -221,6 +200,88 @@ fn sidebar(s: &State) -> El {
         .child(nav)
         .child(el().grow(1.0))
         .child(installation_picker(s))
+}
+
+/// Which wordmark the sidebar header draws (`ADDONS_WORDMARK`, default 0).
+// shortcut: a temporary chooser for the wordmark comparison sheet; keep the winner, drop the rest
+// and the env var once one is picked. Every family but Inter (embedded) needs bundling first.
+static WORDMARK: std::sync::LazyLock<usize> = std::sync::LazyLock::new(|| {
+    std::env::var("ADDONS_WORDMARK")
+        .ok()
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(0)
+});
+
+/// The app name (and tagline) beside the brand mark.
+fn wordmark() -> El {
+    use rune::{Family, TextStyle};
+    let (th, p) = (t(), pal());
+    let name = brand::APP_NAME;
+    let tag = |s: &str, style: TextStyle| text(s.to_string()).font(style).color(p.text_muted);
+    let (mark, tagline) = match *WORDMARK {
+        // 1: Inter SemiBold, title case, no tagline.
+        1 => (
+            text(name).font(TextStyle::new(19.0, 600.0).tracking(-0.4).lh(24.0)),
+            None,
+        ),
+        // 2: Inter, title case over a quiet sentence-case tagline.
+        2 => (
+            text(name).font(TextStyle::new(17.0, 650.0).tracking(-0.3).lh(21.0)),
+            Some(tag(
+                "Addons for WoW Forever",
+                TextStyle::new(11.5, 400.0).lh(15.0),
+            )),
+        ),
+        // 3: Noto Serif SemiBold, title case, no tagline.
+        3 => (
+            text(name).font(
+                TextStyle::new(20.0, 600.0)
+                    .family(Family::Named("Noto Serif, serif"))
+                    .lh(24.0),
+            ),
+            None,
+        ),
+        // 4: STIX Two Text, title case, with a small-caps-style tracked tagline.
+        4 => (
+            text(name).font(
+                TextStyle::new(21.0, 600.0)
+                    .family(Family::Named("STIX Two Text, serif"))
+                    .lh(24.0),
+            ),
+            Some(tag(
+                "ADDON MANAGER",
+                TextStyle::new(9.5, 500.0).tracking(1.4).lh(12.0),
+            )),
+        ),
+        // 5: Comfortaa Bold, lowercase, rounded, no tagline.
+        5 => (
+            text(name.to_lowercase()).font(
+                TextStyle::new(20.0, 700.0)
+                    .family(Family::Named("Comfortaa"))
+                    .lh(24.0),
+            ),
+            None,
+        ),
+        // 6: Inter Bold caps, widely tracked and small: a label, not a logo.
+        6 => (
+            text(name.to_uppercase()).font(TextStyle::new(13.0, 700.0).tracking(3.2).lh(16.0)),
+            None,
+        ),
+        // 0: the theme's serif caps over the tracked tagline.
+        _ => (
+            text(name.to_uppercase()).font(th.ty.wordmark),
+            Some(tag(brand::TAGLINE, th.ty.eyebrow)),
+        ),
+    };
+    let mut c = col()
+        .key("brand/wordmark")
+        .gap(2.0)
+        .min_w(0.0)
+        .child(mark.color(p.heading).truncate());
+    if let Some(t) = tagline {
+        c = c.child(t.truncate());
+    }
+    c
 }
 
 fn nav_row(
@@ -316,10 +377,9 @@ fn installation_picker(s: &State) -> El {
                         p.accent.alpha(0.0)
                     }))
                     .child(
-                        text(inst.label.clone())
+                        text(s.inst_name(inst))
                             .font(t().ty.small)
                             .color(p.text_dim)
-                            .truncate()
                             .grow(1.0),
                     ),
             );
@@ -344,15 +404,26 @@ fn installation_picker(s: &State) -> El {
         );
         wrap = wrap.child(menu);
     }
-    let (label, version) = match s.installation() {
+    // The name alone (it fits the sidebar); what tells it apart from a same-named installation
+    // joins the version line.
+    let (label, version, tell) = match s.installation() {
         Some(i) => (
             i.label.clone(),
             i.version
                 .clone()
                 .unwrap_or_else(|| "unknown version".into()),
+            s.inst_tell(i),
         ),
-        None => ("No installation".into(), "Add one to start".into()),
+        None => ("No installation".into(), "Add one to start".into(), None),
     };
+    let mut second = vec![
+        text(version)
+            .font(t().ty.mono.size_of(11.0))
+            .color(p.text_muted),
+    ];
+    if let Some(tell) = tell {
+        second.push(text(tell).font(t().ty.small).color(p.text_muted));
+    }
     let selector = row()
         .key("installation/selector")
         .role("button")
@@ -372,13 +443,8 @@ fn installation_picker(s: &State) -> El {
                 .grow(1.0)
                 .min_w(0.0)
                 .gap(2.0)
-                .child(text(label).font(t().ty.small).color(p.text).truncate())
-                .child(
-                    text(version)
-                        .font(t().ty.mono.size_of(11.0))
-                        .color(p.text_muted)
-                        .truncate(),
-                ),
+                .child(text(label).font(t().ty.small).color(p.text))
+                .child(ui::meta_line(second)),
         )
         .child(icon(&icons::UPDOWN, 14.0).color(p.text_muted));
     wrap.child(selector)
@@ -402,7 +468,7 @@ fn loading_page(_s: &State) -> El {
         .h_full()
         .child(band(
             "Welcome",
-            subtitle("Looking for World of Warcraft: Forever…"),
+            || vec![band_note("Looking for World of Warcraft: Forever…")],
             vec![],
         ))
         .child(centered(
@@ -448,7 +514,7 @@ fn onboarding_page() -> El {
         .h_full()
         .child(band(
             "Welcome",
-            subtitle("Let's get your addons in order"),
+            || vec![band_note("Let's get your addons in order")],
             vec![],
         ))
         .child(centered(card))

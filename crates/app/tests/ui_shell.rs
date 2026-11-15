@@ -283,3 +283,16 @@ fn late_results_never_land_on_the_wrong_installation_or_restart_updates() {
     });
     assert_eq!(s.addon(&id).unwrap().op, Some(Op::Downloading(0.5)));
 }
+
+#[test]
+fn f1_3_installation_names_show_the_prefix_only_for_twins() {
+    let mut rt = app(loaded);
+    assert!(shows(&rt, "WoW Forever") && !shows(&rt, "battlenet"));
+    let mut twin = addon_app::mock::installation();
+    twin.id = "forever-lutris".into();
+    twin.root = "~/Games/lutris/drive_c/Program Files (x86)/World of Warcraft/_forever_".into();
+    rt.state.installations.push(twin);
+    rt.state.inst_menu = true;
+    rt.frame(1.0 / 60.0);
+    assert!(shows(&rt, "WoW Forever (battlenet)") && shows(&rt, "WoW Forever (lutris)"));
+}

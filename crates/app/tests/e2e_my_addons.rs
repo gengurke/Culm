@@ -14,8 +14,8 @@ fn f1_1_detected_installation_is_selected_and_scanned() {
     let mut app = world.app();
     app.wait_idle();
     assert!(
-        app.shows("WoW Forever (testprefix)"),
-        "installation picker names the Wine prefix"
+        app.shows("WoW Forever") && !app.shows("testprefix)"),
+        "a single installation is named without its Wine prefix"
     );
     assert!(app.shows("1.60.1.70938"));
     assert!(app.shows("Ace"));
@@ -322,8 +322,8 @@ fn f3_1_never_checked_addons_say_not_checked() {
     app.wait_idle();
     assert_eq!(app.status("Ace"), Status::NotChecked);
     assert!(app.shows_in(&app.row("Ace", ""), "Not checked"));
-    assert!(!app.shows("Up to date") && !app.shows("everything up to date"));
-    assert!(app.shows("CurseForge updates not checked — add a CurseForge key"));
+    assert!(!app.shows("Up to date") && !app.shows("Everything up to date"));
+    assert!(app.shows("CurseForge updates not checked"));
 }
 
 #[test]

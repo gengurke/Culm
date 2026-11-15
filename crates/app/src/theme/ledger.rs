@@ -59,7 +59,7 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
     };
     let ty = Type {
         display: TextStyle::new(23.0, 500.0).family(SERIF).tracking(0.2).lh(28.0),
-        hero: TextStyle::new(26.0, 500.0).family(SERIF).tracking(0.3).lh(30.0),
+        hero: TextStyle::new(21.0, 500.0).family(SERIF).tracking(0.3).lh(26.0),
         title: TextStyle::new(18.5, 500.0).family(SERIF).tracking(0.2).lh(24.0),
         heading: TextStyle::new(15.5, 500.0).family(SERIF).tracking(0.2).lh(20.0),
         eyebrow: TextStyle::new(10.5, 600.0).family(SERIF).tracking(1.4).lh(14.0),
@@ -123,7 +123,7 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
     Theme {
         id: "ledger",
         name: "Goblin Ledger",
-        blurb: "Calm charcoal menus, ochre gold",
+        blurb: "Charcoal menus, ochre gold",
         pal: p,
         ty,
         skin,

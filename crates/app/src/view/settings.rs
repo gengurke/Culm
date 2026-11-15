@@ -1,6 +1,6 @@
 //! Settings: CurseForge key, default channel, installations, about (F7, F1).
 
-use super::{band, subtitle};
+use super::{band, band_note};
 use crate::brand;
 use crate::icons;
 use crate::state::{Intent, State, dispatch};
@@ -112,7 +112,7 @@ pub fn page(s: &State) -> El {
                             row()
                                 .gap(10.0)
                                 .center_y()
-                                .child(text(inst.label.clone()).font(t().ty.body).color(p.text))
+                                .child(text(s.inst_name(inst)).font(t().ty.body).color(p.text))
                                 .child(
                                     text(inst.version.clone().unwrap_or_default())
                                         .font(t().ty.mono.size_of(11.0))
@@ -196,7 +196,7 @@ pub fn page(s: &State) -> El {
         .h_full()
         .child(band(
             "Settings",
-            subtitle("Providers, defaults and your game installations"),
+            || vec![band_note("Providers, defaults and your game installations")],
             vec![],
         ))
         .child(
@@ -218,6 +218,16 @@ fn theme_card(s: &State, id: ThemeId) -> El {
     let fr = th.frame.map_or(th, |f| &**f);
     let on = s.settings.theme == id;
     let sk = &th.skin;
+    // The window in miniature, as the app draws it: the sidebar with the brand mark and the
+    // active nav row, the slim band with its title, buttons on the page.
+    let nav_line = |on: bool| {
+        let line = el().w(18.0).h(3.0).radius(1.5);
+        if on {
+            line.fill(fr.pal.accent)
+        } else {
+            line.fill(fr.pal.text_muted.alpha(0.5))
+        }
+    };
     let preview = row()
         .w_full()
         .h(80.0)
@@ -227,10 +237,14 @@ fn theme_card(s: &State, id: ThemeId) -> El {
             col()
                 .w(36.0)
                 .h_full()
-                .pt(10.0)
+                .pt(6.0)
+                .gap(6.0)
                 .items_center()
                 .skin(&fr.skin.sidebar)
-                .child(icon(sk.emblem, 18.0).color(fr.pal.accent)),
+                .child(icon(&icons::EMBLEM, 14.0).color(fr.pal.accent))
+                .child(nav_line(true))
+                .child(nav_line(false))
+                .child(nav_line(false)),
         )
         .child(
             col()
@@ -240,15 +254,15 @@ fn theme_card(s: &State, id: ThemeId) -> El {
                 .child(
                     row()
                         .w_full()
-                        .h(38.0)
-                        .px(10.0)
+                        .h(26.0)
+                        .px(8.0)
+                        .gap(6.0)
                         .center_y()
                         .skin(&fr.skin.band)
                         .child(
                             text(th.name)
-                                .font(th.ty.heading.size_of(13.5))
-                                .color(fr.pal.heading)
-                                .truncate(),
+                                .font(th.ty.hero.size_of(11.0).lh(14.0).tracking(0.0))
+                                .color(fr.pal.heading),
                         ),
                 )
                 .child(
@@ -297,7 +311,8 @@ fn theme_card(s: &State, id: ThemeId) -> El {
                         text(th.blurb)
                             .font(t().ty.small)
                             .color(p.text_muted)
-                            .truncate(),
+                            .wrap()
+                            .max_lines(2),
                     ),
             )
             .child(icon(&icons::CHECK, 16.0).color(if on {

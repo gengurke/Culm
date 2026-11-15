@@ -113,30 +113,23 @@ pub fn installation_from_path(p: &Path) -> Result<Installation> {
 
 fn make_installation(client: &Path, version: Option<String>) -> Installation {
     let root = std::fs::canonicalize(client).unwrap_or_else(|_| client.to_path_buf());
-    // Label with the Wine prefix name (the folder holding `drive_c`) to tell installs apart.
-    let prefix = root
-        .ancestors()
-        .find(|a| a.join("drive_c").is_dir() || a.file_name().is_some_and(|f| f == "drive_c"))
-        .map(|a| {
-            if a.ends_with("drive_c") {
-                a.parent().unwrap_or(a)
-            } else {
-                a
-            }
-        })
-        .and_then(|a| a.file_name())
-        .map(|f| f.to_string_lossy().into_owned());
-    let label = match prefix {
-        Some(p) => format!("WoW Forever ({p})"),
-        None => "WoW Forever".to_string(),
-    };
     Installation {
         id: format!("{:016x}", fnv1a64(root.to_string_lossy().as_bytes())),
-        label,
+        label: "WoW Forever".to_string(),
         flavor: Flavor::Forever,
         root,
         version,
     }
+}
+
+/// The Wine prefix holding a client (the folder that holds its `drive_c`, e.g. `battlenet`):
+/// what tells two installations of the same client apart. Read from the path alone.
+pub fn prefix_name(root: &Path) -> Option<String> {
+    root.ancestors()
+        .find(|a| a.file_name().is_some_and(|f| f == "drive_c"))?
+        .parent()?
+        .file_name()
+        .map(|f| f.to_string_lossy().into_owned())
 }
 
 /// `Version` of the `wowf` row in `<wow_root>/.build.info` (pipe table with `Name!TYPE:len` header).

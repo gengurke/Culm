@@ -2,7 +2,7 @@
 //! filters, the popular list, and a detail panel for the clicked result. Results come from every
 //! source, one card per addon (F4.8); the detail panel picks the source to install from.
 
-use super::{band, subtitle};
+use super::{band, band_note};
 use crate::backend::{Found, curseforge_only, source_label};
 use crate::icons;
 use crate::state::{
@@ -198,10 +198,10 @@ pub fn page(s: &State) -> El {
     let mut content = col().w_full().gap(16.0).px(theme::PAD).py(24.0);
     match input {
         Input::Link(_, source) => {
-            content = content.child(section(format!(
-                "INSTALL FROM {}",
-                source_label(source).to_uppercase()
-            )));
+            content = content.child(section(
+                format!("INSTALL FROM {}", source_label(source).to_uppercase()),
+                None,
+            ));
             content = content.child(match &s.link {
                 Fetch::Idle | Fetch::Loading => loading("Looking up the link…"),
                 Fetch::Failed(e) => error(e),
@@ -227,14 +227,11 @@ pub fn page(s: &State) -> El {
                 ),
                 (q, None) => (format!("RESULTS FOR “{}”", q.to_uppercase()), &s.results),
             };
-            // The order shows in the heading once it isn't the default ("WARRIOR · LAST UPDATED").
-            let title = match sort_label(filter.sort) {
-                Some(order) if filter.sort != Sort::default() => {
-                    format!("{title}  ·  {}", order.to_uppercase())
-                }
-                _ => title,
-            };
-            content = content.child(section(title));
+            // The order shows in the heading once it isn't the default ("WARRIOR | LAST UPDATED").
+            let order = sort_label(filter.sort)
+                .filter(|_| filter.sort != Sort::default())
+                .map(str::to_uppercase);
+            content = content.child(section(title, order));
             let cf_only = ready && !filter.is_default() && curseforge_only(&filter);
             if let Fetch::Ready(found) = fetch {
                 for (provider, e) in &found.failed {
@@ -301,7 +298,7 @@ pub fn page(s: &State) -> El {
         .h_full()
         .child(band(
             "Get Addons",
-            subtitle("Find new addons for World of Warcraft: Forever"),
+            || vec![band_note("Find new addons for World of Warcraft: Forever")],
             vec![],
         ))
         .child(toolbar)
@@ -319,11 +316,11 @@ pub fn page(s: &State) -> El {
     page
 }
 
-fn section(title: String) -> El {
-    text(title)
-        .key("get-addons/section")
-        .font(t().ty.eyebrow)
-        .color(pal().text_muted)
+fn section(title: String, order: Option<String>) -> El {
+    let eyebrow = |s: String| text(s).font(t().ty.eyebrow).color(pal().text_muted);
+    let mut parts = vec![eyebrow(title)];
+    parts.extend(order.map(eyebrow));
+    ui::meta_line(parts).key("get-addons/section")
 }
 
 fn loading(label: &str) -> El {
@@ -624,18 +621,18 @@ fn card_id(r: &RemoteAddon) -> String {
     }
 }
 
-/// "CurseForge · also on WowUp Hub".
-fn source_line(entry: &Entry) -> String {
-    let mut line = source_label(&entry.preferred().provider).to_string();
+/// "CurseForge | also on WowUp Hub": the preferred source, then the others.
+fn source_line(entry: &Entry) -> El {
     let others: Vec<&str> = entry.sources[1..]
         .iter()
         .map(|r| source_label(&r.provider))
         .collect();
-    if !others.is_empty() {
-        line.push_str(" · also on ");
-        line.push_str(&others.join(", "));
-    }
-    line
+    let also = if others.is_empty() {
+        String::new()
+    } else {
+        format!("also on {}", others.join(", "))
+    };
+    ui::meta(&[source_label(&entry.preferred().provider), &also])
 }
 
 /// Install progress, or the install button (`primary`: the detail panel's wide one).
@@ -746,14 +743,7 @@ fn result_card(s: &State, entry: &Entry) -> El {
             .gap(6.0)
             .center_y()
             .child(icon(&icons::LAYERS, 12.0).color(p.text_muted))
-            .child(
-                text(source_line(entry))
-                    .font(t().ty.small)
-                    .color(p.text_muted)
-                    .truncate()
-                    .grow(1.0)
-                    .min_w(0.0),
-            ),
+            .child(source_line(entry).grow(1.0)),
     )
     .child(
         row()

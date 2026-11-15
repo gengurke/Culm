@@ -148,7 +148,7 @@ pub struct Type {
 /// The Moonlit ladder; other themes start from it (`Type { hero: .., ..BASE_TYPE }`).
 pub const BASE_TYPE: Type = Type {
     display: TextStyle::new(22.0, 600.0).tracking(-0.5).lh(28.0),
-    hero: TextStyle::new(26.0, 600.0).tracking(-0.65).lh(30.0),
+    hero: TextStyle::new(20.0, 600.0).tracking(-0.4).lh(26.0),
     title: TextStyle::new(18.0, 600.0).tracking(-0.27).lh(24.0),
     heading: TextStyle::new(15.0, 600.0).tracking(-0.15).lh(20.0),
     body: TextStyle::new(13.0, 500.0).lh(18.0),
@@ -171,7 +171,7 @@ pub const FAMILIES: (&str, &str) = ("Inter", "JetBrains Mono, ui-monospace");
 
 // Layout metrics, the same in every theme.
 pub const SIDEBAR_W: f32 = 240.0;
-pub const BAND_H: f32 = 112.0;
+pub const BAND_H: f32 = 64.0;
 pub const PAD: f32 = 32.0;
 pub const ROW_H: f32 = 56.0;
 pub const CONTROL_H: f32 = 32.0;

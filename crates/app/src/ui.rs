@@ -421,8 +421,9 @@ fn glowing(glyph: &'static Icon, size: f32) -> El {
         .child(icon(glyph, size).color(p.accent))
 }
 
-/// How far a class icon is enlarged behind its disc, to crop the frame drawn into the image.
-const ICON_ZOOM: f32 = 1.2;
+/// How far a class icon is enlarged behind its disc: just enough to crop the 2 px dark frame
+/// baked into Blizzard's 56 px JPGs, so the whole picture shows inside the ring.
+const ICON_ZOOM: f32 = 56.0 / 52.0;
 
 /// A class medallion (classicplus.io-style): a bevelled metal ring in the theme's
 /// [`Medal`](theme::Medal) tones, gilded when `on`, around a sunk disc showing the class's original
@@ -435,7 +436,7 @@ pub fn class_medal(slug: &str, size: f32, on: bool, icon: Option<&rune::Image>) 
     let class = theme::h(icons::class_color(slug)?);
     let m = t().skin.medal;
     let [hi, mid, lo] = if on { m.ring_on } else { m.ring };
-    let ring = (size * 0.13).max(2.0);
+    let ring = (size * 0.09).max(1.5);
     let d = size - 2.0 * ring;
     let (deep, core, glow) = (
         class.mix(Color::BLACK, 0.93),
@@ -475,8 +476,8 @@ pub fn class_medal(slug: &str, size: f32, on: bool, icon: Option<&rune::Image>) 
         .child(sheen)
         .child(self::icon(glyph, d * 0.8).color(Color::WHITE.mix(class, 0.12)));
     if let Some(img) = icon {
-        // Painted once decoded, over the glyph (AGENTS.md: `.pixels` over a fallback). The
-        // icon's own square frame falls outside the disc: only its middle shows.
+        // Painted once decoded, over the glyph (AGENTS.md: `.pixels` over a fallback). Only the
+        // baked frame falls outside the disc; the picture itself stays whole inside the ring.
         let z = d * ICON_ZOOM;
         disc = disc.child(
             el().key(format!("class-icon/{slug}"))
@@ -485,19 +486,13 @@ pub fn class_medal(slug: &str, size: f32, on: bool, icon: Option<&rune::Image>) 
                 .pixels(img.pixels()),
         );
     }
-    // Sunk into the ring, over glyph or icon: shaded under the top edge, a lit lip at the bottom.
-    let disc = disc.child(
-        el().pin(Some(0.0), Some(0.0), Some(0.0), Some(0.0))
-            .radius(d / 2.0)
-            .border_gradient(0.75, Color::BLACK.alpha(0.7), class.alpha(0.5))
-            .box_shadow(Shadow {
-                y: 1.2,
-                blur: 2.4,
-                color: Color::BLACK.alpha(0.6),
-                inset: true,
-                ..Shadow::default()
-            }),
-    );
+    // The disc sits sunk in the ring: a dark lip on the ring's inner edge, around the disc rather
+    // than over it, so nothing covers the picture.
+    let lip = el()
+        .pin(Some(ring - 0.75), Some(ring - 0.75), None, None)
+        .size(d + 1.5, d + 1.5)
+        .radius(d / 2.0 + 0.75)
+        .border_gradient(0.75, Color::BLACK.alpha(0.75), Color::BLACK.alpha(0.35));
     let mut medal = el()
         .size(size, size)
         .radius(size / 2.0)
@@ -522,23 +517,42 @@ pub fn class_medal(slug: &str, size: f32, on: bool, icon: Option<&rune::Image>) 
             ..Shadow::default()
         });
     }
-    Some(medal.child(disc))
+    Some(medal.child(disc).child(lip))
 }
 
-/// A muted line of meta text pieces joined by middle dots.
+/// A muted line of meta text pieces, set apart by thin vertical hairlines ([`meta_line`]).
+/// Empty pieces are left out.
 pub fn meta(parts: &[&str]) -> El {
     let p = pal();
-    text(
+    meta_line(
         parts
             .iter()
             .filter(|s| !s.is_empty())
-            .copied()
-            .collect::<Vec<_>>()
-            .join("  ·  "),
+            .map(|s| text(s.to_string()).font(t().ty.small).color(p.text_muted))
+            .collect(),
     )
-    .font(t().ty.small)
-    .color(p.text_muted)
-    .truncate()
+}
+
+/// Pieces on one line with a hairline between each two. When space runs short the first piece
+/// truncates (an author's long name) and the rest keep their width.
+pub fn meta_line(parts: Vec<El>) -> El {
+    let mut line = row().min_w(0.0).gap(9.0).center_y();
+    for (i, part) in parts.into_iter().enumerate() {
+        line = if i == 0 {
+            line.child(part.truncate().shrink())
+        } else {
+            line.child(hairline(12.0)).child(part)
+        };
+    }
+    line
+}
+
+/// A thin vertical divider between pieces of one line.
+pub fn hairline(h: f32) -> El {
+    el().w(1.0)
+        .h(h)
+        .fill(pal().text_muted.alpha(0.4))
+        .a11y_hidden()
 }
 
 /// A rotating loader glyph.

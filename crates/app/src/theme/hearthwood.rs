@@ -58,7 +58,7 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
     };
     let ty = Type {
         display: TextStyle::new(24.0, 700.0).family(SERIF).tracking(0.2).lh(30.0),
-        hero: TextStyle::new(27.0, 700.0).family(SERIF).tracking(0.4).lh(32.0),
+        hero: TextStyle::new(21.0, 700.0).family(SERIF).tracking(0.4).lh(26.0),
         title: TextStyle::new(19.0, 700.0).family(SERIF).tracking(0.2).lh(24.0),
         heading: TextStyle::new(15.5, 700.0).family(SERIF).tracking(0.3).lh(20.0),
         eyebrow: TextStyle::new(10.5, 700.0).family(SERIF).tracking(1.5).lh(14.0),

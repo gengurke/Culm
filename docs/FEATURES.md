@@ -12,7 +12,9 @@ What the addon manager does, one short paragraph per feature. Ids are referenced
   normalized to the `_forever_` client folder and validated; onboarding offers the folder picker when nothing was found.
   (`f1_2_normalizes_manual_paths`, e2e `f1_2_installation_added_from_folder_picker_is_remembered`)
 - **F1.3 Multiple installs** ✅ — Several installations are stored in `installations.json` (id = hash of the path),
-  each with its own addon list; the sidebar picker switches, and the choice is kept in prefs. (`f1_3_installations_persist`)
+  each with its own addon list; the sidebar picker switches, and the choice is kept in prefs. An installation is named
+  "WoW Forever"; only while two share that name does each show what tells them apart (its Wine prefix, "WoW Forever
+  (battlenet)", else its place in the list). (`f1_3_installations_persist`, `f1_3_installation_names_show_the_prefix_only_for_twins`)
 
 ## F2 My Addons (local)
 - **F2.1 Scan** ✅ — Reads `Interface/AddOns`, picks the right TOC per folder (Forever: `_Forever`/`_Camelot`
@@ -53,7 +55,7 @@ What the addon manager does, one short paragraph per feature. Ids are referenced
   once for all managed (linked, not ignored) addons and marks "Update available"; a failing provider (or GitHub repo) is
   reported without stopping the rest, providers without a key are skipped. A managed addon no check has answered for
   (no `latest`, e.g. CurseForge without a key) shows a muted "Not checked", never "Up to date", and without a key the header says
-  "CurseForge updates not checked — add a CurseForge key" (the imported last known releases are all it has). A CurseForge display name that is a zip name shows without `.zip`.
+  "CurseForge updates not checked" (the imported last known releases are all it has). A CurseForge display name that is a zip name shows without `.zip`.
   (`f3_1_never_checked_addons_say_not_checked`, `f3_1_get_many_reports_latest_file_per_channel`,
   `f3_1_check_updates_batches_per_provider_and_isolates_failures`, `f3_1_check_updates_without_key_skips_curseforge_quietly`,
   e2e `f3_1_check_shows_update_available`)
@@ -98,11 +100,11 @@ What the addon manager does, one short paragraph per feature. Ids are referenced
 - **F4.6 Filters** ✅ — A category dropdown (CurseForge's WoW addon tree from `GET /v1/categories?gameId=1`, fetched once
   per run and cached 7 days in the cache dir; subcategories indented, the Class subtree left out), a row of class chips
   (only Forever's nine classes, picked by CurseForge category id, each with its round medallion: a bevelled metal ring
-in the theme's tones, gilded on the active chip, around a disc showing the original WoW class icon cut round; one at a time, a second
+in the theme's tones, gilded on the active chip, around a disc showing the original WoW class icon cut round (only its baked 2 px frame is cropped; the ring never covers the picture); one at a time, a second
   click clears it, a class and a dropdown category replace each other since `categoryId` takes one) and a
   sort dropdown (Popularity, Last updated, Name, Total downloads) apply to search and browsing: `categoryId`, `sortField`
   (2/3/4/6) and `sortOrder` on `/v1/mods/search`; with no text, category or order the popular list shows. Esc or a click
-  outside closes a dropdown. The section heading names a non-default order ("WARRIOR · LAST UPDATED"). While a class,
+  outside closes a dropdown. The section heading names a non-default order ("WARRIOR | LAST UPDATED", set apart by a hairline). While a class,
   category or order other than Popularity is set, "Clear filters" beside the dropdowns resets all three at once; the
   search text stays (it is the query, not a filter on it) and Esc only closes menus and the detail panel. Filters are
   CurseForge's: while a category or class is set (or the list is browsed in another order without text) only CurseForge
@@ -133,7 +135,7 @@ in the theme's tones, gilded on the active chip, around a disc showing the origi
   `links.sourceUrl` or Hub `repository` counts only when it is exactly a GitHub repo URL). Never on name, slug, author
   or folder; a merge that would join two different ids of one kind does not happen ("better a duplicate than a wrong
   merge"). A failing provider is reported per source, the rest still answer. Get Addons shows one card per entry (the
-  preferred source's facts, "CurseForge · also on WowUp Hub"); its Install uses the preferred source. The detail panel
+  preferred source's facts, "CurseForge | also on WowUp Hub"); its Install uses the preferred source. The detail panel
   lists every source (latest version, downloads) as a picker, preferred first, and installs from the picked one. A
   source that fails is a one-line note over the others' results; only when all fail is it an error. A result counts as
   installed when one of its sources is, or when an installed addon already has all of its folders. CurseForge also
@@ -173,7 +175,7 @@ in the theme's tones, gilded on the active chip, around a disc showing the origi
   Grimoire: the classic in-game book windows, parchment pages with dark ink in a dark stone frame with gold rims, a
   red-brown title banner, item-slot tiles, red lacquered buttons, its own tome/scroll/anvil/cog/chest glyphs and one light
   from the top left: raised parts lit and casting down-right, fields sunk, pressed buttons darken). Cards (five on one
-  row) preview each theme in its own skin, the choice applies at once, is kept in prefs (`theme`) and read before the
+  row) preview each theme in its own skin (a miniature window: sidebar with the brand mark, slim band, buttons), the choice applies at once, is kept in prefs (`theme`) and read before the
   first frame; an unknown stored id falls back to Moonlit. Layout is the same in every theme; every theme keeps text at
   4.5:1 and dimmed or status ink at 3:1 on its window and cards. (e2e `f7_3_theme_choice_applies_and_survives_restart`,
   `f7_3_unknown_stored_theme_falls_back_to_moonlit`, `f7_3_every_theme_renders_every_screen`; unit
@@ -194,7 +196,8 @@ are dropped after a switch).
 
 ## UI shell ✅
 Rune UI in `crates/app` (themes in `src/theme/`, default Moonlit): sidebar nav with update badge and
-installation picker, header band (stars in Moonlit), My Addons (filter, sortable column headers, virtual list, detail panel), Get Addons
+installation picker, a slim header band per page (title, muted meta pieces set apart by hairlines, actions at the right;
+stars in Moonlit; My Addons: addon count and update state, the game version stays in the picker), My Addons (filter, sortable column headers, virtual list, detail panel), Get Addons
 (one search-or-link field, category and sort dropdowns, class medallion chips, clear filters, popular list, result detail panel, no-key hint), Maintenance (confirm + result per
 card, locked while the game runs), Settings (theme, API key, default channel, installations, WowUp import),
 toasts and onboarding. Every scene has a `<scene>@<theme>` variant (`--snap x.png --scene settings@hearthwood`).

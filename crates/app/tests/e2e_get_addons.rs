@@ -27,7 +27,8 @@ fn f4_1_search_and_f4_3_install_from_a_result() {
     );
     assert!(app.shows("RESULTS FOR “CEE”"));
     // CurseForge's Cee and the Hub's Cee are one card (same repo); Dee is the Hub's alone.
-    assert!(app.shows_in("remote/3/sources", "CurseForge · also on WowUp Hub"));
+    assert!(app.shows_in("remote/3/sources", "CurseForge"));
+    assert!(app.shows_in("remote/3/sources", "also on WowUp Hub"));
     assert!(app.has("remote/wowuphub-8") && !app.has("remote/wowuphub-7"));
     assert_eq!(
         world.server.requests_to("/hub/addons/search/forever")[0]
@@ -210,7 +211,8 @@ fn f4_6_category_and_sort_filter_the_search() {
     assert_eq!(req.query_param("sortField").as_deref(), Some("3"));
     assert_eq!(req.query_param("sortOrder").as_deref(), Some("desc"));
     assert_eq!(req.query_param("categoryId").as_deref(), Some("1028"));
-    assert!(app.shows("WARRIOR  ·  LAST UPDATED"));
+    assert!(app.shows_in("get-addons/section", "WARRIOR"));
+    assert!(app.shows_in("get-addons/section", "LAST UPDATED"));
 
     // A category from the dropdown replaces the class.
     app.tap("get-addons/category");

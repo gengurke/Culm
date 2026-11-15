@@ -239,12 +239,21 @@ impl Backend for CoreBackend {
         let _lock = self.store.lock().unwrap_or_else(|e| e.into_inner());
         let mut list = store::load_installations(&self.data_dir)?;
         let stored = list.len();
+        // shortcut: labels stored by earlier builds named the Wine prefix ("WoW Forever (battlenet)"); the
+        // view adds it only when needed now. Drop once nobody upgrades from those.
+        let mut renamed = false;
+        for i in &mut list {
+            if i.label.starts_with("WoW Forever (") {
+                i.label = "WoW Forever".into();
+                renamed = true;
+            }
+        }
         for found in wow::detect_installations(&self.search_roots) {
             if !list.iter().any(|i| i.id == found.id) {
                 list.push(found);
             }
         }
-        if list.len() != stored {
+        if renamed || list.len() != stored {
             store::save_installations(&self.data_dir, &list)?;
         }
         Ok(list)

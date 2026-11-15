@@ -857,7 +857,7 @@ impl Default for MockBackend {
 pub fn installation() -> Installation {
     Installation {
         id: "forever-faugus".into(),
-        label: "World of Warcraft: Forever".into(),
+        label: "WoW Forever".into(),
         flavor: Flavor::Forever,
         root: PathBuf::from(
             "~/Faugus/battlenet/drive_c/Program Files (x86)/World of Warcraft/_forever_",
@@ -1119,7 +1119,7 @@ impl Backend for MockBackend {
         }
         let mut inst = installation();
         inst.id = format!("forever-{}", slug(&path.to_string_lossy()));
-        inst.label = "World of Warcraft: Forever (2)".into();
+
         inst.root = path.join("_forever_");
         Ok(inst)
     }

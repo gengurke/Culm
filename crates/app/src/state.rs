@@ -395,6 +395,45 @@ impl State {
             .find(|i| Some(&i.id) == self.current.as_ref())
     }
 
+    /// The installation's name as shown: its label, plus [`State::inst_tell`] in brackets.
+    pub fn inst_name(&self, inst: &Installation) -> String {
+        match self.inst_tell(inst) {
+            Some(tell) => format!("{} ({tell})", inst.label),
+            None => inst.label.clone(),
+        }
+    }
+
+    /// What tells an installation apart while another one has the same label: its Wine prefix
+    /// (`battlenet`), else its place in the list. None while its label is unique.
+    pub fn inst_tell(&self, inst: &Installation) -> Option<String> {
+        let twins: Vec<&Installation> = self
+            .installations
+            .iter()
+            .filter(|i| i.label == inst.label && i.id != inst.id)
+            .collect();
+        if twins.is_empty() {
+            return None;
+        }
+        let prefix = addon_core::wow::prefix_name(&inst.root);
+        match prefix {
+            Some(p)
+                if twins
+                    .iter()
+                    .all(|i| addon_core::wow::prefix_name(&i.root).as_ref() != Some(&p)) =>
+            {
+                Some(p)
+            }
+            _ => {
+                let n = self
+                    .installations
+                    .iter()
+                    .position(|i| i.id == inst.id)
+                    .unwrap_or(0);
+                Some((n + 1).to_string())
+            }
+        }
+    }
+
     pub fn addon(&self, id: &str) -> Option<&AddonUi> {
         self.addons.iter().find(|a| a.addon.id == id)
     }

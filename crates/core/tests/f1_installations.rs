@@ -28,7 +28,8 @@ fn f1_1_detects_forever_install_from_build_info() {
     let inst = &found[0];
     assert_eq!(inst.version.as_deref(), Some("1.60.1.70938"));
     assert!(inst.root.ends_with("World of Warcraft/_forever_"));
-    assert_eq!(inst.label, "WoW Forever (battlenet)");
+    assert_eq!(inst.label, "WoW Forever");
+    assert_eq!(wow::prefix_name(&inst.root).as_deref(), Some("battlenet"));
     assert_eq!(inst, &w.inst, "detection and manual add agree on id");
 }
 

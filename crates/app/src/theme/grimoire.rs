@@ -83,7 +83,7 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
     };
     let ty = Type {
         display: TextStyle::new(24.0, 700.0).family(SERIF).tracking(0.3).lh(30.0),
-        hero: TextStyle::new(27.0, 700.0).family(SERIF).tracking(0.5).lh(32.0),
+        hero: TextStyle::new(21.0, 700.0).family(SERIF).tracking(0.5).lh(26.0),
         title: TextStyle::new(19.0, 700.0).family(SERIF).tracking(0.3).lh(24.0),
         heading: TextStyle::new(15.5, 700.0).family(SERIF).tracking(0.3).lh(20.0),
         strong: TextStyle::new(13.5, 650.0).lh(18.0),
@@ -202,7 +202,7 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
     Theme {
         id: "grimoire",
         name: "Grimoire",
-        blurb: "Parchment pages in a gilded stone frame",
+        blurb: "Parchment in a gilded frame",
         pal: p,
         ty,
         skin,

@@ -70,7 +70,7 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
     };
     let ty = Type {
         display: TextStyle::new(24.0, 700.0).family(SERIF).tracking(0.6).lh(30.0),
-        hero: TextStyle::new(27.0, 700.0).family(SERIF).tracking(0.8).lh(32.0),
+        hero: TextStyle::new(21.0, 700.0).family(SERIF).tracking(0.8).lh(26.0),
         title: TextStyle::new(19.0, 700.0).family(SERIF).tracking(0.5).lh(24.0),
         heading: TextStyle::new(15.5, 700.0).family(SERIF).tracking(0.5).lh(20.0),
         eyebrow: TextStyle::new(10.5, 700.0).family(SERIF).tracking(1.8).lh(14.0),
@@ -221,7 +221,7 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
     Theme {
         id: "emberglow",
         name: "Emberglow",
-        blurb: "Mossy black stone, glowing gold",
+        blurb: "Black stone, glowing gold",
         pal: p,
         ty,
         skin,

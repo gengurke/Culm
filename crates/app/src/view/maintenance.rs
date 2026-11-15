@@ -1,7 +1,7 @@
 //! Maintenance: clear cache, clean leftovers, back up WTF. Each card confirms first and shows a
 //! result line; all are locked while the game runs (F6).
 
-use super::{band, subtitle};
+use super::{band, band_note};
 use crate::icons;
 use crate::state::{Intent, MaintCard, MaintPhase, State, dispatch};
 use crate::theme::{self, pal, t};
@@ -80,7 +80,11 @@ pub fn page(s: &State) -> El {
         .h_full()
         .child(band(
             "Maintenance",
-            subtitle("Keep the client folder tidy. Nothing here touches your addons."),
+            || {
+                vec![band_note(
+                    "Keep the client folder tidy. Nothing here touches your addons.",
+                )]
+            },
             vec![],
         ))
         .child(

@@ -1,6 +1,6 @@
 //! My Addons: toolbar, the installed list (virtual rows) and the selected addon's detail panel.
 
-use super::{band, subtitle};
+use super::{band, band_note};
 use crate::backend::SortBy;
 use crate::icons;
 use crate::state::{AddonUi, Intent, Job, Op, Screen, State, Status, dispatch};
@@ -26,18 +26,28 @@ pub fn page(s: &State) -> El {
         });
     let state = match (n, unchecked) {
         (1.., _) => format!("{n} update{} available", if n == 1 { "" } else { "s" }),
-        _ if cf_unchecked => "CurseForge updates not checked — add a CurseForge key".to_string(),
+        _ if cf_unchecked => "CurseForge updates not checked".to_string(),
         (0, 1..) => format!("{unchecked} not checked"),
-        (0, 0) => "everything up to date".to_string(),
+        (0, 0) => "Everything up to date".to_string(),
     };
-    let sub = match s.installation() {
-        Some(i) if installed == 0 && s.job != Job::Idle => format!("Reading {}…", i.label),
-        Some(i) => format!(
-            "{installed} addons  ·  {state}  ·  {} {}",
-            i.label,
-            i.version.as_deref().unwrap_or("")
-        ),
-        None => String::new(),
+    let reading = installed == 0 && s.job != Job::Idle;
+    let meta = || match s.installation() {
+        Some(i) if reading => vec![band_note(format!("Reading {}…", s.inst_name(i)))],
+        Some(_) => {
+            let count = format!("{installed} addon{}", if installed == 1 { "" } else { "s" });
+            let state = band_note(state);
+            vec![
+                band_note(count),
+                if n > 0 {
+                    state
+                        .font(t().ty.note.weight_of(600.0))
+                        .color(pal().warning)
+                } else {
+                    state
+                },
+            ]
+        }
+        None => vec![],
     };
     let update_all = ui::button(
         "my-addons/update-all",
@@ -68,7 +78,7 @@ pub fn page(s: &State) -> El {
     col()
         .w_full()
         .h_full()
-        .child(band("My Addons", subtitle(sub), vec![update_all]))
+        .child(band("My Addons", meta, vec![update_all]))
         .child(toolbar(s))
         .child(body)
 }
