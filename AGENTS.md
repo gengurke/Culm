@@ -67,7 +67,7 @@ Build needs `libxkbcommon-devel wayland-devel` (Fedora). Without root, a gitigno
 - `.skin()` adds the texture and ornaments as pinned children: call it before `.child(..)`. Toasts are skinned after the
   kit built them, so their surface has no texture or corners.
 - The current theme is a thread-local set by `theme::begin` at the top of `view` (tests run windows on parallel threads).
-  Textures (`theme/texture.rs`, value-noise fBm, no image files) are generated once per thread through `State::images`;
+  Textures (`theme/texture.rs`, value-noise fBm, no image files) are generated once per process on background threads (`theme::prewarm` from `setup`; synchronously in tests and headless runs) and registered per thread through `State::images`;
   without a cache surfaces keep their base colour.
 - Adding a theme: one file `theme/<name>.rs` with `pub static THEME: LazyLock<Theme>` (start from `moonlit.rs`) and one
   `Variant => module` line in the `themes!` list in `theme/mod.rs`. The picker, prefs id, scenes (`<scene>@<id>`) and

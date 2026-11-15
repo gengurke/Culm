@@ -13,6 +13,8 @@ use rune::tok::{Family, TextStyle};
 use rune::{Color, El, Icon, Image, Shadow, el, icon};
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Once, OnceLock};
 pub use texture::Tex;
 
 macro_rules! themes {
@@ -410,16 +412,58 @@ pub fn begin(s: &State) {
     } else {
         std::slice::from_ref(&s.settings.theme)
     };
-    for tex in shown.iter().flat_map(|id| id.theme().textures) {
+    for &tex in shown.iter().flat_map(|id| id.theme().textures) {
         TEXTURES.with(|m| {
-            m.borrow_mut().entry(*tex).or_insert_with(|| {
-                // shortcut: generated on the UI thread, once per kind and thread (see texture.rs
-                // for timings); move to a worker if themes ever need many or larger textures.
-                let (w, h, bytes) = tex.rgba();
-                cache.rgba(w, h, bytes)
-            });
+            let mut m = m.borrow_mut();
+            if m.contains_key(&tex) {
+                return;
+            }
+            // After `prewarm` the bytes come from its threads (until then the fill shows);
+            // without it (tests, headless runs) they are made here, so snapshots have them.
+            let slot = &RGBA[tex as usize];
+            let bytes = match slot.get() {
+                Some(b) => b,
+                None if PREWARM.is_completed() => return,
+                None => slot.get_or_init(|| {
+                    let (w, h, bytes) = tex.rgba();
+                    (w, h, bytes.into())
+                }),
+            };
+            m.insert(tex, cache.rgba(bytes.0, bytes.1, bytes.2.clone()));
         });
     }
+}
+
+/// Width, height and RGBA8 bytes of a generated texture.
+type Rgba = (u32, u32, Arc<[u8]>);
+
+/// Texture bytes per [`Tex`] (by discriminant), made once per process.
+static RGBA: [OnceLock<Rgba>; Tex::ALL.len()] = [const { OnceLock::new() }; Tex::ALL.len()];
+static PREWARM: Once = Once::new();
+/// Set when a prewarm thread finished; [`textures_landed`] takes it.
+static LANDED: AtomicBool = AtomicBool::new(false);
+
+/// Generates every texture on background threads (Wood ~40 ms in release, Settings needs all
+/// of them), so neither the first frame nor the first visit to Settings waits on the UI thread.
+/// Each one wakes the window; `poll` asks [`textures_landed`] whether to draw again.
+pub fn prewarm(waker: &rune::Waker) {
+    PREWARM.call_once(|| {
+        for tex in Tex::ALL {
+            let waker = waker.clone();
+            std::thread::spawn(move || {
+                let (w, h, bytes) = tex.rgba();
+                if RGBA[tex as usize].set((w, h, bytes.into())).is_ok() {
+                    LANDED.store(true, Ordering::Release);
+                    waker();
+                }
+            });
+        }
+    });
+}
+
+/// Whether a prewarmed texture arrived since the last call (the view should run again).
+pub fn textures_landed() -> bool {
+    LANDED.swap(false, Ordering::AcqRel)
 }
 
 fn texture(tex: Tex) -> Option<Image> {
