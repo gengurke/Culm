@@ -32,8 +32,9 @@ pub struct Config {
 
 impl Config {
     /// The app's XDG folders and prefs (`RUNE_DIRS_ROOT` relocates them), the usual WoW and
-    /// WowUp places, and the real provider endpoints unless `ADDONS_CURSEFORGE_URL` /
-    /// `ADDONS_GITHUB_URL` point elsewhere (a local fake server for end-to-end runs).
+    /// WowUp places, and the real provider endpoints unless `ADDONS_CURSEFORGE_URL`,
+    /// `ADDONS_GITHUB_URL` or `ADDONS_WOWINTERFACE_URL` point elsewhere (a fake server, or a
+    /// closed port for an offline run).
     pub fn from_env() -> Result<Config> {
         let dirs = rune::dirs::AppDirs::new(brand::APP_ID).context("no home folder to keep data in")?;
         let mut providers = ProviderConfig::default();
@@ -42,6 +43,9 @@ impl Config {
         }
         if let Ok(url) = std::env::var("ADDONS_GITHUB_URL") {
             providers.github_base_url = url;
+        }
+        if let Ok(url) = std::env::var("ADDONS_WOWINTERFACE_URL") {
+            providers.wowinterface_base_url = url;
         }
         Ok(Config {
             data_dir: dirs.data().to_path_buf(),

@@ -84,9 +84,12 @@ name = "addon-app"
 version = "0.1.0"
 dependencies = [
  "addon-core",
+ "addon-testkit",
  "anyhow",
  "rune",
  "rune-kit",
+ "serde_json",
+ "tempfile",
 ]
 
 [[package]]

@@ -39,6 +39,25 @@ Build needs `libxkbcommon-devel wayland-devel` (Fedora). Without root, a gitigno
 - Give `.key("...")` to everything tests touch. Keys are global: use paths like `addon/<id>/update`.
 - Layout is flexbox: scroll areas need bounded height (`.h_full()` up the chain, `.min_h(0.0)` on nested cols).
 
+## Rune pitfalls (learned here)
+
+- `virtual_rows`' key fn replaces the row's own `.key()`: return the full path key (`addon/<id>`).
+- Virtual rows below the fold aren't mounted, so `rt.find` returns None: select via state or keep test lists short.
+- `tx.focus` doesn't reach a kit `TextInput` nested in a keyed row: set `edit.focused = true` in state.
+- `.border()` and `.border_sides()` replace each other; for a hairline plus a side accent use an inset
+  `box_shadow` with spread 1.
+- `AppSpec.fonts` replaces the embedded Inter: use `families`.
+- No const hex colour constructor: `LazyLock` + `rune::color::hex`.
+- `Runtime::new` has no setup/poll: set `rt.poll` (see `addon_app::runtime`); `setup` doesn't run in tests, so
+  anything created there (the thumbnail `ImageCache`) must be set by the test.
+- `resolve_file_dialog` returns a `#[must_use]` Result.
+- rune-kit `Toast` hard-codes radius 8: override with `.radius(0.0)`.
+- `ElementInfo::rect` is the animated rect (a row entering can be 1 px tall); use `target` for layout assertions.
+- `.pixels(img)` paints when the image decodes without re-running the view: put it over a fallback instead of
+  branching on `is_ready()`.
+- Headless binary runs (`--snap`, `--script`) use `MockBackend`; `ADDONS_BACKEND=core` forces the real one
+  (with `RUNE_DIRS_ROOT=$(mktemp -d)` and the `ADDONS_*_URL` endpoints pointed at a closed port it stays offline).
+
 ## Code rules
 
 - Smallest change that fully solves the task. Reuse before writing; std before a crate; no speculative
