@@ -142,32 +142,10 @@ impl Mark {
 }
 
 /// A status tag: a glyph and a word, no box; only marks that need attention colour their word.
-/// An update gets an engraved plate (the theme's tile) with a bevelled gem and a small-caps label.
 pub fn tag(label: &str, mark: Mark) -> El {
     let th = t();
     let p = &th.pal;
     let (fg, _) = mark.colors();
-    if mark == Mark::Update {
-        // On the plate the status ink may need lifting (a dark plate on a light page).
-        let fg = theme::readable(fg, th.skin.tile.fill);
-        return row()
-            .h(20.0)
-            .pl(6.0)
-            .pr(8.0)
-            .gap(6.0)
-            .center_y()
-            .skin(&Surface {
-                corners: None,
-                ..th.skin.tile.clone()
-            })
-            .child(icon(mark.glyph(), 12.0).color(fg))
-            .child(
-                text(label)
-                    .font(th.ty.eyebrow.size_of(10.0).tracking(0.9))
-                    .text_case(rune::TextCase::Uppercase)
-                    .color(fg),
-            );
-    }
     let quiet = if mark == Mark::Good { fg } else { p.text_muted };
     row()
         .h(20.0)
