@@ -161,6 +161,15 @@ const SCENES: &[Scene] = &[
         set_op(s, "spoken", Op::Failed("GitHub answered 503".into()));
         s.selected = Some("bartender4".into());
     }),
+    // Ordered by status: what needs the user (errors, updates) first.
+    ("my-addons-sorted", |s| {
+        loaded(s);
+        s.settings.addon_order = backend::AddonOrder {
+            by: backend::SortBy::Status,
+            desc: false,
+        };
+        set_op(s, "spoken", Op::Failed("GitHub answered 503".into()));
+    }),
     ("my-addons-detail", |s| {
         loaded(s);
         s.selected = Some("questie".into());

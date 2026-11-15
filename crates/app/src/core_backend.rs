@@ -2,7 +2,8 @@
 //! on workers; the stored addon lists are read-modify-written under one lock.
 
 use crate::backend::{
-    Backend, Backup, Found, Maintenance, Settings, Warned, curseforge_only, sort_entries,
+    AddonOrder, Backend, Backup, Found, Maintenance, Settings, Warned, curseforge_only,
+    sort_entries,
 };
 use crate::brand;
 use crate::theme::ThemeId;
@@ -88,6 +89,7 @@ const KEY: &str = "curseforge_key";
 const CHANNEL: &str = "default_channel";
 const INSTALLATION: &str = "installation";
 const THEME: &str = "theme";
+const ADDON_ORDER: &str = "addon_order";
 
 impl CoreBackend {
     pub fn new(c: Config) -> CoreBackend {
@@ -200,6 +202,10 @@ impl Backend for CoreBackend {
                 .get::<String>(THEME)
                 .map(|id| ThemeId::from_id(&id))
                 .unwrap_or_default(),
+            addon_order: prefs
+                .get::<String>(ADDON_ORDER)
+                .map(|id| AddonOrder::from_id(&id))
+                .unwrap_or_default(),
         }
     }
 
@@ -215,6 +221,7 @@ impl Backend for CoreBackend {
             None => prefs.remove(INSTALLATION)?,
         }
         prefs.set(THEME, s.theme.id())?;
+        prefs.set(ADDON_ORDER, &s.addon_order.id())?;
         Ok(())
     }
 

@@ -187,8 +187,8 @@ fn f4_6_category_and_sort_filter_the_search() {
         |s| matches!(&s.results, Fetch::Ready(r) if !r.entries.is_empty()),
     );
     assert!(app.shows("WARRIOR") && app.has("remote/3"));
-    // The Hub has no categories: CurseForge's results alone, and the page says so.
-    assert!(app.has("get-addons/curseforge-only"));
+    // The Hub has no categories: CurseForge's results alone, without a note about it.
+    assert!(!app.has("get-addons/curseforge-only"));
     assert!(!app.has("remote/wowuphub-8"));
     assert!(
         world
@@ -210,6 +210,7 @@ fn f4_6_category_and_sort_filter_the_search() {
     assert_eq!(req.query_param("sortField").as_deref(), Some("3"));
     assert_eq!(req.query_param("sortOrder").as_deref(), Some("desc"));
     assert_eq!(req.query_param("categoryId").as_deref(), Some("1028"));
+    assert!(app.shows("WARRIOR  ·  LAST UPDATED"));
 
     // A category from the dropdown replaces the class.
     app.tap("get-addons/category");
@@ -227,6 +228,46 @@ fn f4_6_category_and_sort_filter_the_search() {
     app.tap("get-addons/sort");
     app.tap("sort/popularity");
     assert!(app.shows("POPULAR FOR FOREVER"));
+}
+
+#[test]
+fn f4_6_clear_filters_resets_class_category_and_sort() {
+    let world = World::new().with_key("test-key");
+    let mut app = world.app();
+    app.wait_idle();
+    app.tap("nav/get-addons");
+    app.wait_for("the categories", |s| {
+        matches!(s.categories, Fetch::Ready(_))
+    });
+    // Nothing to clear yet.
+    assert!(!app.has("get-addons/clear-filters"));
+
+    app.tap("get-addons/search");
+    app.type_text("cee");
+    app.tap("class/1028");
+    app.tap("get-addons/sort");
+    app.tap("sort/name");
+    assert!(app.has("get-addons/clear-filters"));
+    app.wait_for("filtered results", |s| {
+        matches!(&s.results, Fetch::Ready(_))
+    });
+
+    let hub = world.server.requests_to("/hub/addons/search/forever").len();
+    app.tap("get-addons/clear-filters");
+    assert_eq!(app.state().category, None);
+    assert_eq!(app.state().sort, addon_core::Sort::default());
+    // The text is what the user looks for, not a filter: it stays, and searches every source again.
+    assert_eq!(app.state().query.text, "cee");
+    assert!(!app.has("get-addons/clear-filters"));
+    app.wait_for(
+        "unfiltered results",
+        |s| matches!(&s.results, Fetch::Ready(r) if !r.entries.is_empty()),
+    );
+    let req = world.server.requests_to("/v1/mods/search").pop().unwrap();
+    assert_eq!(req.query_param("categoryId"), None);
+    assert_eq!(req.query_param("searchFilter").as_deref(), Some("cee"));
+    assert!(world.server.requests_to("/hub/addons/search/forever").len() > hub);
+    assert!(app.shows("RESULTS FOR “CEE”"));
 }
 
 #[test]

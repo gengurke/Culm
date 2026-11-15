@@ -92,6 +92,115 @@ fn f2_1_filter_narrows_the_list() {
     assert!(shows(&rt, "No addons match"));
 }
 
+/// Names of the rows in display order.
+fn order(rt: &Runtime<State>) -> Vec<String> {
+    rt.state
+        .visible_addons()
+        .iter()
+        .map(|a| a.addon.name.clone())
+        .collect()
+}
+
+#[test]
+fn f2_6_column_headers_sort_the_list() {
+    use addon_app::backend::{AddonOrder, SortBy};
+    let mut rt = app(loaded);
+    let by_name = order(&rt);
+    assert!(
+        by_name
+            .windows(2)
+            .all(|w| w[0].to_lowercase() <= w[1].to_lowercase())
+    );
+
+    // Addon again: Z to A, the chevron flips.
+    tap(&mut rt, "addons/sort/addon");
+    assert_eq!(
+        rt.state.settings.addon_order,
+        AddonOrder {
+            by: SortBy::Name,
+            desc: true
+        }
+    );
+    let mut reversed = by_name.clone();
+    reversed.reverse();
+    assert_eq!(order(&rt), reversed);
+    assert!(
+        rt.find(&format!("addon/{}", rt.state.visible_addons()[0].addon.id))
+            .is_some()
+    );
+
+    // Status: what needs the user first (an error, then updates), then the rest.
+    rt.update(|s, _| {
+        s.addons
+            .iter_mut()
+            .find(|a| a.addon.id == "spoken")
+            .unwrap()
+            .op = Some(Op::Failed("503".into()))
+    });
+    tap(&mut rt, "addons/sort/status");
+    let statuses: Vec<Status> = rt
+        .state
+        .visible_addons()
+        .iter()
+        .map(|a| a.status())
+        .collect();
+    assert_eq!(statuses[0], Status::Error);
+    assert_eq!(statuses[1], Status::UpdateAvailable);
+    let last_update = statuses
+        .iter()
+        .rposition(|s| *s == Status::UpdateAvailable)
+        .unwrap();
+    assert!(
+        statuses[..=last_update]
+            .iter()
+            .all(|s| matches!(s, Status::Error | Status::UpdateAvailable))
+    );
+    assert!(
+        rt.find("addon/spoken").is_some(),
+        "the first row is on screen"
+    );
+
+    // The filter narrows the ordered list; the order holds.
+    tap(&mut rt, "my-addons/filter");
+    type_text(&mut rt, "b");
+    let filtered: Vec<Status> = rt
+        .state
+        .visible_addons()
+        .iter()
+        .map(|a| a.status())
+        .collect();
+    assert!(
+        filtered
+            .windows(2)
+            .all(|w| !(w[0] == Status::UpToDate && w[1] == Status::UpdateAvailable))
+    );
+    assert!(rt.state.visible_addons().iter().all(|a| {
+        let q = "b";
+        a.addon.name.to_lowercase().contains(q) || a.addon.author.to_lowercase().contains(q)
+    }));
+
+    // Keyboard: Space on the focused header flips it (Return goes to buttons only on the web); the choice is saved with the settings.
+    rt.update(|_, tx| tx.focus("addons/sort/status", true));
+    rt.frame(1.0 / 60.0);
+    type_text(&mut rt, " ");
+    assert_eq!(
+        rt.state.settings.addon_order,
+        AddonOrder {
+            by: SortBy::Status,
+            desc: true
+        }
+    );
+    wait(&mut rt, "the order saved", |s| {
+        s.backend.load_settings().addon_order
+            == AddonOrder {
+                by: SortBy::Status,
+                desc: true,
+            }
+    });
+    assert_eq!(AddonOrder::from_id("status-desc").id(), "status-desc");
+    assert_eq!(AddonOrder::from_id("nonsense"), AddonOrder::default());
+}
+
 #[test]
 fn slash_focuses_the_filter() {
     let mut rt = app(loaded);

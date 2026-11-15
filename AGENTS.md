@@ -78,7 +78,7 @@ Build needs `libxkbcommon-devel wayland-devel` (Fedora). Without root, a gitigno
   (`theme::glyph`, applied in `ui::button`/`icon_button`/`glyph_tile` and the nav). `Surface::press` sets the pressed wash.
   `skin.menu` is the floating popup (dropdowns, installation menu): give it a full border and a drop shadow.
 - Keep textures on big surfaces (window, sidebar, band, detail); cards use gradients and bevels (GPU cost per textured box).
-  `f7_3_every_theme_keeps_text_readable` checks palette contrast; `theme::readable` lifts status ink on a dark plate.
+  `f7_3_every_theme_keeps_text_readable` checks palette contrast. `Skin::medal` holds the class medallions' ring tones.
 
 ## Data-safety rules (learned here)
 

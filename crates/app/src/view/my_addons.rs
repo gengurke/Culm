@@ -1,12 +1,13 @@
 //! My Addons: toolbar, the installed list (virtual rows) and the selected addon's detail panel.
 
 use super::{band, subtitle};
+use crate::backend::SortBy;
 use crate::icons;
 use crate::state::{AddonUi, Intent, Job, Op, Screen, State, Status, dispatch};
 use crate::theme::{self, StyleExt, SurfaceExt, pal, t};
 use crate::ui::{self, Kind, Mark};
 use addon_core::{Channel, IgnoreReason};
-use rune::{Cursor, El, GrowthSpec, ScrollSpec, Tx, col, el, rich, row, text};
+use rune::{Cursor, El, GrowthSpec, ScrollSpec, Tx, col, el, icon, rich, row, text};
 use std::borrow::Cow;
 
 const VERSION_W: f32 = 180.0;
@@ -171,9 +172,43 @@ fn compact(s: &State) -> bool {
     s.selected.is_some()
 }
 
+/// A column header. Sortable ones (`by`) are buttons: a press orders by the column or flips the
+/// order, and the active one shows a chevron (up: ascending). Version is not sortable: versions are
+/// each author's own strings, and whether one is outdated is what Status sorts by.
+fn column(s: &State, label: &str, by: Option<SortBy>) -> El {
+    let (th, p) = (t(), pal());
+    let caption = text(label.to_uppercase()).font(th.ty.eyebrow);
+    let Some(by) = by else {
+        return row().center_y().child(caption.color(p.text_muted));
+    };
+    let order = s.settings.addon_order;
+    let on = order.by == by;
+    let chevron = if on && order.desc {
+        &icons::CHEVRON_DOWN
+    } else {
+        &icons::CHEVRON_UP
+    };
+    let dir = match (on, order.desc) {
+        (true, false) => ", ascending",
+        (true, true) => ", descending",
+        (false, _) => "",
+    };
+    row()
+        .key(format!("addons/sort/{}", ui::slug(label)))
+        .role("button")
+        .label(format!("Sort by {label}{dir}"))
+        .focusable(true)
+        .h(24.0)
+        .gap(4.0)
+        .center_y()
+        .cursor(Cursor::Pointer)
+        .focus_ring(1.0, 2.0, p.accent_focus)
+        .on_press_tx(move |s: &mut State, tx: &mut Tx| dispatch(s, Intent::SortAddons(by), tx))
+        .child(caption.color(if on { p.text } else { p.text_muted }))
+        .child(icon(chevron, 12.0).color(if on { p.accent } else { p.accent.alpha(0.0) }))
+}
+
 fn header(s: &State) -> El {
-    let (p, eyebrow) = (pal(), t().ty.eyebrow);
-    let h = |label: &str| text(label.to_uppercase()).font(eyebrow).color(p.text_muted);
     let mut r = row()
         .key("my-addons/header")
         .w_full()
@@ -183,12 +218,21 @@ fn header(s: &State) -> El {
         .center_y()
         .skin(&t().skin.list_header)
         .child(el().w(36.0))
-        .child(h("Addon").grow(1.0))
-        .child(h("Version").w(VERSION_W));
+        .child(
+            row()
+                .grow(1.0)
+                .child(column(s, "Addon", Some(SortBy::Name))),
+        )
+        .child(row().w(VERSION_W).child(column(s, "Version", None)));
     if !compact(s) {
-        r = r.child(h("Game").w(GAME_W));
+        r = r.child(row().w(GAME_W).child(column(s, "Game", Some(SortBy::Game))));
     }
-    r.child(h("Status").w(STATUS_W)).child(el().w(ACTION_W))
+    r.child(
+        row()
+            .w(STATUS_W)
+            .child(column(s, "Status", Some(SortBy::Status))),
+    )
+    .child(el().w(ACTION_W))
 }
 
 fn list(s: &State) -> El {

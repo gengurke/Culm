@@ -1,7 +1,7 @@
 //! The window's one `State`, its explicit phases, every user intent ([`dispatch`]) and every
 //! worker result ([`State::apply`]). Views only read this; handlers call `dispatch`.
 
-use crate::backend::{Backend, Backup, Found, Maintenance, Settings};
+use crate::backend::{AddonOrder, Backend, Backup, Found, Maintenance, Settings, SortBy};
 use crate::theme::ThemeId;
 use crate::worker::{self, Msg};
 use addon_core::discover::{Entry, source_ids};
@@ -178,6 +178,49 @@ impl Detail {
     }
 }
 
+/// Where a status sorts in ascending order: what needs the user first.
+fn attention(s: Status) -> u8 {
+    match s {
+        Status::Error => 0,
+        Status::UpdateAvailable => 1,
+        Status::Working => 2,
+        Status::NotChecked => 3,
+        Status::UpToDate => 4,
+        Status::Unknown => 5,
+        Status::Ignored => 6,
+    }
+}
+
+/// `1.15.4` before `1.60.1`: dotted numbers compare part by part, anything else as text.
+fn version_cmp(a: &str, b: &str) -> std::cmp::Ordering {
+    let parts = |v: &str| -> Vec<Result<u64, String>> {
+        v.split('.')
+            .map(|p| p.parse::<u64>().map_err(|_| p.to_lowercase()))
+            .collect()
+    };
+    parts(a).cmp(&parts(b))
+}
+
+/// Two rows in `order`. Rows without a game version stay last either way.
+fn compare(order: AddonOrder, a: &AddonUi, b: &AddonUi) -> std::cmp::Ordering {
+    use std::cmp::Ordering;
+    let by = match order.by {
+        SortBy::Name => a
+            .addon
+            .name
+            .to_lowercase()
+            .cmp(&b.addon.name.to_lowercase()),
+        SortBy::Status => attention(a.status()).cmp(&attention(b.status())),
+        SortBy::Game => match (&a.addon.game_version, &b.addon.game_version) {
+            (Some(x), Some(y)) => version_cmp(x, y),
+            (None, None) => Ordering::Equal,
+            (None, Some(_)) => return Ordering::Greater,
+            (Some(_), None) => return Ordering::Less,
+        },
+    };
+    if order.desc { by.reverse() } else { by }
+}
+
 /// A single result (a resolved link) as an entry of its own.
 pub fn single(addon: RemoteAddon) -> Entry {
     Entry {
@@ -223,6 +266,8 @@ pub enum Intent {
     Submit,
     SetCategory(Option<u32>),
     SetSort(Sort),
+    /// Back to every category and class and the default order (F4.6); the text stays.
+    ClearFilters,
     /// Opens (or, for the open one, closes) the detail panel of a result.
     ShowRemote(Entry),
     /// Picks the detail panel's source to install from (index into its sources).
@@ -235,6 +280,8 @@ pub enum Intent {
     SaveApiKey,
     SetDefaultChannel(Channel),
     SetTheme(ThemeId),
+    /// A My Addons column header: order by it, or flip the order if it already is (F2.6).
+    SortAddons(SortBy),
 }
 
 pub struct State {
@@ -374,17 +421,22 @@ impl State {
             .is_some_and(|k| !k.trim().is_empty())
     }
 
-    /// Addons matching the filter text, in display order (name).
+    /// Addons matching the filter text, in the picked order (F2.6).
     pub fn visible_addons(&self) -> Vec<&AddonUi> {
         let q = self.filter.text.trim().to_lowercase();
-        self.addons
+        let mut list: Vec<&AddonUi> = self
+            .addons
             .iter()
             .filter(|a| {
                 q.is_empty()
                     || a.addon.name.to_lowercase().contains(&q)
                     || a.addon.author.to_lowercase().contains(&q)
             })
-            .collect()
+            .collect();
+        // `addons` is kept in name order, so a stable sort breaks ties by name.
+        let order = self.settings.addon_order;
+        list.sort_by(|a, b| compare(order, a, b));
+        list
     }
 
     pub fn is_installed(&self, remote: &RemoteAddon) -> bool {
@@ -440,6 +492,11 @@ impl State {
             category: self.category.filter(|_| ready),
             sort: if ready { self.sort } else { Sort::default() },
         }
+    }
+
+    /// Whether a class, category or order other than the default is picked (F4.6).
+    pub fn filters_set(&self) -> bool {
+        self.category.is_some() || self.sort != Sort::default()
     }
 
     pub fn category_by_id(&self, id: u32) -> Option<&Category> {
@@ -1158,6 +1215,12 @@ pub fn dispatch(s: &mut State, intent: Intent, tx: &mut Tx) {
             s.sort = sort;
             s.start_search();
         }
+        Intent::ClearFilters => {
+            s.menu = None;
+            s.category = None;
+            s.sort = Sort::default();
+            s.start_search();
+        }
         Intent::ShowRemote(entry) => {
             s.menu = None;
             s.show_remote(entry);
@@ -1253,6 +1316,14 @@ pub fn dispatch(s: &mut State, intent: Intent, tx: &mut Tx) {
         }
         Intent::SetDefaultChannel(channel) => {
             s.settings.default_channel = channel;
+            s.save_settings();
+        }
+        Intent::SortAddons(by) => {
+            let o = s.settings.addon_order;
+            s.settings.addon_order = AddonOrder {
+                by,
+                desc: o.by == by && !o.desc,
+            };
             s.save_settings();
         }
         Intent::SetTheme(theme) => {

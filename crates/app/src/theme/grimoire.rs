@@ -4,7 +4,7 @@
 //! top left: raised parts catch it on their top-left edge and cast their shadow down-right,
 //! fields and wells sink, pressed buttons darken. Textures are generated (texture.rs).
 
-use super::{BASE_TYPE, BandDeco, Border, Corners, Overlay, Pal, Skin, Surface, Tex, Theme, Type, h};
+use super::{Medal, BASE_TYPE, BandDeco, Border, Corners, Overlay, Pal, Skin, Surface, Tex, Theme, Type, h};
 use crate::icons;
 use rune::tok::{Family, TextStyle};
 use rune::{Color, Shadow};
@@ -195,6 +195,7 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
         segment_on: Surface { radius: 2.0, ..lacquer.clone() },
         toast: Surface { shadows: vec![lit(0.7), cast(4.0, 14.0, 0.5)], ..page },
         kbd: Surface { ink: p.text_muted, border: Some(Border::bevel(1.0, h("#a8885a"), h("#5a3e1e"))), radius: 2.0, ..Default::default() },
+        medal: Medal { ring: [h("#c4c0b8"), h("#68625a"), h("#24201c")], ring_on: [h("#ffe38a"), h("#c8961e"), h("#5a3606")], outline: h("#2a1a0a") },
         emblem: &icons::TOME_EMBLEM,
         glyphs: GLYPHS,
     };

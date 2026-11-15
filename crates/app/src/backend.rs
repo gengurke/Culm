@@ -16,6 +16,54 @@ pub struct Settings {
     /// Id of the installation shown last.
     pub installation: Option<String>,
     pub theme: ThemeId,
+    /// My Addons' row order (F2.6).
+    pub addon_order: AddonOrder,
+}
+
+/// A My Addons column the list can be ordered by (F2.6).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum SortBy {
+    #[default]
+    Name,
+    Game,
+    Status,
+}
+
+/// My Addons' row order: a column, ascending unless `desc`. Status ascending puts what needs the
+/// user first (errors, updates), Game ascending the oldest game version.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct AddonOrder {
+    pub by: SortBy,
+    pub desc: bool,
+}
+
+impl AddonOrder {
+    const BY: [(SortBy, &str); 3] = [
+        (SortBy::Name, "name"),
+        (SortBy::Game, "game"),
+        (SortBy::Status, "status"),
+    ];
+
+    /// The id kept in prefs (`status-desc`).
+    pub fn id(self) -> String {
+        let by = Self::BY
+            .iter()
+            .find(|(b, _)| *b == self.by)
+            .map_or("name", |(_, n)| n);
+        format!("{by}-{}", if self.desc { "desc" } else { "asc" })
+    }
+
+    /// The order stored as `id`; anything unknown is the default.
+    pub fn from_id(id: &str) -> AddonOrder {
+        let (by, dir) = id.split_once('-').unwrap_or((id, "asc"));
+        match Self::BY.iter().find(|(_, n)| *n == by) {
+            Some(&(by, _)) => AddonOrder {
+                by,
+                desc: dir == "desc",
+            },
+            None => AddonOrder::default(),
+        }
+    }
 }
 
 /// A result plus non-fatal problems to show (e.g. one provider offline).
