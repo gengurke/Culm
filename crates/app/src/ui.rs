@@ -1,9 +1,9 @@
-//! Small Moonlit components: square, hairline-edged, one gold accent. Built on Rune elements
-//! directly because rune-kit's look (rounded, neutral) is not this design.
+//! Small components painted from the current theme's skin (`theme::t()`). Built on Rune elements
+//! directly because rune-kit's look (rounded, neutral) is not ours.
 
 use crate::icons;
 use crate::state::State;
-use crate::theme::{self, StyleExt, pal};
+use crate::theme::{self, StyleExt, Surface, SurfaceExt, pal, t};
 use rune::{Color, Cursor, El, Icon, Shadow, TextEdit, Tx, col, el, icon, row, text};
 use rune_kit::{Kit, PaletteSeed, TextInput};
 
@@ -24,14 +24,16 @@ pub fn button(
     enabled: bool,
     f: impl Fn(&mut State, &mut Tx) + 'static,
 ) -> El {
-    let p = pal();
-    let (fill, ink, edge, hover) = match kind {
-        Kind::Primary => (p.accent, p.on_accent, p.accent, p.accent_warm.alpha(0.28)),
-        Kind::Secondary => (p.panel_alt, p.text, p.border, p.hover),
-        Kind::Ghost => (Color::TRANSPARENT, p.text_dim, Color::TRANSPARENT, p.hover),
-        Kind::Danger => (p.danger_soft, p.danger, p.danger_line, p.danger.alpha(0.12)),
+    let (th, p) = (t(), pal());
+    let sk = match kind {
+        Kind::Primary => &th.skin.primary,
+        Kind::Secondary => &th.skin.secondary,
+        Kind::Ghost => &th.skin.ghost,
+        Kind::Danger => &th.skin.danger,
     };
-    let font = if kind == Kind::Primary { theme::LABEL.weight_of(600.0) } else { theme::LABEL };
+    let (ink, hover) = (sk.ink, sk.hover);
+    let font = if kind == Kind::Primary { th.ty.label.weight_of(600.0) } else { th.ty.label };
+    // The hover wash goes on below with the press state, and only when enabled.
     let mut b = row()
         .key(key)
         .role("button")
@@ -41,12 +43,8 @@ pub fn button(
         .px(14.0)
         .gap(8.0)
         .center()
-        .fill(fill)
-        .border(1.0, edge)
+        .skin(&Surface { hover: Color::TRANSPARENT, ..sk.clone() })
         .focus_ring(1.0, 2.0, p.accent_focus);
-    if kind == Kind::Primary {
-        b = b.box_shadow(Shadow { y: 1.0, color: p.accent_warm.alpha(0.55), inset: true, ..Shadow::default() });
-    }
     if let Some(g) = glyph {
         b = b.child(icon(g, 14.0).color(ink));
     }
@@ -60,7 +58,7 @@ pub fn button(
 
 /// A square 28 pt glyph-only button.
 pub fn icon_button(key: impl Into<String>, label: &str, glyph: &'static Icon, f: impl Fn(&mut State, &mut Tx) + 'static) -> El {
-    let p = pal();
+    let sk = &t().skin.icon_button;
     el().key(key)
         .role("button")
         .label(label)
@@ -68,20 +66,20 @@ pub fn icon_button(key: impl Into<String>, label: &str, glyph: &'static Icon, f:
         .focusable(true)
         .size(28.0, 28.0)
         .center()
-        .hover(p.hover)
-        .press(p.selected)
+        .skin(sk)
+        .press(pal().selected)
         .cursor(Cursor::Pointer)
         .on_press_tx(f)
-        .child(icon(glyph, 16.0).color(p.text_muted))
+        .child(icon(glyph, 16.0).color(sk.ink))
 }
 
 /// A pill chip (status badge): `caption` text on a soft fill, optional leading dot.
 pub fn badge(label: &str, fg: Color, bg: Color, dot: bool) -> El {
-    let mut b = row().h(20.0).px(9.0).gap(6.0).center().radius(10.0).fill(bg);
+    let mut b = row().h(20.0).px(9.0).gap(6.0).center().skin(&Surface { fill: bg, ..t().skin.chip.clone() });
     if dot {
         b = b.child(el().size(6.0, 6.0).radius(3.0).fill(fg).shadow(0.0, 6.0, fg.alpha(0.6)));
     }
-    b.child(text(label).font(theme::CAPTION).color(fg))
+    b.child(text(label).font(t().ty.caption).color(fg))
 }
 
 /// The slim progress line: gold fill over a hairline track.
@@ -137,22 +135,18 @@ impl FieldBuilder {
         self
     }
     pub fn build(self) -> El {
-        let p = pal();
+        let (th, p) = (t(), pal());
         let k = kit();
-        let style = if self.mono { theme::MONO.size_of(13.0) } else { theme::BODY.weight_of(400.0) };
+        let style = if self.mono { th.ty.mono.size_of(13.0) } else { th.ty.body.weight_of(400.0) };
         let mut input = self.input.text_style(style).height(theme::CONTROL_H - 2.0);
         if let Some(g) = self.glyph {
             input = input.leading_icon(g).leading_icon_size(14.0);
         }
-        let mut f = row()
-            .key(self.key)
-            .h(theme::CONTROL_H + 4.0)
-            .pr(6.0)
-            .gap(6.0)
-            .center_y()
-            .fill(p.well)
-            .border(1.0, if self.focused { p.accent_focus } else { p.border })
-            .child(input.build(&k).grow(1.0).min_w(0.0));
+        let mut skin = th.skin.input.clone();
+        if self.focused {
+            skin.border = Some(theme::Border::all(1.0, p.accent_focus));
+        }
+        let mut f = row().key(self.key).h(theme::CONTROL_H + 4.0).pr(6.0).gap(6.0).center_y().skin(&skin).child(input.build(&k).grow(1.0).min_w(0.0));
         if let Some(t) = self.trailing {
             f = f.child(t);
         }
@@ -168,10 +162,8 @@ pub fn kit() -> Kit {
     k.c.icon_muted = p.text_muted;
     k.c.text_accent = p.accent;
     k.c.border_focus = p.accent_focus;
-    k.radius.xs = 0.0;
-    k.radius.sm = 0.0;
-    k.radius.md = 0.0;
-    k.radius.lg = 0.0;
+    let r = t().skin.input.radius;
+    (k.radius.xs, k.radius.sm, k.radius.md, k.radius.lg) = (r, r, r, r);
     k
 }
 
@@ -182,8 +174,8 @@ pub fn edge(e: El, c: Color) -> El {
 
 /// A key hint box (`/`).
 pub fn kbd(label: &str) -> El {
-    let p = pal();
-    el().size(20.0, 20.0).center().border(1.0, p.border).child(text(label).font(theme::CAPTION).color(p.text_muted))
+    let sk = &t().skin.kbd;
+    el().size(20.0, 20.0).center().skin(sk).child(text(label).font(t().ty.caption).color(sk.ink))
 }
 
 /// A segmented control: options in a hairline box, the active one raised.
@@ -194,23 +186,15 @@ pub fn segmented<T: Copy + PartialEq + 'static>(
     enabled: bool,
     f: impl Fn(&mut State, T, &mut Tx) + Clone + 'static,
 ) -> El {
-    let p = pal();
-    let mut seg = row().key(key).role("radiogroup").h(theme::CONTROL_H).border(1.0, p.border).padding(2.0).gap(2.0).focus_group();
+    let (th, p) = (t(), pal());
+    let mut seg = row().key(key).role("radiogroup").h(theme::CONTROL_H).skin(&th.skin.segments).padding(2.0).gap(2.0).focus_group();
     for &(value, label) in options {
         let on = value == current;
-        let mut item = row()
-            .key(format!("{key}/{}", slug(label)))
-            .role("radio")
-            .label(label)
-            .checked(on)
-            .focusable(enabled)
-            .h_full()
-            .px(12.0)
-            .center()
-            .child(text(label).font(theme::LABEL).color(if on { p.text } else { p.text_muted }));
+        let mut item = row().key(format!("{key}/{}", slug(label))).role("radio").label(label).checked(on).focusable(enabled).h_full().px(12.0).center();
         if on {
-            item = item.fill(p.panel_alt).border(1.0, Color::WHITE.alpha(0.22));
+            item = item.skin(&th.skin.segment_on);
         }
+        item = item.child(text(label).font(th.ty.label).color(if on { th.skin.segment_on.ink } else { p.text_muted }));
         if enabled {
             let f = f.clone();
             item = item.hover(p.hover).cursor(Cursor::Pointer).on_press_tx(move |s: &mut State, tx: &mut Tx| f(s, value, tx));
@@ -224,15 +208,20 @@ pub fn slug(s: &str) -> String {
     s.chars().filter(|c| c.is_ascii_alphanumeric()).collect::<String>().to_lowercase()
 }
 
-/// A card: panel ground, hairline edge, 20 pt padding.
+/// A card: the skin's panel, 20 pt padding.
 pub fn card(key: impl Into<String>) -> El {
-    let p = pal();
-    col().key(key).fill(p.panel).border(1.0, p.border).padding(20.0).gap(12.0)
+    col().key(key).skin(&t().skin.panel).padding(20.0).gap(12.0)
+}
+
+/// A square well holding a glyph (installations, maintenance cards).
+pub fn glyph_tile(glyph: &'static Icon, size: f32) -> El {
+    let sk = &t().skin.tile;
+    el().size(size, size).center().skin(sk).child(icon(glyph, size / 2.0).color(sk.ink))
 }
 
 /// Thumbnail fallback: the addon's initials on a raised square.
 pub fn initials_tile(name: &str, size: f32) -> El {
-    let p = pal();
+    let th = t();
     let letters: String = name
         .split(|c: char| !c.is_alphanumeric())
         .filter(|w| !w.is_empty())
@@ -240,11 +229,7 @@ pub fn initials_tile(name: &str, size: f32) -> El {
         .filter_map(|w| w.chars().next())
         .collect::<String>()
         .to_uppercase();
-    el().size(size, size)
-        .center()
-        .fill(p.panel_alt)
-        .border(1.0, p.border)
-        .child(text(letters).font(theme::CAPTION.size_of(size * 0.36)).color(p.text_dim))
+    el().size(size, size).center().skin(&th.skin.tile).child(text(letters).font(th.ty.caption.size_of(size * 0.36)).color(th.skin.tile.ink))
 }
 
 /// The addon's thumbnail over its initials tile: the initials show while the image decodes or
@@ -257,19 +242,19 @@ pub fn addon_tile(name: &str, size: f32, thumb: Option<&rune::Image>, key: Strin
     }
 }
 
-/// The gold star with its soft glow, for empty states and the brand block.
+/// The theme's emblem with its soft glow, for empty states and the brand block.
 pub fn emblem(size: f32) -> El {
     let p = pal();
     el().size(size * 2.0, size * 2.0)
         .center()
         .radial_gradient([0.5, 0.5], size, [(0.0, p.accent.alpha(0.35)), (1.0, p.accent.alpha(0.0))])
-        .child(icon(&icons::EMBLEM, size).color(p.accent))
+        .child(icon(t().skin.emblem, size).color(p.accent))
 }
 
 /// A muted line of meta text pieces joined by middle dots.
 pub fn meta(parts: &[&str]) -> El {
     let p = pal();
-    text(parts.iter().filter(|s| !s.is_empty()).copied().collect::<Vec<_>>().join("  ·  ")).font(theme::SMALL).color(p.text_muted).truncate()
+    text(parts.iter().filter(|s| !s.is_empty()).copied().collect::<Vec<_>>().join("  ·  ")).font(t().ty.small).color(p.text_muted).truncate()
 }
 
 /// A rotating loader glyph.

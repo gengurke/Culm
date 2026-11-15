@@ -3,6 +3,7 @@
 
 use crate::backend::{Backend, Backup, Maintenance, Settings, Warned};
 use crate::brand;
+use crate::theme::ThemeId;
 use crate::ui::bytes;
 use addon_core::providers::{self, CurseForge, Provider, ProviderConfig};
 use addon_core::{
@@ -75,6 +76,7 @@ pub struct CoreBackend {
 const KEY: &str = "curseforge_key";
 const CHANNEL: &str = "default_channel";
 const INSTALLATION: &str = "installation";
+const THEME: &str = "theme";
 
 impl CoreBackend {
     pub fn new(c: Config) -> CoreBackend {
@@ -152,6 +154,7 @@ impl Backend for CoreBackend {
             curseforge_key: prefs.get::<String>(KEY).filter(|k| !k.trim().is_empty()),
             default_channel: prefs.get::<Channel>(CHANNEL).unwrap_or_default(),
             installation: prefs.get(INSTALLATION),
+            theme: prefs.get::<String>(THEME).map(|id| ThemeId::from_id(&id)).unwrap_or_default(),
         }
     }
 
@@ -166,6 +169,7 @@ impl Backend for CoreBackend {
             Some(id) => prefs.set(INSTALLATION, id)?,
             None => prefs.remove(INSTALLATION)?,
         }
+        prefs.set(THEME, s.theme.id())?;
         Ok(())
     }
 

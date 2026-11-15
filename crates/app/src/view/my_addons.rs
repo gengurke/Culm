@@ -3,7 +3,7 @@
 use super::{band, subtitle};
 use crate::icons;
 use crate::state::{AddonUi, Intent, Job, Op, Screen, State, Status, dispatch};
-use crate::theme::{self, StyleExt, pal};
+use crate::theme::{self, StyleExt, SurfaceExt, pal, t};
 use crate::ui::{self, Kind};
 use addon_core::{Channel, IgnoreReason};
 use rune::{Cursor, El, GrowthSpec, ScrollSpec, Tx, col, el, rich, row, text};
@@ -66,7 +66,7 @@ fn toolbar(s: &State) -> El {
         .py(14.0)
         .gap(8.0)
         .center_y()
-        .border_sides([0.0, 0.0, 1.0, 0.0], p.divider)
+        .skin(&t().skin.toolbar)
         .child(
             ui::field("my-addons/filter", &s.filter, "Filter installed addons", Some(&icons::SEARCH), |s: &mut State| &mut s.filter)
                 .trailing(ui::kbd("/"))
@@ -84,7 +84,7 @@ fn toolbar(s: &State) -> El {
         );
     }
     if let Some(label) = status {
-        bar = bar.child(row().key("my-addons/job").gap(8.0).center_y().pr(8.0).child(ui::spinner(14.0, p.accent)).child(text(label).font(theme::SMALL).color(p.text_dim)));
+        bar = bar.child(row().key("my-addons/job").gap(8.0).center_y().pr(8.0).child(ui::spinner(14.0, p.accent)).child(text(label).font(t().ty.small).color(p.text_dim)));
     }
     bar.child(ui::button("my-addons/check", "Check for updates", Kind::Secondary, Some(&icons::REFRESH), idle, |s, tx| dispatch(s, Intent::CheckUpdates, tx)))
         .child(ui::button("my-addons/rescan", "Rescan", Kind::Ghost, Some(&icons::FOLDER), idle, |s, tx| dispatch(s, Intent::Rescan, tx)))
@@ -100,7 +100,7 @@ fn busy(s: &State) -> El {
         .center()
         .gap(12.0)
         .child(ui::spinner(20.0, p.accent))
-        .child(text(label).font(theme::BODY).color(p.text_dim))
+        .child(text(label).font(t().ty.body).color(p.text_dim))
 }
 
 fn compact(s: &State) -> bool {
@@ -108,8 +108,8 @@ fn compact(s: &State) -> bool {
 }
 
 fn header(s: &State) -> El {
-    let p = pal();
-    let h = |t: &str| text(t.to_uppercase()).font(theme::EYEBROW).color(p.text_muted);
+    let (p, eyebrow) = (pal(), t().ty.eyebrow);
+    let h = |label: &str| text(label.to_uppercase()).font(eyebrow).color(p.text_muted);
     let mut r = row()
         .key("my-addons/header")
         .w_full()
@@ -117,7 +117,7 @@ fn header(s: &State) -> El {
         .px(theme::PAD - 8.0)
         .gap(12.0)
         .center_y()
-        .border_sides([0.0, 0.0, 1.0, 0.0], p.divider)
+        .skin(&t().skin.list_header)
         .child(el().w(36.0))
         .child(h("Addon").grow(1.0))
         .child(h("Version").w(VERSION_W));
@@ -137,8 +137,8 @@ fn list(s: &State) -> El {
             .py(48.0)
             .center()
             .gap(6.0)
-            .child(text(format!("No addons match “{}”", s.filter.text.trim())).font(theme::BODY).color(p.text_dim))
-            .child(text("Clear the filter to see everything.").font(theme::SMALL).color(p.text_muted))
+            .child(text(format!("No addons match “{}”", s.filter.text.trim())).font(t().ty.body).color(p.text_dim))
+            .child(text("Clear the filter to see everything.").font(t().ty.small).color(p.text_muted))
     } else {
         col().key("my-addons/rows").w_full().growth(GrowthSpec::default()).virtual_rows(
             visible.len(),
@@ -158,7 +158,7 @@ fn list(s: &State) -> El {
 }
 
 fn addon_row(s: &State, a: &AddonUi) -> El {
-    let p = pal();
+    let (th, p) = (t(), pal());
     let addon = &a.addon;
     let id = addon.id.clone();
     let selected = s.selected.as_deref() == Some(&addon.id);
@@ -172,8 +172,7 @@ fn addon_row(s: &State, a: &AddonUi) -> El {
         .px(theme::PAD - 8.0)
         .gap(12.0)
         .center_y()
-        .border_sides([0.0, 0.0, 1.0, 0.0], p.divider)
-        .hover(p.hover)
+        .skin(if selected { &th.skin.row_selected } else { &th.skin.row })
         .cursor(Cursor::Pointer)
         .on_press({
             let id = id.clone();
@@ -181,22 +180,23 @@ fn addon_row(s: &State, a: &AddonUi) -> El {
                 s.confirm_remove = None;
                 s.selected = if s.selected.as_deref() == Some(&id) { None } else { Some(id.clone()) };
             }
-        })
+        });
+    if selected {
+        r = r.child(el().absolute(0.0, 0.0).w(2.0).h(theme::ROW_H).fill(p.accent));
+    }
+    r = r
         .child(ui::addon_tile(&addon.name, 36.0, s.thumb(addon.thumbnail_url.as_deref()), format!("addon/{id}/thumb")))
         .child(
             col()
                 .grow(1.0)
                 .min_w(0.0)
                 .gap(3.0)
-                .child(text(addon.name.clone()).font(theme::STRONG).color(p.text).truncate())
+                .child(text(addon.name.clone()).font(t().ty.strong).color(p.text).truncate())
                 .child(ui::meta(&[&addon.author, provider])),
         )
         .child(version_cell(a).w(VERSION_W));
-    if selected {
-        r = r.fill(p.selected).child(el().absolute(0.0, 0.0).w(2.0).h(theme::ROW_H).fill(p.accent));
-    }
     if !compact(s) {
-        r = r.child(text(addon.game_version.clone().unwrap_or_else(|| "—".into())).font(theme::MONO).color(p.text_muted).w(GAME_W));
+        r = r.child(text(addon.game_version.clone().unwrap_or_else(|| "—".into())).font(t().ty.mono).color(p.text_muted).w(GAME_W));
     }
     r.child(status_cell(a).w(STATUS_W)).child(row().w(ACTION_W).justify_end().child(action_cell(a)))
 }
@@ -212,11 +212,11 @@ fn version_cell(a: &AddonUi) -> El {
                 s.clone(),
                 vec![rune::Span::new(0, installed.len()).color(p.text_dim), rune::Span::new(start, s.len()).color(p.accent)],
             )
-            .font(theme::MONO)
+            .font(t().ty.mono)
             .color(p.text_muted)
             .truncate()
         }
-        _ => text(installed).font(theme::MONO).color(p.text_dim).truncate(),
+        _ => text(installed).font(t().ty.mono).color(p.text_dim).truncate(),
     }
 }
 
@@ -244,12 +244,12 @@ fn status_cell(a: &AddonUi) -> El {
             .child(
                 row()
                     .justify_between()
-                    .child(text("Updating").font(theme::SMALL).color(p.text_dim))
-                    .child(text(format!("{:.0}%", done * 100.0)).font(theme::NUMBER).color(p.text_dim)),
+                    .child(text("Updating").font(t().ty.small).color(p.text_dim))
+                    .child(text(format!("{:.0}%", done * 100.0)).font(t().ty.number).color(p.text_dim)),
             )
             .child(ui::progress_line(*done, 2.0)),
-        Some(Op::Installing) => row().gap(8.0).center_y().child(ui::spinner(12.0, p.accent)).child(text("Installing…").font(theme::SMALL).color(p.text_dim)),
-        Some(Op::Removing) => row().gap(8.0).center_y().child(ui::spinner(12.0, p.danger)).child(text("Removing…").font(theme::SMALL).color(p.text_dim)),
+        Some(Op::Installing) => row().gap(8.0).center_y().child(ui::spinner(12.0, p.accent)).child(text("Installing…").font(t().ty.small).color(p.text_dim)),
+        Some(Op::Removing) => row().gap(8.0).center_y().child(ui::spinner(12.0, p.danger)).child(text("Removing…").font(t().ty.small).color(p.text_dim)),
         Some(Op::Failed(e)) => row().help(e.clone()).child(status_badge(a)),
         None => row().child(status_badge(a)),
     }
@@ -281,8 +281,8 @@ fn detail(s: &State, a: &AddonUi) -> El {
             .py(7.0)
             .gap(12.0)
             .border_sides([0.0, 0.0, 1.0, 0.0], p.divider)
-            .child(text(label.to_string()).font(theme::SMALL).color(p.text_muted).w(96.0))
-            .child(text(value).font(if mono { theme::MONO } else { theme::SMALL }).color(p.text_dim).grow(1.0).min_w(0.0).truncate())
+            .child(text(label.to_string()).font(t().ty.small).color(p.text_muted).w(96.0))
+            .child(text(value).font(if mono { t().ty.mono } else { t().ty.small }).color(p.text_dim).grow(1.0).min_w(0.0).truncate())
     };
     let managed = addon.external_id.is_some();
     let ignored = addon.ignored.is_some();
@@ -336,7 +336,7 @@ fn detail(s: &State, a: &AddonUi) -> El {
             .border(1.0, p.danger_line)
             .child(
                 text(format!("Delete {} and its {folders} folder{} from AddOns?", addon.name, if folders == 1 { "" } else { "s" }))
-                    .font(theme::NOTE)
+                    .font(t().ty.note)
                     .color(p.text)
                     .wrap(),
             )
@@ -384,8 +384,8 @@ fn detail(s: &State, a: &AddonUi) -> El {
                         .grow(1.0)
                         .min_w(0.0)
                         .gap(4.0)
-                        .child(text(addon.name.clone()).font(theme::TITLE).color(p.text).wrap())
-                        .child(text(addon.author.clone()).font(theme::SMALL).color(p.text_muted).truncate())
+                        .child(text(addon.name.clone()).font(t().ty.title).color(p.heading).wrap())
+                        .child(text(addon.author.clone()).font(t().ty.small).color(p.text_muted).truncate())
                         .child(row().pt(6.0).child(status_badge(a))),
                 )
                 .child(ui::icon_button(key("close"), "Close details", &icons::CLOSE, |s, _| {
@@ -394,9 +394,9 @@ fn detail(s: &State, a: &AddonUi) -> El {
                 })),
         )
         .child(if addon.summary.is_empty() {
-            text("No description: this folder isn't matched to a provider.").font(theme::NOTE).color(p.text_muted).wrap()
+            text("No description: this folder isn't matched to a provider.").font(t().ty.note).color(p.text_muted).wrap()
         } else {
-            text(addon.summary.clone()).font(theme::NOTE).color(p.text_dim).wrap()
+            text(addon.summary.clone()).font(t().ty.note).color(p.text_dim).wrap()
         })
         .child(
             col()
@@ -407,7 +407,7 @@ fn detail(s: &State, a: &AddonUi) -> El {
                 .child(fact("Provider", addon.provider.clone().unwrap_or_else(|| "Not matched".into()), false))
                 .child(fact("Folders", addon.folders.join(", "), true)),
         )
-        .child(col().gap(8.0).child(text("RELEASE CHANNEL").font(theme::EYEBROW).color(p.text_muted)).child(channel))
+        .child(col().gap(8.0).child(text("RELEASE CHANNEL").font(t().ty.eyebrow).color(p.text_muted)).child(channel))
         .child(actions)
         .child(remove);
     let body = match &a.op {
@@ -418,7 +418,7 @@ fn detail(s: &State, a: &AddonUi) -> El {
                 .padding(10.0)
                 .fill(p.danger.alpha(0.08))
                 .child(rune::icon(&icons::ALERT, 14.0).color(p.danger))
-                .child(text(e.clone()).font(theme::SMALL.size_of(12.0)).color(p.danger).wrap().grow(1.0).min_w(0.0)),
+                .child(text(e.clone()).font(t().ty.small.size_of(12.0)).color(p.danger).wrap().grow(1.0).min_w(0.0)),
         ),
         _ => body,
     };
@@ -427,7 +427,6 @@ fn detail(s: &State, a: &AddonUi) -> El {
         .w(340.0)
         .h_full()
         .min_h(0.0)
-        .fill(p.sidebar)
-        .border_sides([0.0, 0.0, 0.0, 1.0], p.divider)
+        .skin(&t().skin.detail)
         .child(col().grow(1.0).min_h(0.0).w_full().scroll(ScrollSpec { stick_bottom: false }).child(body))
 }

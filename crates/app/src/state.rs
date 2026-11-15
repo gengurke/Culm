@@ -2,6 +2,7 @@
 //! worker result ([`State::apply`]). Views only read this; handlers call `dispatch`.
 
 use crate::backend::{Backend, Backup, Maintenance, Settings};
+use crate::theme::ThemeId;
 use crate::worker::{self, Msg};
 use addon_core::{Addon, Channel, IgnoreReason, Installation, RemoteAddon};
 use rune::{FileDialogOptions, Image, ImageCache, Latest, TextEdit, Tx, Waker};
@@ -162,6 +163,7 @@ pub enum Intent {
     ConfirmMaintain(MaintCard),
     SaveApiKey,
     SetDefaultChannel(Channel),
+    SetTheme(ThemeId),
 }
 
 pub struct State {
@@ -201,7 +203,7 @@ pub struct State {
 
     pub toasts: Vec<Toast>,
     next_toast: u64,
-    /// Decodes thumbnails; None until `setup` (and in headless binary runs, which stay offline).
+    /// Decodes thumbnails and theme textures; None until `setup` (tests set their own).
     pub images: Option<ImageCache>,
     /// Thumbnail per URL: requested (None) or loaded.
     pub thumbs: HashMap<String, Option<Image>>,
@@ -213,11 +215,14 @@ pub struct State {
 
 impl State {
     pub fn new(backend: Arc<dyn Backend>) -> State {
+        // The theme is read before the first frame so the window never flashes the default one;
+        // the rest of the settings come with the boot worker.
+        let theme = backend.load_settings().theme;
         State {
             backend,
             screen: Screen::MyAddons,
             job: Job::Booting,
-            settings: Settings::default(),
+            settings: Settings { theme, ..Settings::default() },
             installations: vec![],
             current: None,
             inst_menu: false,
@@ -487,7 +492,8 @@ impl State {
 
     /// Fetches thumbnails not requested yet (each URL once per run).
     fn load_thumbs(&mut self, urls: Vec<String>) {
-        if self.images.is_none() {
+        // Headless runs (snapshots, scripts) stay offline and deterministic: no thumbnails.
+        if self.images.is_none() || rune::tooling::headless_run().is_some() {
             return;
         }
         for url in urls {
@@ -777,6 +783,10 @@ pub fn dispatch(s: &mut State, intent: Intent, tx: &mut Tx) {
             s.settings.default_channel = channel;
             s.save_settings();
         }
+        Intent::SetTheme(theme) => {
+            s.settings.theme = theme;
+            s.save_settings();
+        }
     }
 }
 
@@ -815,9 +825,6 @@ pub fn poll(s: &mut State, clock: f64, tx: &mut Tx) -> bool {
 
 pub fn setup(s: &mut State, waker: Waker) {
     s.search.set_waker(waker.clone());
-    // Headless runs (snapshots, scripts) stay offline and deterministic: no thumbnails.
-    if rune::tooling::headless_run().is_none() {
-        s.images = Some(ImageCache::new(waker.clone()));
-    }
+    s.images = Some(ImageCache::new(waker.clone()));
     s.waker = waker;
 }

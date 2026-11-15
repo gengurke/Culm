@@ -55,3 +55,17 @@ pub static STAR: Icon = Icon {
     view: 128.0,
     body: r#"<path d="M64 4 L71.5 56.5 L124 64 L71.5 71.5 L64 124 L56.5 71.5 L4 64 L56.5 56.5Z" fill="currentColor"/>"#,
 };
+
+/// Hearthwood's crest: a shield bearing a four-point star.
+pub static CREST: Icon = Icon {
+    name: "ra-crest",
+    view: 128.0,
+    body: r#"<path d="M64 8 L114 24 C114 70 98 102 64 120 C30 102 14 70 14 24 Z" fill="currentColor" fill-opacity="0.16" stroke="currentColor" stroke-width="7" stroke-linejoin="round"/><path d="M64 30 L73 58 L100 64 L73 70 L64 98 L55 70 L28 64 L55 58Z" fill="currentColor"/>"#,
+};
+
+/// A bevelled gold stud for frame corners.
+pub static STUD: Icon = Icon {
+    name: "ra-stud",
+    view: 16.0,
+    body: r##"<path d="M8 1 L15 8 L8 15 L1 8Z" fill="currentColor"/><path d="M8 1 L15 8 L8 15 L1 8Z" fill="none" stroke="#1a0d04" stroke-opacity="0.85" stroke-width="1.2" stroke-linejoin="round"/><path d="M8 2.6 L8 8 L2.6 8Z" fill="#fff8e0" fill-opacity="0.5"/><path d="M8 13.4 L8 8 L13.4 8Z" fill="#000" fill-opacity="0.35"/>"##,
+};

@@ -21,7 +21,7 @@ docs/research/     background research (Rune guide)
 cargo build                     # first build ~1-3 min (Rune is big), then seconds
 cargo test                      # all tests, headless (no display/GPU needed for Runtime tests)
 cargo run                       # open the window
-target/debug/culm --snap out.png [--size 1100x720]   # headless screenshot
+target/debug/culm --snap out.png [--size 1100x720] [--scene settings@hearthwood]   # headless screenshot
 target/debug/culm --tree tree.json                  # element tree (keys, text, rects)
 ```
 
@@ -57,6 +57,22 @@ Build needs `libxkbcommon-devel wayland-devel` (Fedora). Without root, a gitigno
   branching on `is_ready()`.
 - Headless binary runs (`--snap`, `--script`) use `MockBackend`; `ADDONS_BACKEND=core` forces the real one
   (with `RUNE_DIRS_ROOT=$(mktemp -d)` and the `ADDONS_*_URL` endpoints pointed at a closed port it stays offline).
+
+## Themes (`crates/app/src/theme/`)
+
+- A theme is data: `Pal` (colours), `Type` (text styles per role, `t().ty.body`) and `Skin` (named `Surface`s: fill,
+  gradient, procedural texture, border/bevel, radius, shadows, hover, corner ornaments). Views and `ui.rs` ask the
+  current theme (`theme::t()`, `pal()`) and paint boxes with `.skin(&t().skin.panel)`: no raw hex, no theme checks.
+  Sizes and spacing (`theme::PAD`, `ROW_H`, …) are global, so layout is the same in every theme.
+- `.skin()` adds the texture and ornaments as pinned children: call it before `.child(..)`. Toasts are skinned after the
+  kit built them, so their surface has no texture or corners.
+- The current theme is a thread-local set by `theme::begin` at the top of `view` (tests run windows on parallel threads).
+  Textures (`theme/texture.rs`, value-noise fBm, no image files) are generated once per thread through `State::images`;
+  without a cache surfaces keep their base colour.
+- Adding a theme: one file `theme/<name>.rs` with `pub static THEME: LazyLock<Theme>` (start from `moonlit.rs`) and one
+  `Variant => module` line in the `themes!` list in `theme/mod.rs`. The picker, prefs id, scenes (`<scene>@<id>`) and
+  `f7_3_every_theme_renders_every_screen` pick it up. Fonts: name families in `Family::Named` lists; never bundle
+  proprietary game fonts or assets.
 
 ## Data-safety rules (learned here)
 

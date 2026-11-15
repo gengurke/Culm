@@ -4,9 +4,9 @@
 use super::{band, subtitle};
 use crate::icons;
 use crate::state::{Intent, MaintCard, MaintPhase, State, dispatch};
-use crate::theme::{self, pal};
+use crate::theme::{self, pal, t};
 use crate::ui::{self, Kind};
-use rune::{El, Icon, ScrollSpec, col, el, icon, row, text};
+use rune::{El, Icon, ScrollSpec, col, icon, row, text};
 
 pub fn page(s: &State) -> El {
     let p = pal();
@@ -25,7 +25,7 @@ pub fn page(s: &State) -> El {
                 p.warning.alpha(0.3),
             )
             .child(icon(&icons::ALERT, 16.0).color(p.warning))
-            .child(text("World of Warcraft is running. Close the game to clean or back up its folders.").font(theme::BODY).color(p.text)),
+            .child(text("World of Warcraft is running. Close the game to clean or back up its folders.").font(t().ty.body).color(p.text)),
         );
     }
     let scope = ui::segmented(
@@ -83,14 +83,14 @@ fn card(s: &State, which: MaintCard, glyph: &'static Icon, title: &str, body: &s
         .w_full()
         .gap(16.0)
         .items_start()
-        .child(el().size(36.0, 36.0).center().fill(p.panel_alt).border(1.0, p.border).child(icon(glyph, 18.0).color(p.text_dim)))
+        .child(ui::glyph_tile(glyph, 36.0))
         .child(
             col()
                 .grow(1.0)
                 .min_w(0.0)
                 .gap(4.0)
-                .child(text(title.to_string()).font(theme::HEADING).color(p.text))
-                .child(text(body.to_string()).font(theme::NOTE).color(p.text_dim).wrap()),
+                .child(text(title.to_string()).font(t().ty.heading).color(p.heading))
+                .child(text(body.to_string()).font(t().ty.note).color(p.text_dim).wrap()),
         )
         .child(ui::button(format!("{key}/run"), action, Kind::Secondary, None, enabled, move |s, tx| dispatch(s, Intent::Maintain(which), tx)));
     let mut c = ui::card(key).w_full().child(head);
@@ -108,20 +108,20 @@ fn card(s: &State, which: MaintCard, glyph: &'static Icon, title: &str, body: &s
                 .center_y()
                 .fill(p.danger_soft)
                 .border(1.0, p.danger_line)
-                .child(text(confirm_text(s, which)).font(theme::NOTE).color(p.text).grow(1.0).min_w(0.0).wrap())
+                .child(text(confirm_text(s, which)).font(t().ty.note).color(p.text).grow(1.0).min_w(0.0).wrap())
                 .child(ui::button(format!("{key}/confirm"), "Confirm", Kind::Danger, None, true, move |s, tx| dispatch(s, Intent::ConfirmMaintain(which), tx)))
                 .child(ui::button(format!("{key}/cancel"), "Cancel", Kind::Ghost, None, true, move |s, _| {
                     s.maint.remove(&which);
                 })),
         ),
-        MaintPhase::Running => Some(row().gap(8.0).center_y().child(ui::spinner(14.0, p.accent)).child(text("Working…").font(theme::SMALL).color(p.text_dim))),
+        MaintPhase::Running => Some(row().gap(8.0).center_y().child(ui::spinner(14.0, p.accent)).child(text("Working…").font(t().ty.small).color(p.text_dim))),
         MaintPhase::Done(line) => Some(
             row()
                 .key(format!("{key}/result"))
                 .gap(8.0)
                 .center_y()
                 .child(icon(&icons::CHECK, 14.0).color(p.success))
-                .child(text(line.clone()).font(theme::SMALL).color(p.success)),
+                .child(text(line.clone()).font(t().ty.small).color(p.success)),
         ),
         MaintPhase::Failed(e) => Some(
             row()
@@ -129,7 +129,7 @@ fn card(s: &State, which: MaintCard, glyph: &'static Icon, title: &str, body: &s
                 .gap(8.0)
                 .center_y()
                 .child(icon(&icons::ALERT, 14.0).color(p.danger))
-                .child(text(e.clone()).font(theme::SMALL).color(p.danger)),
+                .child(text(e.clone()).font(t().ty.small).color(p.danger)),
         ),
     };
     if let Some(f) = foot {
@@ -151,7 +151,7 @@ fn backups(s: &State) -> El {
     let p = pal();
     let mut list = col().key("maint/wtf/backups").w_full().min_w(420.0);
     if s.backups.is_empty() {
-        return list.child(text("No backups yet.").font(theme::SMALL).color(p.text_muted));
+        return list.child(text("No backups yet.").font(t().ty.small).color(p.text_muted));
     }
     for b in &s.backups {
         list = list.child(
@@ -162,9 +162,9 @@ fn backups(s: &State) -> El {
                 .center_y()
                 .border_sides([0.0, 0.0, 1.0, 0.0], p.divider)
                 .child(icon(&icons::ARCHIVE, 13.0).color(p.text_muted))
-                .child(text(b.name.clone()).font(theme::MONO).color(p.text_dim).grow(1.0).min_w(0.0).truncate())
-                .child(text(b.created_at.replace('T', " ").trim_end_matches('Z').trim_end_matches(":00").to_string()).font(theme::SMALL).color(p.text_muted))
-                .child(text(ui::bytes(b.size_bytes)).font(theme::NUMBER).color(p.text_muted).w(64.0).align(rune::Align::End)),
+                .child(text(b.name.clone()).font(t().ty.mono).color(p.text_dim).grow(1.0).min_w(0.0).truncate())
+                .child(text(b.created_at.replace('T', " ").trim_end_matches('Z').trim_end_matches(":00").to_string()).font(t().ty.small).color(p.text_muted))
+                .child(text(ui::bytes(b.size_bytes)).font(t().ty.number).color(p.text_muted).w(64.0).align(rune::Align::End)),
         );
     }
     list
