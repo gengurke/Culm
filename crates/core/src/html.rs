@@ -1,6 +1,9 @@
 //! HTML (provider descriptions) to plain text: paragraphs, headings and list items become lines,
 //! everything else (tags, images, scripts, styles) is dropped. Never interpreted, only stripped.
 
+/// Longest provider description shown (characters of plain text).
+pub const DESCRIPTION_MAX: usize = 8000;
+
 /// Plain text of an HTML fragment, at most `max` characters (cut at a line end, then "…").
 pub fn to_text(html: &str, max: usize) -> String {
     let mut out = String::with_capacity(html.len().min(max + 64));
@@ -52,6 +55,101 @@ pub fn to_text(html: &str, max: usize) -> String {
     }
     push_text(&mut out, rest);
     tidy(&out, max)
+}
+
+/// Plain text of a Markdown README: headings, paragraphs and list items as lines; images, badges,
+/// HTML and link targets dropped (link text kept); at most `max` characters.
+pub fn markdown_to_text(md: &str, max: usize) -> String {
+    let mut out = String::new();
+    let mut fenced = false;
+    for raw in md.lines() {
+        let line = raw.trim();
+        if line.starts_with("```") || line.starts_with("~~~") {
+            fenced = !fenced;
+            paragraph(&mut out);
+            continue;
+        }
+        if fenced {
+            line_break(&mut out);
+            out.push_str(raw.trim_end());
+            out.push('\n');
+            continue;
+        }
+        let heading = line.starts_with('#');
+        let (bullet, body) = match line.split_once(' ') {
+            Some(("-" | "*" | "+", rest)) => (true, rest),
+            _ if heading => (false, line.trim_start_matches('#').trim()),
+            _ => (false, line),
+        };
+        let text = inline_markdown(body);
+        if text.is_empty() {
+            // A blank line, or one that was only badges / images / HTML.
+            if line.is_empty() {
+                paragraph(&mut out);
+            }
+            continue;
+        }
+        if heading {
+            paragraph(&mut out);
+        } else if bullet {
+            line_break(&mut out);
+            out.push_str("• ");
+        } else if !out.is_empty() && !out.ends_with('\n') && !out.ends_with(' ') {
+            out.push(' ');
+        }
+        out.push_str(&text);
+        if heading {
+            paragraph(&mut out);
+        }
+    }
+    tidy(&out, max)
+}
+
+/// One Markdown line's text: images and HTML dropped, `[text](url)` → text, emphasis marks off.
+fn inline_markdown(line: &str) -> String {
+    let mut out = String::new();
+    let mut rest = line;
+    while !rest.is_empty() {
+        if let Some(r) = rest.strip_prefix("![") {
+            // An image: skip `alt](target)`.
+            rest = r
+                .find("](")
+                .and_then(|i| r[i..].find(')').map(|j| &r[i + j + 1..]))
+                .unwrap_or("");
+        } else if let Some(r) = rest.strip_prefix('[')
+            && let Some(close) = closing_bracket(r)
+            && r[close..].starts_with("](")
+            && let Some(end) = r[close..].find(')')
+        {
+            out.push_str(&inline_markdown(&r[..close]));
+            rest = &r[close + end + 1..];
+        } else if rest.starts_with('<')
+            && rest[1..].starts_with(|c: char| c.is_ascii_alphabetic() || c == '/' || c == '!')
+        {
+            rest = rest.find('>').map_or("", |i| &rest[i + 1..]);
+        } else {
+            let c = rest.chars().next().unwrap_or(' ');
+            if !matches!(c, '*' | '`') && !rest.starts_with("__") {
+                out.push(c);
+            }
+            rest = &rest[c.len_utf8()..];
+        }
+    }
+    decode_entities(out.trim()).replace('\u{a0}', " ")
+}
+
+/// Index of the `]` closing an already opened `[` (nested brackets skipped).
+fn closing_bracket(s: &str) -> Option<usize> {
+    let mut depth = 0;
+    for (i, c) in s.char_indices() {
+        match c {
+            '[' => depth += 1,
+            ']' if depth == 0 => return Some(i),
+            ']' => depth -= 1,
+            _ => {}
+        }
+    }
+    None
 }
 
 /// Appends text with entities decoded and runs of whitespace as one space.
@@ -178,6 +276,15 @@ mod tests {
         assert_eq!(
             to_text(html, 1000),
             "Most powerful meter & more.\n\n• One\n• Two!\n\na < b\nnext"
+        );
+    }
+
+    #[test]
+    fn markdown_keeps_text_and_drops_badges() {
+        let md = "# Questie\n[![Build](https://x/b.svg)](https://x) <img src=\"a.png\">\n\nThe **best** quest\nhelper, see [the wiki](https://w).\n\n## Features\n- Shows `quests`\n* Tracks &amp; more\n";
+        assert_eq!(
+            super::markdown_to_text(md, 1000),
+            "Questie\n\nThe best quest helper, see the wiki.\n\nFeatures\n\n• Shows quests\n• Tracks & more"
         );
     }
 

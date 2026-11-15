@@ -225,28 +225,8 @@ line_icon!(
     "class-shaman",
     r#"<rect x="8" y="2.5" width="8" height="19" rx="1"/><path d="M8 8.5H3.5l2 3H8M16 8.5h4.5l-2 3H16"/><path d="M10.4 6h.01M13.6 6h.01"/><path d="M8 12.5h8"/><path d="M10.5 16h3"/>"#
 );
-line_icon!(
-    CLASS_DEATH_KNIGHT,
-    "class-death-knight",
-    r#"<path d="M12 2.5v19"/><path d="M12 8 7 5M12 8l5-3M12 16l-5 3M12 16l5 3"/><path d="M9 12h6"/>"#
-);
-line_icon!(
-    CLASS_DEMON_HUNTER,
-    "class-demon-hunter",
-    r#"<path d="M8 21c-3.2-3-5-8.5-2-16 .3 4 2.2 6.4 4.5 7.5"/><path d="M16 21c3.2-3 5-8.5 2-16-.3 4-2.2 6.4-4.5 7.5"/><path d="M9 15.5h6"/>"#
-);
-line_icon!(
-    CLASS_MONK,
-    "class-monk",
-    r#"<circle cx="12" cy="12" r="9"/><path d="M12 3a4.5 4.5 0 0 1 0 9 4.5 4.5 0 0 0 0 9"/><path d="M12 7.5h.01M12 16.5h.01"/>"#
-);
-line_icon!(
-    CLASS_EVOKER,
-    "class-evoker",
-    r#"<path d="M2.5 18.5c4-1.2 6.2-4.2 7.2-9 1 2.8 2.8 4.6 5 4.8-.8-3.2.2-7.2 3.3-10.3 1.2 5 3 9.2 3.5 14.5-5.6-2-12-2-19 0z"/><path d="M9.7 9.5 8 17.6M18 4l-2.8 13.4"/>"#
-);
 
-/// The glyph for a CurseForge class category slug ("warrior", "death-knight"), if we drew one.
+/// The glyph for a CurseForge class category slug ("warrior"), for the classes Forever has.
 pub fn class_icon(slug: &str) -> Option<&'static Icon> {
     Some(match slug {
         "warrior" => &CLASS_WARRIOR,
@@ -258,10 +238,6 @@ pub fn class_icon(slug: &str) -> Option<&'static Icon> {
         "druid" => &CLASS_DRUID,
         "paladin" => &CLASS_PALADIN,
         "shaman" => &CLASS_SHAMAN,
-        "death-knight" => &CLASS_DEATH_KNIGHT,
-        "demon-hunters" => &CLASS_DEMON_HUNTER,
-        "monk" => &CLASS_MONK,
-        "evoker" => &CLASS_EVOKER,
         _ => return None,
     })
 }

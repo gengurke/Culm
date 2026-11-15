@@ -58,6 +58,10 @@ fn f4_4_install_from_github_url_without_a_key() {
     app.type_text("https://github.com/Questie/Questie");
     app.wait_for("the link to resolve", |s| matches!(s.link, Fetch::Ready(_)));
     assert!(app.shows("INSTALL FROM GITHUB") && app.has("get-addons/link-source"));
+    // Its detail shows the README as the description (F4.5).
+    app.tap("remote/Questie/Questie");
+    app.wait_for_text("The quest helper for Forever.");
+    app.press(Key::Escape);
     app.tap("remote/Questie/Questie/install");
     app.wait_idle();
     assert!(app.shows("Installed Questie"));
@@ -160,10 +164,15 @@ fn f4_6_category_and_sort_filter_the_search() {
     });
     assert_eq!(world.server.requests_to("/v1/categories").len(), 1);
 
+    // Classes are chips beside the dropdown, which doesn't list them; Forever's classes only.
     app.tap("get-addons/category");
-    assert!(app.has("category/1028") && app.shows("Warrior"));
-    app.tap("category/1028");
-    assert!(app.state().menu.is_none());
+    assert!(app.has("category/1009") && !app.has("category/1028") && !app.has("category/1020"));
+    app.press(Key::Escape);
+    assert!(
+        app.has("class/1028") && !app.has("class/1036"),
+        "no Death Knight in Forever"
+    );
+    app.tap("class/1028");
     app.wait_for(
         "filtered results",
         |s| matches!(&s.results, Fetch::Ready(r) if !r.is_empty()),
@@ -184,14 +193,21 @@ fn f4_6_category_and_sort_filter_the_search() {
     assert_eq!(req.query_param("sortOrder").as_deref(), Some("desc"));
     assert_eq!(req.query_param("categoryId").as_deref(), Some("1028"));
 
-    // Esc closes an open menu; "All categories" with the default order is the popular list again.
+    // A category from the dropdown replaces the class.
     app.tap("get-addons/category");
-    app.press(Key::Escape);
+    app.tap("category/1009");
     assert!(app.state().menu.is_none());
+    app.wait_for("bag results", |s| matches!(&s.results, Fetch::Ready(_)));
+    let req = world.server.requests_to("/v1/mods/search").pop().unwrap();
+    assert_eq!(req.query_param("categoryId").as_deref(), Some("1009"));
+    assert!(app.shows("BAGS & INVENTORY"));
+
+    // Clicking the active class chip again clears it; default order and no category: popular.
+    app.tap("class/1028");
+    app.tap("class/1028");
+    assert_eq!(app.state().category, None);
     app.tap("get-addons/sort");
     app.tap("sort/popularity");
-    app.tap("get-addons/category");
-    app.tap("category/all");
     assert!(app.shows("POPULAR FOR FOREVER"));
 }
 

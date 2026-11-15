@@ -11,6 +11,81 @@ use crate::ui::{self, Kind};
 use addon_core::{Category, Channel, RemoteAddon, Sort};
 use rune::{Align, Cursor, El, Icon, ScrollSpec, Side, Tx, col, el, icon, row, text};
 
+/// CurseForge's "Class" category: its children are the game's classes.
+const CLASS: u32 = 1020;
+/// The classes World of Warcraft: Forever has (the 1.x ones), by CurseForge category id:
+/// Warrior, Mage, Rogue, Druid, Hunter, Shaman, Priest, Warlock, Paladin.
+const FOREVER_CLASSES: [u32; 9] = [1028, 1021, 1027, 1023, 1024, 1025, 1026, 1029, 1022];
+
+fn is_class(c: &Category) -> bool {
+    c.id == CLASS || c.parent == Some(CLASS)
+}
+
+/// One toggle chip per Forever class (icon + name); the active one uses the theme's "on" segment
+/// skin. Picking one filters by it, picking it again clears it. None if no class is known.
+fn class_chips(s: &State, list: &[Category], enabled: bool) -> Option<El> {
+    let (th, p) = (t(), pal());
+    let mut chips = row()
+        .key("get-addons/classes")
+        .role("radiogroup")
+        .label("Class")
+        .w_full()
+        .flex_wrap()
+        .px(theme::PAD)
+        .pb(12.0)
+        .gap(6.0)
+        .center_y()
+        .focus_group()
+        .child(
+            text("CLASS")
+                .font(th.ty.eyebrow)
+                .color(p.text_muted)
+                .pr(6.0),
+        );
+    let mut any = false;
+    for c in list
+        .iter()
+        .filter(|c| FOREVER_CLASSES.contains(&c.id) && c.parent == Some(CLASS))
+    {
+        any = true;
+        let (id, on) = (c.id, s.category == Some(c.id));
+        let sk = if on {
+            &th.skin.segment_on
+        } else {
+            &th.skin.chip
+        };
+        let ink = if on { sk.ink } else { p.text_dim };
+        let mut chip = row()
+            .key(format!("class/{id}"))
+            .role("radio")
+            .label(c.name.clone())
+            .checked(on)
+            .focusable(enabled)
+            .h(26.0)
+            .pl(8.0)
+            .pr(10.0)
+            .gap(6.0)
+            .center_y()
+            .skin(sk)
+            .focus_ring(1.0, 2.0, p.accent_focus);
+        if let Some(g) = icons::class_icon(&c.slug) {
+            chip = chip.child(icon(g, 14.0).color(ink));
+        }
+        chip = chip.child(text(c.name.clone()).font(th.ty.small).color(ink));
+        chips = chips.child(if enabled {
+            chip.hover(p.hover).cursor(Cursor::Pointer).on_press_tx(
+                move |s: &mut State, tx: &mut Tx| {
+                    let pick = (s.category != Some(id)).then_some(id);
+                    dispatch(s, Intent::SetCategory(pick), tx)
+                },
+            )
+        } else {
+            chip.opacity(0.45)
+        });
+    }
+    any.then_some(chips)
+}
+
 const SORTS: [(Sort, &str); 4] = [
     (Sort::Popularity, "Popularity"),
     (Sort::LastUpdated, "Last updated"),
@@ -42,8 +117,7 @@ pub fn page(s: &State) -> El {
     .on_submit(|s, tx| dispatch(s, Intent::Submit, tx));
     if let Input::Link(_, source) = input {
         field = field.trailing(
-            ui::badge(&format!("{source} link"), p.accent, p.accent_soft, false)
-                .key("get-addons/link-source"),
+            ui::tag(&format!("{source} link"), ui::Mark::Busy).key("get-addons/link-source"),
         );
     }
     let mut toolbar = row()
@@ -53,19 +127,17 @@ pub fn page(s: &State) -> El {
         .py(14.0)
         .gap(8.0)
         .center_y()
-        .skin(&t().skin.toolbar)
         .child(field.build().grow(10.0).min_w(220.0).max_w(560.0))
         .child(el().grow(1.0).min_w(8.0));
     if ready {
         // A link installs one addon: the filters don't apply to it.
         let on = !matches!(input, Input::Link(..));
-        let (label, glyph) = match s.category.and_then(|id| s.category_by_id(id)) {
-            Some(c) => (
-                c.name.clone(),
-                icons::class_icon(&c.slug).unwrap_or(&icons::FILTER),
-            ),
-            None => ("All categories".to_string(), &icons::FILTER),
+        // A class is chosen with its chip, not in the dropdown.
+        let label = match s.category.and_then(|id| s.category_by_id(id)) {
+            Some(c) if !is_class(c) => c.name.clone(),
+            _ => "All categories".to_string(),
         };
+        let glyph = &icons::FILTER;
         let sort = SORTS
             .iter()
             .find(|(v, _)| *v == s.sort)
@@ -83,6 +155,19 @@ pub fn page(s: &State) -> El {
                 on,
             ));
     }
+
+    let classes = match &s.categories {
+        Fetch::Ready(list) if ready => class_chips(s, list, !matches!(input, Input::Link(..))),
+        _ => None,
+    };
+    let toolbar = match classes {
+        Some(chips) => col()
+            .w_full()
+            .skin(&t().skin.toolbar)
+            .child(toolbar.pb(10.0))
+            .child(chips),
+        None => col().w_full().skin(&t().skin.toolbar).child(toolbar),
+    };
 
     let mut content = col().w_full().gap(16.0).px(theme::PAD).py(24.0);
     match input {
@@ -358,12 +443,12 @@ fn menu_panel(s: &State, menu: Menu) -> El {
                     format!("category/{id}"),
                     &c.name,
                     s.category == Some(id),
-                    icons::class_icon(&c.slug),
+                    None,
                     c.parent.is_some(),
                     move |s, tx| dispatch(s, Intent::SetCategory(Some(id)), tx),
                 )
             };
-            for top in list.iter().filter(|c| c.parent.is_none()) {
+            for top in list.iter().filter(|c| c.parent.is_none() && !is_class(c)) {
                 items.push(item(top));
                 items.extend(list.iter().filter(|c| c.parent == Some(top.id)).map(item));
             }
@@ -607,13 +692,10 @@ fn detail(s: &State, d: &Detail) -> El {
     };
     let installed = s.installed(remote);
     let state = match installed {
-        Some(a) if a.status() == Status::UpdateAvailable => Some(ui::badge(
-            "Update available",
-            p.warning,
-            p.warning_soft,
-            false,
-        )),
-        Some(_) => Some(ui::badge("Installed", p.success, p.success_soft, true)),
+        Some(a) if a.status() == Status::UpdateAvailable => {
+            Some(ui::tag("Update available", ui::Mark::Update))
+        }
+        Some(_) => Some(ui::tag("Installed", ui::Mark::Good)),
         None => None,
     };
     let action = match installed {

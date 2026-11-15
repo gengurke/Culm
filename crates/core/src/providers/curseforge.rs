@@ -18,8 +18,6 @@ const GAME_ID: u32 = 1;
 const FOREVER_TYPE_ID: u32 = 88568;
 /// The "Addons" class of game 1: the root of the addon category tree.
 const ADDONS_CLASS_ID: u32 = 1;
-/// Longest description shown (characters of plain text).
-const DESCRIPTION_MAX: usize = 8000;
 
 pub struct CurseForge {
     pub api_key: Option<String>,
@@ -102,7 +100,7 @@ impl CurseForge {
     pub fn description(&self, id: &str) -> Result<String> {
         let id: u64 = id.parse().context("not a CurseForge addon id")?;
         let html: String = self.get(&format!("/v1/mods/{id}/description"), &[])?;
-        Ok(html::to_text(&html, DESCRIPTION_MAX))
+        Ok(html::to_text(&html, html::DESCRIPTION_MAX))
     }
 
     fn mods(&self, ids: &[u64]) -> Result<Vec<CfMod>> {

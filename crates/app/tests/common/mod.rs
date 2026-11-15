@@ -187,6 +187,7 @@ impl World {
                 cat(1009, "Bags & Inventory", "bags-inventory", 1),
                 cat(1020, "Class", "class", 1),
                 cat(1028, "Warrior", "warrior", 1020),
+                cat(1036, "Death Knight", "death-knight", 1020),
             ])),
         );
         s.json(
@@ -205,6 +206,13 @@ impl World {
             "GET",
             "/repos/Questie/Questie/releases",
             &fixture_at("github_releases.json", base),
+        );
+        s.respond(
+            "GET",
+            "/repos/Questie/Questie/readme",
+            200,
+            "text/plain",
+            "# Questie\n\nThe quest helper for **Forever**.\n",
         );
         s.json(
             "GET",

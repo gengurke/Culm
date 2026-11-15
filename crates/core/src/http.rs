@@ -44,6 +44,20 @@ pub fn get_json<T: DeserializeOwned>(
     parse_json(url, req.call())
 }
 
+/// GET `url` as text (at most the JSON size limit).
+pub fn get_text(url: &str, headers: Headers) -> Result<String> {
+    let mut req = agent().get(url);
+    for (k, v) in headers {
+        req = req.header(*k, *v);
+    }
+    check(url, req.call())?
+        .body_mut()
+        .with_config()
+        .limit(JSON_LIMIT)
+        .read_to_string()
+        .with_context(|| format!("read {url}"))
+}
+
 /// POST `body` as JSON and parse the JSON answer.
 pub fn post_json<T: DeserializeOwned>(
     url: &str,

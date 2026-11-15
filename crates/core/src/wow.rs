@@ -157,8 +157,8 @@ pub fn read_build_version(wow_root: &Path) -> Option<String> {
         .filter(|v| !v.is_empty())
 }
 
-/// True if a `Wow.exe` process belongs to this installation: its command line mentions
-/// `_forever_` or its working directory is the client folder.
+/// True if a `Wow.exe` process belongs to this installation (see [`runs_in`]); a game running
+/// from another client folder doesn't count.
 // shortcut: Linux /proc only and heuristic (Wine passes Windows paths); on other OSes this is
 // always false. Upgrade if users report maintenance running while the game is open.
 pub fn is_game_running(inst: &Installation) -> bool {
@@ -185,10 +185,25 @@ pub fn is_game_running(inst: &Installation) -> bool {
             let argv0 = cmd.split('\0').next().unwrap_or("");
             let is_wow = comm.trim().eq_ignore_ascii_case("wow.exe")
                 || argv0.rsplit('/').next() == Some("wow.exe");
-            is_wow
-                && (cmd.contains("/_forever_/")
-                    || std::fs::read_link(dir.join("cwd")).is_ok_and(|cwd| cwd == root))
+            is_wow && runs_in(&dir, &root, &cmd)
         })
+}
+
+/// Whether the Wow.exe process at `/proc/<pid>` (`dir`) belongs to the client at `root`: its
+/// working directory (Wine sets it to the client's Unix path) or an open file is inside `root`.
+/// Only when neither can be read (another user's process) does a `_forever_` command line count,
+/// so we stay on the safe side without letting every Forever client lock every other one.
+fn runs_in(dir: &Path, root: &Path, cmd: &str) -> bool {
+    let cwd = std::fs::read_link(dir.join("cwd"));
+    if cwd.as_ref().is_ok_and(|cwd| cwd.starts_with(root)) {
+        return true;
+    }
+    match std::fs::read_dir(dir.join("fd")) {
+        Ok(fds) => fds
+            .flatten()
+            .any(|fd| std::fs::read_link(fd.path()).is_ok_and(|t| t.starts_with(root))),
+        Err(_) => cwd.is_err() && cmd.contains("/_forever_/"),
+    }
 }
 
 #[cfg(test)]

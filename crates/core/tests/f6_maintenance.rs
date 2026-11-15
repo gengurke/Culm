@@ -35,6 +35,20 @@ fn f6_1_refuses_while_game_running() {
     let w = fake_wow();
     write(&w.inst.root.join("Cache/WDB/x.wdb"), "x");
     assert!(!wow::is_game_running(&w.inst));
+    // A Forever client running from another folder (say the user's real game) doesn't lock this one.
+    let other = w.tmp.path().join("other/World of Warcraft/_forever_");
+    std::fs::create_dir_all(&other).unwrap();
+    std::fs::copy("/bin/sleep", other.join("Wow.exe")).unwrap();
+    let mut elsewhere = std::process::Command::new(other.join("Wow.exe"))
+        .arg("30")
+        .current_dir(&other)
+        .spawn()
+        .unwrap();
+    std::thread::sleep(std::time::Duration::from_millis(100));
+    let other_locks = wow::is_game_running(&w.inst);
+    elsewhere.kill().unwrap();
+    elsewhere.wait().unwrap();
+    assert!(!other_locks, "another client's game must not lock this one");
     // A fake "Wow.exe" (a copy of sleep) running in the client folder.
     let bin = w.tmp.path().join("bin/Wow.exe");
     std::fs::create_dir_all(bin.parent().unwrap()).unwrap();

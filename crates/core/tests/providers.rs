@@ -338,6 +338,29 @@ fn f4_6_search_sends_category_and_sort() {
     }
 }
 
+#[test]
+fn f4_5_github_readme_is_plain_text() {
+    let s = FakeServer::start();
+    s.respond(
+        "GET",
+        "/repos/Questie/Questie/readme",
+        200,
+        "text/plain",
+        "# Questie\n[![CI](https://x/ci.svg)](https://x)\n\nThe **best** quest helper.\n\n- Shows quests\n",
+    );
+    let gh = GitHub {
+        token: None,
+        api_base: s.url().into(),
+    };
+    assert_eq!(
+        gh.readme("Questie/Questie").unwrap(),
+        "Questie\n\nThe best quest helper.\n\n• Shows quests"
+    );
+    let req = &s.requests_to("/repos/Questie/Questie/readme")[0];
+    assert_eq!(req.header("accept"), Some("application/vnd.github.raw"));
+    assert!(gh.readme("../../etc").is_err(), "only owner/repo ids");
+}
+
 fn github_server() -> FakeServer {
     let s = FakeServer::start();
     s.json(

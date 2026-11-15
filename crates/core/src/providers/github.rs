@@ -32,6 +32,27 @@ impl GitHub {
         http::get_json(url, &[], &headers)
     }
 
+    /// The repo's README as plain text (`GET /repos/{repo}/readme`, raw Markdown).
+    pub fn readme(&self, repo: &str) -> Result<String> {
+        let Some(repo) = parse_url(repo) else {
+            bail!("not a GitHub repo: {repo}");
+        };
+        let auth = self
+            .token
+            .as_deref()
+            .filter(|t| !t.is_empty())
+            .map(|t| format!("Bearer {t}"));
+        let mut headers = vec![("Accept", "application/vnd.github.raw")];
+        if let Some(auth) = &auth {
+            headers.push(("Authorization", auth));
+        }
+        let md = http::get_text(&format!("{}/repos/{repo}/readme", self.api_base), &headers)?;
+        Ok(crate::html::markdown_to_text(
+            &md,
+            crate::html::DESCRIPTION_MAX,
+        ))
+    }
+
     fn fetch(&self, repo: &str) -> Result<RemoteAddon> {
         let info: Repo = self.get(&format!("{}/repos/{repo}", self.api_base))?;
         let mut releases: Vec<Release> = self.get(&format!(

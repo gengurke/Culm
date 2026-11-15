@@ -5,7 +5,7 @@ use crate::backend::{Backend, Backup, Maintenance, Settings, Warned};
 use crate::brand;
 use crate::theme::ThemeId;
 use crate::ui::bytes;
-use addon_core::providers::{self, CurseForge, Provider, ProviderConfig};
+use addon_core::providers::{self, CurseForge, GitHub, Provider, ProviderConfig};
 use addon_core::{
     Addon, Category, Channel, Flavor, Installation, RemoteAddon, SearchFilter, http, install,
     maintenance, scan, store, updates, wow, wowup_import,
@@ -351,10 +351,18 @@ impl Backend for CoreBackend {
     }
 
     fn description(&self, remote: &RemoteAddon) -> Result<Option<String>> {
-        if remote.provider != providers::curseforge::NAME {
-            return Ok(None);
-        }
-        let text = self.curseforge().description(&remote.external_id)?;
+        let text = match remote.provider.as_str() {
+            providers::curseforge::NAME => self.curseforge().description(&remote.external_id)?,
+            providers::github::NAME => {
+                let c = self.provider_config();
+                let gh = GitHub {
+                    token: c.github_token,
+                    api_base: c.github_base_url,
+                };
+                gh.readme(&remote.external_id)?
+            }
+            _ => return Ok(None),
+        };
         Ok((!text.is_empty()).then_some(text))
     }
 
