@@ -41,9 +41,9 @@ pub fn page(s: &State) -> El {
     .build()
     .w(340.0);
     let key_status = if s.curseforge_ready() {
-        ui::badge("Connected", p.success, p.success_soft, true)
+        ui::tag("Connected", ui::Mark::Good)
     } else {
-        ui::badge("Not set", p.text_muted, p.chip, false)
+        ui::tag("Not set", ui::Mark::Muted)
     };
     let curseforge = section("CurseForge")
         .child(setting_row(
@@ -82,7 +82,7 @@ pub fn page(s: &State) -> El {
         let on = s.current.as_deref() == Some(&inst.id);
         let id = inst.id.clone();
         let trailing = if on {
-            ui::badge("In use", p.accent, p.accent_soft, false)
+            ui::tag("In use", ui::Mark::Busy)
         } else {
             ui::button(
                 format!("settings/installation/{}/use", inst.id),

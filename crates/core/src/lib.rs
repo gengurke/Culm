@@ -3,6 +3,7 @@
 
 pub mod discover;
 pub mod fingerprint;
+pub mod html;
 pub mod http;
 pub mod install;
 pub mod maintenance;

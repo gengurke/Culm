@@ -2,7 +2,10 @@
 //! UI before the core is wired. Names and versions come from a real Forever install.
 
 use crate::backend::{Backend, Backup, Maintenance, Settings, Warned};
-use addon_core::{Addon, Channel, Flavor, IgnoreReason, Installation, RemoteAddon, RemoteFile};
+use addon_core::{
+    Addon, Category, Channel, Flavor, IgnoreReason, Installation, RemoteAddon, RemoteFile,
+    SearchFilter, Sort,
+};
 use anyhow::{Result, anyhow, bail};
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
@@ -642,6 +645,95 @@ const REMOTE_ONLY: &[Row] = &[
     ),
 ];
 
+/// A slice of CurseForge's WoW category tree (ids as on CurseForge).
+const CATEGORIES: &[(u32, &str, &str, Option<u32>)] = &[
+    (1018, "Action Bars", "action-bars", None),
+    (1002, "Auction & Economy", "auction-economy", None),
+    (1009, "Bags & Inventory", "bags-inventory", None),
+    (1014, "Boss Encounters", "boss-encounters", None),
+    (1001, "Chat & Communication", "chat-communication", None),
+    (1020, "Class", "class", None),
+    (1023, "Druid", "druid", Some(1020)),
+    (1024, "Hunter", "hunter", Some(1020)),
+    (1021, "Mage", "mage", Some(1020)),
+    (1022, "Paladin", "paladin", Some(1020)),
+    (1026, "Priest", "priest", Some(1020)),
+    (1027, "Rogue", "rogue", Some(1020)),
+    (1025, "Shaman", "shaman", Some(1020)),
+    (1029, "Warlock", "warlock", Some(1020)),
+    (1028, "Warrior", "warrior", Some(1020)),
+    (1019, "Combat", "combat", None),
+    (1035, "Damage Dealer", "damage-dealer", Some(1019)),
+    (1032, "Healer", "healer", Some(1019)),
+    (1033, "Tank", "tank", Some(1019)),
+    (1010, "Libraries", "libraries", None),
+    (1011, "Map & Minimap", "map-minimap", None),
+    (1017, "Miscellaneous", "miscellaneous", None),
+    (1015, "Professions", "professions", None),
+    (1013, "Quests & Leveling", "quests-leveling", None),
+    (1055, "Tooltip", "tooltip", None),
+    (1016, "Unit Frames", "unit-frames", None),
+    (1037, "Raid Frames", "raid-frames", Some(1016)),
+];
+
+pub fn categories() -> Vec<Category> {
+    let mut list: Vec<Category> = CATEGORIES
+        .iter()
+        .map(|&(id, name, slug, parent)| Category {
+            id,
+            name: name.into(),
+            slug: slug.into(),
+            parent,
+        })
+        .collect();
+    list.sort_by_key(|c| c.name.to_lowercase());
+    list
+}
+
+/// Category names of a catalog addon (by name, roughly as on CurseForge).
+fn categories_of(name: &str) -> Vec<String> {
+    let n = name.to_lowercase();
+    let pick: &[&str] = match () {
+        _ if n.contains("bag") || n.contains("syndicator") => &["Bags & Inventory"],
+        _ if n.contains("questie") || n.contains("guide") || n.contains("turn in") => {
+            &["Quests & Leveling", "Map & Minimap"]
+        }
+        _ if n.contains("details") || n.contains("recount") || n.contains("threat") => {
+            &["Combat", "Damage Dealer"]
+        }
+        _ if n.contains("boss") || n.contains("bigwigs") || n.contains("weakauras") => {
+            &["Boss Encounters", "Combat"]
+        }
+        _ if n.contains("heal") || n.contains("clique") || n.contains("decursive") => {
+            &["Healer", "Priest", "Druid", "Shaman", "Paladin"]
+        }
+        _ if n.contains("hekili") => &["Combat", "Warrior", "Rogue", "Hunter", "Mage", "Warlock"],
+        _ if n.contains("map") || n.contains("tomtom") || n.contains("handynotes") => {
+            &["Map & Minimap"]
+        }
+        _ if n.contains("auction") || n.contains("postal") || n.contains("pawn") => {
+            &["Auction & Economy"]
+        }
+        _ if n.contains("chat") || n.contains("prat") || n.contains("spoken") => {
+            &["Chat & Communication"]
+        }
+        _ if n.contains("unit")
+            || n.contains("grid")
+            || n.contains("plater")
+            || n.contains("elvui") =>
+        {
+            &["Unit Frames", "Raid Frames"]
+        }
+        _ if n.contains("bartender") || n.contains("omnicc") || n.contains("masque") => {
+            &["Action Bars"]
+        }
+        _ if n.contains("ace3") || n.contains("lib") => &["Libraries"],
+        _ if n.contains("gather") || n.contains("training") => &["Professions", "Miscellaneous"],
+        _ => &["Miscellaneous"],
+    };
+    pick.iter().map(|s| s.to_string()).collect()
+}
+
 pub struct MockBackend {
     /// Simulated latency of one backend call (download steps take a tenth of it each).
     delay: Duration,
@@ -741,6 +833,8 @@ fn remote(row: &Row) -> RemoteAddon {
         download_count: downloads,
         files: vec![f],
         source_url: None,
+        categories: categories_of(name),
+        updated_at: Some(format!("2026-11-{:02}T10:00:00Z", 1 + downloads % 14)),
     }
 }
 
@@ -833,6 +927,42 @@ pub fn catalog() -> Vec<RemoteAddon> {
         .filter(|r| r.6 > 0)
         .map(remote)
         .collect()
+}
+
+/// The catalog filtered and ordered like CurseForge would (a parent category includes its children).
+pub fn search(filter: &SearchFilter) -> Vec<RemoteAddon> {
+    let q = filter.text.trim().to_lowercase();
+    let cats = categories();
+    let wanted: Vec<&str> = cats
+        .iter()
+        .filter(|c| {
+            Some(c.id) == filter.category || (c.parent.is_some() && c.parent == filter.category)
+        })
+        .map(|c| c.name.as_str())
+        .collect();
+    let mut list: Vec<RemoteAddon> = catalog()
+        .into_iter()
+        .filter(|r| r.name.to_lowercase().contains(&q) || r.summary.to_lowercase().contains(&q))
+        .filter(|r| {
+            filter.category.is_none() || r.categories.iter().any(|c| wanted.contains(&c.as_str()))
+        })
+        .collect();
+    match filter.sort {
+        Sort::Popularity | Sort::TotalDownloads => {
+            list.sort_by_key(|r| std::cmp::Reverse(r.download_count))
+        }
+        Sort::LastUpdated => list.sort_by(|a, b| b.updated_at.cmp(&a.updated_at)),
+        Sort::Name => list.sort_by_key(|r| r.name.to_lowercase()),
+    }
+    list
+}
+
+/// A canned long description, as the detail panel shows it.
+pub fn description(remote: &RemoteAddon) -> String {
+    format!(
+        "{}\n\n{} is maintained by {} and works with World of Warcraft: Forever.\n\nFeatures\n• Works out of the box, no setup needed\n• Options in the interface menu and through a slash command\n• Light on memory and CPU, even in raids\n\nReport problems on the project page; include the version and what you were doing.",
+        remote.summary, remote.name, remote.author
+    )
 }
 
 impl Backend for MockBackend {
@@ -940,13 +1070,9 @@ impl Backend for MockBackend {
         Ok(())
     }
 
-    fn search(&self, query: &str) -> Result<Vec<RemoteAddon>> {
+    fn search(&self, filter: &SearchFilter) -> Result<Vec<RemoteAddon>> {
         self.wait();
-        let q = query.to_lowercase();
-        Ok(catalog()
-            .into_iter()
-            .filter(|r| r.name.to_lowercase().contains(&q) || r.summary.to_lowercase().contains(&q))
-            .collect())
+        Ok(search(filter))
     }
 
     fn featured(&self) -> Result<Vec<RemoteAddon>> {
@@ -955,6 +1081,16 @@ impl Backend for MockBackend {
         all.sort_by_key(|r| std::cmp::Reverse(r.download_count));
         all.truncate(18);
         Ok(all)
+    }
+
+    fn categories(&self) -> Result<Vec<Category>> {
+        self.wait();
+        Ok(categories())
+    }
+
+    fn description(&self, remote: &RemoteAddon) -> Result<Option<String>> {
+        self.wait();
+        Ok(Some(description(remote)))
     }
 
     fn resolve_url(&self, url: &str) -> Result<RemoteAddon> {

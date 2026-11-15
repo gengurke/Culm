@@ -1,8 +1,12 @@
 //! CurseForge (api.curseforge.com, needs a user API key). Forever = gameVersionTypeId 88568.
 
 use super::{FolderMatch, Provider, ScannedFolder, newest_per_channel};
+use crate::html;
 use crate::http;
-use crate::model::{Channel, Dependency, DependencyKind, Flavor, RemoteAddon, RemoteFile};
+use crate::model::{
+    Category, Channel, Dependency, DependencyKind, Flavor, RemoteAddon, RemoteFile, SearchFilter,
+    Sort,
+};
 use anyhow::{Context, Result, bail};
 use serde::Deserialize;
 use serde_json::json;
@@ -12,6 +16,10 @@ pub const NAME: &str = "CurseForge";
 pub const DEFAULT_BASE_URL: &str = "https://api.curseforge.com";
 const GAME_ID: u32 = 1;
 const FOREVER_TYPE_ID: u32 = 88568;
+/// The "Addons" class of game 1: the root of the addon category tree.
+const ADDONS_CLASS_ID: u32 = 1;
+/// Longest description shown (characters of plain text).
+const DESCRIPTION_MAX: usize = 8000;
 
 pub struct CurseForge {
     pub api_key: Option<String>,
@@ -38,17 +46,63 @@ impl CurseForge {
         Ok(env.data)
     }
 
-    fn search_mods(&self, extra: &[(&str, &str)]) -> Result<Vec<CfMod>> {
+    /// Forever addons matching `filter` (text, category, order), mods without a Forever file dropped.
+    pub fn search_filtered(&self, filter: &SearchFilter) -> Result<Vec<RemoteAddon>> {
         let (game, ty) = (GAME_ID.to_string(), FOREVER_TYPE_ID.to_string());
+        // docs.curseforge.com ModsSearchSortField: 2 Popularity, 3 LastUpdated, 4 Name, 6 TotalDownloads.
+        let (field, order) = match filter.sort {
+            Sort::Popularity => ("2", "desc"),
+            Sort::LastUpdated => ("3", "desc"),
+            Sort::Name => ("4", "asc"),
+            Sort::TotalDownloads => ("6", "desc"),
+        };
+        let category = filter.category.map(|c| c.to_string());
         let mut query = vec![
             ("gameId", game.as_str()),
             ("gameVersionTypeId", ty.as_str()),
-            ("sortField", "2"), // 2 = Popularity (docs.curseforge.com ModsSearchSortField)
-            ("sortOrder", "desc"),
+            ("sortField", field),
+            ("sortOrder", order),
             ("pageSize", "50"),
         ];
-        query.extend_from_slice(extra);
-        self.get("/v1/mods/search", &query)
+        let text = filter.text.trim();
+        if !text.is_empty() {
+            query.push(("searchFilter", text));
+        }
+        if let Some(c) = &category {
+            query.push(("categoryId", c));
+        }
+        let mods: Vec<CfMod> = self.get("/v1/mods/search", &query)?;
+        Ok(mods
+            .iter()
+            .map(to_addon)
+            .filter(|a| !a.files.is_empty())
+            .collect())
+    }
+
+    /// WoW addon categories (`GET /v1/categories?gameId=1`), sorted by name; top-level ones have
+    /// no parent.
+    pub fn categories(&self) -> Result<Vec<Category>> {
+        let game = GAME_ID.to_string();
+        let all: Vec<CfCategory> = self.get("/v1/categories", &[("gameId", &game)])?;
+        let mut out: Vec<Category> = all
+            .into_iter()
+            .filter(|c| !c.is_class.unwrap_or(false) && c.class_id == Some(ADDONS_CLASS_ID))
+            .map(|c| Category {
+                id: c.id,
+                name: c.name,
+                slug: c.slug,
+                parent: c.parent_category_id.filter(|p| *p != ADDONS_CLASS_ID),
+            })
+            .collect();
+        out.sort_by_key(|c| c.name.to_lowercase());
+        Ok(out)
+    }
+
+    /// The addon's long description (`GET /v1/mods/{id}/description`, HTML) as plain text.
+    pub fn description(&self, id: &str) -> Result<String> {
+        let id: u64 = id.parse().context("not a CurseForge addon id")?;
+        let html: String = self.get(&format!("/v1/mods/{id}/description"), &[])?;
+        Ok(html::to_text(&html, DESCRIPTION_MAX))
     }
 
     fn mods(&self, ids: &[u64]) -> Result<Vec<CfMod>> {
@@ -69,12 +123,10 @@ impl Provider for CurseForge {
     }
 
     fn search(&self, _flavor: Flavor, query: &str) -> Result<Vec<RemoteAddon>> {
-        let mods = self.search_mods(&[("searchFilter", query)])?;
-        Ok(mods
-            .iter()
-            .map(to_addon)
-            .filter(|a| !a.files.is_empty())
-            .collect())
+        self.search_filtered(&SearchFilter {
+            text: query.into(),
+            ..SearchFilter::default()
+        })
     }
 
     fn featured(&self, _flavor: Flavor) -> Result<Vec<RemoteAddon>> {
@@ -163,7 +215,7 @@ impl Provider for CurseForge {
 }
 
 /// `https://www.curseforge.com/wow/addons/<slug>[/...]` → slug.
-fn parse_url(url: &str) -> Option<&str> {
+pub(super) fn parse_url(url: &str) -> Option<&str> {
     let rest = url.trim().split_once("://").map_or(url.trim(), |(_, r)| r);
     let rest = rest.strip_prefix("www.").unwrap_or(rest);
     let slug = rest
@@ -203,6 +255,8 @@ fn to_addon(m: &CfMod) -> RemoteAddon {
         download_count: m.download_count as u64,
         files: newest_per_channel(files.into_iter().map(to_file)),
         source_url: m.links.source_url.clone().filter(|u| !u.is_empty()),
+        categories: m.categories.iter().map(|c| c.name.clone()).collect(),
+        updated_at: m.date_modified.clone(),
     }
 }
 
@@ -299,6 +353,19 @@ struct CfMod {
     authors: Vec<Author>,
     logo: Option<Logo>,
     latest_files: Vec<CfFile>,
+    categories: Vec<CfCategory>,
+    date_modified: Option<String>,
+}
+
+#[derive(Deserialize, Default)]
+#[serde(default, rename_all = "camelCase")]
+struct CfCategory {
+    id: u32,
+    name: String,
+    slug: String,
+    class_id: Option<u32>,
+    parent_category_id: Option<u32>,
+    is_class: Option<bool>,
 }
 
 #[derive(Deserialize, Default)]

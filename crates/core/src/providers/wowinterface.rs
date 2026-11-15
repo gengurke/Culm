@@ -109,6 +109,8 @@ fn to_addon(d: Details) -> RemoteAddon {
             dependencies: vec![],
         }],
         source_url: None,
+        categories: vec![],
+        updated_at: None,
     }
 }
 

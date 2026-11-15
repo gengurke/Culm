@@ -73,14 +73,6 @@ Build needs `libxkbcommon-devel wayland-devel` (Fedora). Without root, a gitigno
   `Variant => module` line in the `themes!` list in `theme/mod.rs`. The picker, prefs id, scenes (`<scene>@<id>`) and
   `f7_3_every_theme_renders_every_screen` pick it up. Fonts: name families in `Family::Named` lists; never bundle
   proprietary game fonts or assets.
-- Lights and mist (`theme/light.rs`, used by Nightwatch): a theme may add `pub static LIGHTS: LazyLock<Lights>` and list
-  itself as `Variant => module + LIGHTS`. `view` then adds mist on the window ground, a light layer over the content
-  (vignette, fixed `Lamp`s, a pointer `torch`) and a pointer tracker on the root; themes without lights build none of it.
-  Lights are radial gradients painted source-over (no compositor); the torch moves by `live_offset` from
-  `on_pointer_move_any` + `tx.live_only()` (no view rebuild), flicker and mist are renderer-owned `LoopSpec::cycle`s at a
-  low fixed fps (no poll or timers; paused while covered, held under reduced motion, deterministic in snapshots; no
-  pointer headless, so no torch). Keep glows faint enough that dimmed text stays ≥3:1. `--script` `move` events place
-  the pointer for a torch snapshot.
 
 ## Data-safety rules (learned here)
 

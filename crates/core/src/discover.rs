@@ -1,4 +1,4 @@
-//! Multi-source search (F4.5): asks several providers at once and groups their results into one
+//! Multi-source search (F4.8): asks several providers at once and groups their results into one
 //! entry per addon.
 //!
 //! Grouping is deliberately strict ("rather a duplicate than a wrong merge"): results join only when

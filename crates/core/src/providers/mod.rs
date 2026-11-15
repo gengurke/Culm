@@ -55,6 +55,19 @@ pub fn all(config: &ProviderConfig) -> Vec<Box<dyn Provider>> {
     ]
 }
 
+/// The provider an install link names (a CurseForge addon page, a GitHub repo URL or bare
+/// `owner/repo`), or None for anything else (search text).
+pub fn link_source(input: &str) -> Option<&'static str> {
+    let input = input.trim();
+    if curseforge::parse_url(input).is_some() {
+        Some(curseforge::NAME)
+    } else if github::parse_url(input).is_some() {
+        Some(github::NAME)
+    } else {
+        None
+    }
+}
+
 /// Keeps the first (newest) file of each channel from a newest-first list.
 fn newest_per_channel(files: impl Iterator<Item = RemoteFile>) -> Vec<RemoteFile> {
     let mut out: Vec<RemoteFile> = Vec::new();

@@ -1,4 +1,4 @@
-//! WowUp Hub provider (F4.5) and multi-source search with strict dedupe (F4.6), against a fake server.
+//! WowUp Hub provider (F4.7) and multi-source search with strict dedupe (F4.8), against a fake server.
 
 use addon_core::providers::{CurseForge, Hub, Provider, ScannedFolder};
 use addon_core::updates::check_updates;
@@ -28,7 +28,7 @@ fn download(u: &str) -> anyhow::Result<Vec<u8>> {
 }
 
 #[test]
-fn f4_5_hub_search_keeps_forever_releases() {
+fn f4_7_hub_search_keeps_forever_releases() {
     let s = FakeServer::start();
     s.json(
         "GET",
@@ -93,7 +93,7 @@ fn f4_5_hub_search_keeps_forever_releases() {
 }
 
 #[test]
-fn f4_5_hub_featured_dedupes_popular_and_recent() {
+fn f4_7_hub_featured_dedupes_popular_and_recent() {
     let s = FakeServer::start();
     s.json(
         "GET",
@@ -110,7 +110,7 @@ fn f4_5_hub_featured_dedupes_popular_and_recent() {
 }
 
 #[test]
-fn f4_5_hub_install_and_update() {
+fn f4_7_hub_install_and_update() {
     let s = FakeServer::start();
     let w = common::fake_wow();
     let v1 = make_zip(&[
@@ -170,7 +170,7 @@ fn f4_5_hub_install_and_update() {
 }
 
 #[test]
-fn f4_5_hub_fingerprint_matches_folders() {
+fn f4_7_hub_fingerprint_matches_folders() {
     let s = FakeServer::start();
     s.json(
         "POST",
@@ -218,7 +218,7 @@ fn f4_5_hub_fingerprint_matches_folders() {
 }
 
 #[test]
-fn f4_5_hub_url_resolves_id() {
+fn f4_7_hub_url_resolves_id() {
     let s = FakeServer::start();
     let addon = hub_addon(7, "me/Bar", &["Bar"], 3, "https://example.invalid/b.zip");
     s.json("GET", "/hub/addons/7", &json!({ "addon": addon }));
@@ -237,7 +237,7 @@ fn f4_5_hub_url_resolves_id() {
     assert!(h.from_url(F, "https://wowup.io/addons/8").is_err());
 }
 
-// --- F4.6 multi-source search ---
+// --- F4.8 multi-source search ---
 
 fn cf_with_source(id: u64, name: &str, source: Option<&str>) -> Value {
     let mut m = cf_mod(id, name, &[name], id * 10, "1.0");
@@ -278,7 +278,7 @@ fn shape(d: &discover::Discovery) -> Vec<Vec<String>> {
 }
 
 #[test]
-fn f4_6_merges_curseforge_and_hub_on_exact_github_repo() {
+fn f4_8_merges_curseforge_and_hub_on_exact_github_repo() {
     let (_s, providers) = sources(
         vec![cf_with_source(
             100,
@@ -301,7 +301,7 @@ fn f4_6_merges_curseforge_and_hub_on_exact_github_repo() {
 }
 
 #[test]
-fn f4_6_same_name_with_different_repos_is_not_merged() {
+fn f4_8_same_name_with_different_repos_is_not_merged() {
     let (_s, providers) = sources(
         vec![
             cf_with_source(100, "Questie", Some("https://github.com/Questie/Questie")),
@@ -327,7 +327,7 @@ fn f4_6_same_name_with_different_repos_is_not_merged() {
 }
 
 #[test]
-fn f4_6_conflicting_ids_are_not_merged() {
+fn f4_8_conflicting_ids_are_not_merged() {
     // Two CurseForge projects name the same repo: the Hub entry can't tell which one it is.
     let (_s, providers) = sources(
         vec![
@@ -344,7 +344,7 @@ fn f4_6_conflicting_ids_are_not_merged() {
 }
 
 #[test]
-fn f4_6_failing_provider_returns_partial_results() {
+fn f4_8_failing_provider_returns_partial_results() {
     let (s, providers) = sources(vec![], vec![hub_repo(1, "me/Foo")]);
     s.respond("GET", "/v1/mods/search", 500, "text/plain", "boom");
 

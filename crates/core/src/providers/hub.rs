@@ -180,6 +180,12 @@ fn to_addon(flavor: Flavor, a: &HubAddon) -> RemoteAddon {
         download_count: a.total_download_count,
         files: newest_per_channel(releases.into_iter().filter_map(|r| to_file(flavor, r))),
         source_url: Some(a.repository.clone()).filter(|r| !r.is_empty()),
+        categories: vec![],
+        updated_at: a
+            .releases
+            .iter()
+            .filter_map(|r| r.published_at.clone())
+            .max(),
     }
 }
 
@@ -223,31 +229,8 @@ fn to_file(flavor: Flavor, r: &HubRelease) -> Option<RemoteFile> {
 
 /// The HTML description as one short line of text.
 fn summary(html: &str) -> String {
-    let mut text = String::with_capacity(html.len().min(1024));
-    let mut in_tag = false;
-    for c in html.chars() {
-        match c {
-            '<' => {
-                in_tag = true;
-                text.push(' ');
-            }
-            '>' => in_tag = false,
-            c if !in_tag => text.push(c),
-            _ => {}
-        }
-    }
-    let text = text
-        .replace("&amp;", "&")
-        .replace("&quot;", "\"")
-        .replace("&#39;", "'")
-        .replace("&lt;", "<")
-        .replace("&gt;", ">");
-    let words: Vec<&str> = text.split_whitespace().collect();
-    let line = words.join(" ");
-    match line.char_indices().nth(240) {
-        Some((i, _)) => format!("{}…", &line[..i]),
-        None => line,
-    }
+    let text = crate::html::to_text(html, 240);
+    text.split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
 // --- API shapes (only the fields we use; defaults so schema drift doesn't break us) ---

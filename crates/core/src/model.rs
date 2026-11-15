@@ -90,6 +90,12 @@ pub struct RemoteAddon {
     /// GitHub repo URL (see [`crate::discover`]).
     #[serde(default)]
     pub source_url: Option<String>,
+    /// Provider category names (CurseForge), for display.
+    #[serde(default)]
+    pub categories: Vec<String>,
+    /// When the provider last changed the addon (RFC 3339).
+    #[serde(default)]
+    pub updated_at: Option<String>,
 }
 
 impl RemoteAddon {
@@ -103,6 +109,40 @@ impl RemoteAddon {
                     .cmp(&b.released_at)
                     .then_with(|| a.id.cmp(&b.id))
             })
+    }
+}
+
+/// A provider category (CurseForge's WoW addon categories). `parent` is None at the top level.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Category {
+    pub id: u32,
+    pub name: String,
+    pub slug: String,
+    pub parent: Option<u32>,
+}
+
+/// Result order for search and browsing.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub enum Sort {
+    #[default]
+    Popularity,
+    LastUpdated,
+    Name,
+    TotalDownloads,
+}
+
+/// A search or browse request: text (may be empty), category and order.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
+pub struct SearchFilter {
+    pub text: String,
+    pub category: Option<u32>,
+    pub sort: Sort,
+}
+
+impl SearchFilter {
+    /// No text, category or order chosen: the landing page (popular list).
+    pub fn is_default(&self) -> bool {
+        *self == SearchFilter::default()
     }
 }
 

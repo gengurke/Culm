@@ -106,6 +106,8 @@ pub fn remote_addon(id: &str, name: &str, files: Vec<RemoteFile>) -> RemoteAddon
         download_count: 1,
         files,
         source_url: None,
+        categories: vec![],
+        updated_at: None,
     }
 }
 

@@ -3,7 +3,7 @@
 
 use crate::backend::{Backend, Backup, Settings, Warned};
 use crate::state::{MaintCard, State};
-use addon_core::{Addon, Installation, RemoteAddon};
+use addon_core::{Addon, Category, Installation, RemoteAddon};
 use rune::Waker;
 use std::sync::mpsc::Sender;
 
@@ -32,7 +32,6 @@ pub enum Msg {
         id: String,
         result: Result<Addon, String>,
     },
-    /// `external_id` is empty for install-from-URL.
     Installed {
         inst: String,
         external_id: String,
@@ -43,6 +42,12 @@ pub enum Msg {
         result: Result<(), String>,
     },
     Featured(Result<Vec<RemoteAddon>, String>),
+    Categories(Result<Vec<Category>, String>),
+    /// The long description of the remote addon `(provider, external_id)` (None: it has none).
+    Description {
+        addon: (String, String),
+        result: Result<Option<String>, String>,
+    },
     /// Thumbnail bytes for a URL (None: failed, the initials tile stays).
     Thumbnail {
         url: String,

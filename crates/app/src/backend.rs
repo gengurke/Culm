@@ -3,7 +3,7 @@
 //! [`crate::mock::MockBackend`] serves canned Forever data for snapshots and tests.
 
 use crate::theme::ThemeId;
-use addon_core::{Addon, Channel, Installation, RemoteAddon};
+use addon_core::{Addon, Category, Channel, Installation, RemoteAddon, SearchFilter};
 use anyhow::Result;
 use std::path::Path;
 
@@ -69,8 +69,13 @@ pub trait Backend: Send + Sync {
     fn remove(&self, inst: &Installation, addon: &Addon) -> Result<()>;
     /// Persist record changes (channel, ignore).
     fn save_addon(&self, inst: &Installation, addon: &Addon) -> Result<()>;
-    fn search(&self, query: &str) -> Result<Vec<RemoteAddon>>;
+    /// Search or browse by text, category and order (F4.1, F4.6).
+    fn search(&self, filter: &SearchFilter) -> Result<Vec<RemoteAddon>>;
     fn featured(&self) -> Result<Vec<RemoteAddon>>;
+    /// CurseForge's addon categories (cached on disk).
+    fn categories(&self) -> Result<Vec<Category>>;
+    /// The addon's long description as plain text, if its provider has one (F4.5).
+    fn description(&self, remote: &RemoteAddon) -> Result<Option<String>>;
     /// Resolve a CurseForge page or GitHub repo URL (F4.4).
     fn resolve_url(&self, url: &str) -> Result<RemoteAddon>;
     fn game_running(&self, inst: &Installation) -> bool;
