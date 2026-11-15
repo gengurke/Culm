@@ -52,8 +52,20 @@ pub trait Backend: Send + Sync {
     /// Returns `addons` with `latest` refreshed.
     fn check_updates(&self, inst: &Installation, addons: &[Addon]) -> Result<Warned<Vec<Addon>>>;
     /// Install (or re-download, `reinstall`) the latest file for the addon's channel.
-    fn update(&self, inst: &Installation, addon: &Addon, reinstall: bool, progress: &dyn Fn(f32)) -> Result<Addon>;
-    fn install(&self, inst: &Installation, remote: &RemoteAddon, channel: Channel, progress: &dyn Fn(f32)) -> Result<Addon>;
+    fn update(
+        &self,
+        inst: &Installation,
+        addon: &Addon,
+        reinstall: bool,
+        progress: &dyn Fn(f32),
+    ) -> Result<Addon>;
+    fn install(
+        &self,
+        inst: &Installation,
+        remote: &RemoteAddon,
+        channel: Channel,
+        progress: &dyn Fn(f32),
+    ) -> Result<Addon>;
     fn remove(&self, inst: &Installation, addon: &Addon) -> Result<()>;
     /// Persist record changes (channel, ignore).
     fn save_addon(&self, inst: &Installation, addon: &Addon) -> Result<()>;

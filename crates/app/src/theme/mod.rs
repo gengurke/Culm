@@ -3,8 +3,10 @@
 //! paint boxes with [`SurfaceExt::skin`], never with raw colours. Layout metrics are global.
 //!
 //! Adding a theme: write `theme/<name>.rs` with a `pub static THEME: LazyLock<Theme>` and add one
-//! `Variant => module` line to the `themes!` list below.
+//! `Variant => module` line to the `themes!` list below. A theme with lights and mist
+//! ([`light::Lights`]) also has `pub static LIGHTS: LazyLock<Lights>` and says `module + LIGHTS`.
 
+pub mod light;
 mod texture;
 
 use crate::state::{Screen, State};
@@ -16,7 +18,7 @@ use std::collections::HashMap;
 pub use texture::Tex;
 
 macro_rules! themes {
-    ($($variant:ident => $module:ident),+ $(,)?) => {
+    ($($variant:ident => $module:ident $(+ $lights:ident)?),+ $(,)?) => {
         $(mod $module;)+
 
         /// Which theme is on; stored in the settings by [`ThemeId::id`].
@@ -30,8 +32,15 @@ macro_rules! themes {
             pub fn theme(self) -> &'static Theme {
                 match self { $(ThemeId::$variant => &$module::THEME),+ }
             }
+
+            /// Its lights and mist; most themes have none.
+            pub fn lights(self) -> Option<&'static light::Lights> {
+                match self { $(ThemeId::$variant => themes!(@lights $module $($lights)?)),+ }
+            }
         }
     };
+    (@lights $module:ident) => { None };
+    (@lights $module:ident $lights:ident) => { Some(&*$module::$lights) };
 }
 
 themes! {
@@ -39,6 +48,7 @@ themes! {
     Hearthwood => hearthwood,
     Emberglow => emberglow,
     Ledger => ledger,
+    Nightwatch => nightwatch + LIGHTS,
 }
 
 impl Default for ThemeId {
@@ -55,7 +65,11 @@ impl ThemeId {
 
     /// The theme stored as `id`; an unknown or retired id falls back to the default.
     pub fn from_id(id: &str) -> ThemeId {
-        ThemeId::ALL.iter().copied().find(|t| t.id() == id).unwrap_or_default()
+        ThemeId::ALL
+            .iter()
+            .copied()
+            .find(|t| t.id() == id)
+            .unwrap_or_default()
     }
 }
 
@@ -150,7 +164,10 @@ pub const BASE_TYPE: Type = Type {
     caption: TextStyle::new(11.0, 600.0).tracking(0.22).lh(14.0),
     eyebrow: TextStyle::new(10.5, 600.0).tracking(1.26).lh(14.0),
     mono: TextStyle::new(12.0, 400.0).family(Family::Mono).lh(16.0),
-    wordmark: TextStyle::new(15.0, 500.0).family(Family::Named("Cinzel, Cormorant SC, Noto Serif, serif")).tracking(2.7).lh(20.0),
+    wordmark: TextStyle::new(15.0, 500.0)
+        .family(Family::Named("Cinzel, Cormorant SC, Noto Serif, serif"))
+        .tracking(2.7)
+        .lh(20.0),
 };
 
 /// `AppSpec::families`: Inter (embedded by Rune) and a mono for versions and paths.
@@ -211,6 +228,8 @@ pub enum BandDeco {
     Stars,
     /// Warm sparks drifting up from the bottom edge.
     Embers,
+    /// Dead trees, a fence and headstones in silhouette along the bottom edge, in low mist.
+    Treeline,
 }
 
 /// A box's look as data, painted by [`SurfaceExt::skin`]: fill, optional gradient and texture,
@@ -236,8 +255,15 @@ pub struct Surface {
 /// A second gradient over the fill (Rune keeps one linear or radial per box).
 #[derive(Clone)]
 pub enum Overlay {
-    Linear { angle: f32, stops: Vec<(f32, Color)> },
-    Radial { center: [f32; 2], radius: [f32; 2], stops: Vec<(f32, Color)> },
+    Linear {
+        angle: f32,
+        stops: Vec<(f32, Color)>,
+    },
+    Radial {
+        center: [f32; 2],
+        radius: [f32; 2],
+        stops: Vec<(f32, Color)>,
+    },
 }
 
 /// Border widths `[top, right, bottom, left]`; with uniform widths, `top` ≠ `bottom` draws a bevel.
@@ -250,13 +276,25 @@ pub struct Border {
 
 impl Border {
     pub fn all(w: f32, c: Color) -> Border {
-        Border { sides: [w; 4], top: c, bottom: c }
+        Border {
+            sides: [w; 4],
+            top: c,
+            bottom: c,
+        }
     }
     pub fn bevel(w: f32, top: Color, bottom: Color) -> Border {
-        Border { sides: [w; 4], top, bottom }
+        Border {
+            sides: [w; 4],
+            top,
+            bottom,
+        }
     }
     pub fn sides(sides: [f32; 4], c: Color) -> Border {
-        Border { sides, top: c, bottom: c }
+        Border {
+            sides,
+            top: c,
+            bottom: c,
+        }
     }
 }
 
@@ -286,7 +324,11 @@ impl SurfaceExt for El {
         }
         match &s.overlay {
             Some(Overlay::Linear { angle, stops }) => e = e.linear_gradient(*angle, stops),
-            Some(Overlay::Radial { center, radius, stops }) => e = e.radial_gradient(*center, *radius, stops),
+            Some(Overlay::Radial {
+                center,
+                radius,
+                stops,
+            }) => e = e.radial_gradient(*center, *radius, stops),
             None => {}
         }
         let mut inner = 0.0;
@@ -316,18 +358,37 @@ impl SurfaceExt for El {
             let r = (s.radius - inner).max(0.0);
             let (w, h) = tex.size();
             let (w, h) = (w as f32, h as f32);
-            let mut layer = el().pin(at, at, at, at).radius(r).clip_rounded(r).opacity(a).a11y_hidden();
+            let mut layer = el()
+                .pin(at, at, at, at)
+                .radius(r)
+                .clip_rounded(r)
+                .opacity(a)
+                .a11y_hidden();
             for y in 0..(COVER.1 / h).ceil() as usize {
                 for x in 0..(COVER.0 / w).ceil() as usize {
-                    layer = layer.child(el().absolute(x as f32 * w, y as f32 * h).size(w, h).pixels(img.pixels()));
+                    layer = layer.child(
+                        el().absolute(x as f32 * w, y as f32 * h)
+                            .size(w, h)
+                            .pixels(img.pixels()),
+                    );
                 }
             }
             e = e.child(layer);
         }
         if let Some(c) = s.corners {
             let (i, far) = (Some(c.inset), None);
-            for (l, t, r, b) in [(i, i, far, far), (far, i, i, far), (far, far, i, i), (i, far, far, i)] {
-                e = e.child(el().pin(l, t, r, b).size(c.size, c.size).a11y_hidden().child(icon(c.glyph, c.size).color(c.color)));
+            for (l, t, r, b) in [
+                (i, i, far, far),
+                (far, i, i, far),
+                (far, far, i, i),
+                (i, far, far, i),
+            ] {
+                e = e.child(
+                    el().pin(l, t, r, b)
+                        .size(c.size, c.size)
+                        .a11y_hidden()
+                        .child(icon(c.glyph, c.size).color(c.color)),
+                );
             }
         }
         e
@@ -349,12 +410,23 @@ pub fn pal() -> &'static Pal {
     &t().pal
 }
 
+/// The current theme's lights and mist, if it has any.
+pub fn lights() -> Option<&'static light::Lights> {
+    CURRENT.with(Cell::get).lights()
+}
+
 /// Starts a view: makes the stored theme current and makes sure the textures it shows exist
 /// (every theme's on Settings, for the picker). Without an image cache surfaces keep their fill.
 pub fn begin(s: &State) {
     CURRENT.with(|c| c.set(s.settings.theme));
-    let Some(cache) = s.images.as_ref() else { return };
-    let shown: &[ThemeId] = if s.screen == Screen::Settings { ThemeId::ALL } else { std::slice::from_ref(&s.settings.theme) };
+    let Some(cache) = s.images.as_ref() else {
+        return;
+    };
+    let shown: &[ThemeId] = if s.screen == Screen::Settings {
+        ThemeId::ALL
+    } else {
+        std::slice::from_ref(&s.settings.theme)
+    };
     for tex in shown.iter().flat_map(|id| id.theme().textures) {
         TEXTURES.with(|m| {
             m.borrow_mut().entry(*tex).or_insert_with(|| {
@@ -383,7 +455,12 @@ pub(crate) fn ink(a: f32) -> Color {
 
 /// A 1 pt highlight (`y > 0`: along the top) or shade (`y < 0`: along the bottom) inside the box.
 pub(crate) fn inset(y: f32, color: Color) -> Shadow {
-    Shadow { y, color, inset: true, ..Shadow::default() }
+    Shadow {
+        y,
+        color,
+        inset: true,
+        ..Shadow::default()
+    }
 }
 
 /// Small tweaks of a ladder style at the call site.
@@ -394,7 +471,11 @@ pub trait StyleExt {
 
 impl StyleExt for TextStyle {
     fn size_of(self, size: f32) -> Self {
-        TextStyle { size, line_height: (size * 1.3).round(), ..self }
+        TextStyle {
+            size,
+            line_height: (size * 1.3).round(),
+            ..self
+        }
     }
     fn weight_of(self, weight: f32) -> Self {
         TextStyle { weight, ..self }

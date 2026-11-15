@@ -13,16 +13,33 @@ pub fn page(s: &State) -> El {
     let p = pal();
     let saved = s.settings.curseforge_key.clone().unwrap_or_default();
     let dirty = s.api_key.text.trim() != saved;
-    let reveal = ui::icon_button("settings/api-key/reveal", if s.api_key_revealed { "Hide key" } else { "Show key" }, if s.api_key_revealed { &icons::EYE_OFF } else { &icons::EYE }, |s, _| {
-        s.api_key_revealed = !s.api_key_revealed
-    });
-    let key_field = ui::field("settings/api-key", &s.api_key, "Paste your CurseForge API key", Some(&icons::KEY), |s: &mut State| &mut s.api_key)
-        .secure(s.api_key_revealed)
-        .mono()
-        .trailing(reveal)
-        .on_submit(|s, tx| dispatch(s, Intent::SaveApiKey, tx))
-        .build()
-        .w(340.0);
+    let reveal = ui::icon_button(
+        "settings/api-key/reveal",
+        if s.api_key_revealed {
+            "Hide key"
+        } else {
+            "Show key"
+        },
+        if s.api_key_revealed {
+            &icons::EYE_OFF
+        } else {
+            &icons::EYE
+        },
+        |s, _| s.api_key_revealed = !s.api_key_revealed,
+    );
+    let key_field = ui::field(
+        "settings/api-key",
+        &s.api_key,
+        "Paste your CurseForge API key",
+        Some(&icons::KEY),
+        |s: &mut State| &mut s.api_key,
+    )
+    .secure(s.api_key_revealed)
+    .mono()
+    .trailing(reveal)
+    .on_submit(|s, tx| dispatch(s, Intent::SaveApiKey, tx))
+    .build()
+    .w(340.0);
     let key_status = if s.curseforge_ready() {
         ui::badge("Connected", p.success, p.success_soft, true)
     } else {
@@ -54,7 +71,12 @@ pub fn page(s: &State) -> El {
 
     let mut installs = section("Installations");
     if s.installations.is_empty() {
-        installs = installs.child(text("No World of Warcraft: Forever installation yet.").font(t().ty.note).color(p.text_muted).py(12.0));
+        installs = installs.child(
+            text("No World of Warcraft: Forever installation yet.")
+                .font(t().ty.note)
+                .color(p.text_muted)
+                .py(12.0),
+        );
     }
     for inst in &s.installations {
         let on = s.current.as_deref() == Some(&inst.id);
@@ -62,9 +84,14 @@ pub fn page(s: &State) -> El {
         let trailing = if on {
             ui::badge("In use", p.accent, p.accent_soft, false)
         } else {
-            ui::button(format!("settings/installation/{}/use", inst.id), "Use", Kind::Secondary, None, true, move |s, tx| {
-                dispatch(s, Intent::SelectInstallation(id.clone()), tx)
-            })
+            ui::button(
+                format!("settings/installation/{}/use", inst.id),
+                "Use",
+                Kind::Secondary,
+                None,
+                true,
+                move |s, tx| dispatch(s, Intent::SelectInstallation(id.clone()), tx),
+            )
             .h(28.0)
         };
         installs = installs.child(
@@ -86,9 +113,18 @@ pub fn page(s: &State) -> El {
                                 .gap(10.0)
                                 .center_y()
                                 .child(text(inst.label.clone()).font(t().ty.body).color(p.text))
-                                .child(text(inst.version.clone().unwrap_or_default()).font(t().ty.mono.size_of(11.0)).color(p.text_muted)),
+                                .child(
+                                    text(inst.version.clone().unwrap_or_default())
+                                        .font(t().ty.mono.size_of(11.0))
+                                        .color(p.text_muted),
+                                ),
                         )
-                        .child(text(inst.root.display().to_string()).font(t().ty.mono.size_of(11.5)).color(p.text_muted).truncate()),
+                        .child(
+                            text(inst.root.display().to_string())
+                                .font(t().ty.mono.size_of(11.5))
+                                .color(p.text_muted)
+                                .truncate(),
+                        ),
                 )
                 .child(trailing),
         );
@@ -97,30 +133,76 @@ pub fn page(s: &State) -> El {
         row()
             .pt(14.0)
             .gap(8.0)
-            .child(ui::button("settings/add-installation", "Add installation…", Kind::Secondary, Some(&icons::PLUS), true, |s, tx| dispatch(s, Intent::AddInstallation, tx)))
-            .child(ui::button("settings/import-wowup", "Import from WowUp", Kind::Ghost, Some(&icons::DOWNLOAD), s.installation().is_some(), |s, tx| {
-                dispatch(s, Intent::ImportWowUp, tx)
-            })),
+            .child(ui::button(
+                "settings/add-installation",
+                "Add installation…",
+                Kind::Secondary,
+                Some(&icons::PLUS),
+                true,
+                |s, tx| dispatch(s, Intent::AddInstallation, tx),
+            ))
+            .child(ui::button(
+                "settings/import-wowup",
+                "Import from WowUp",
+                Kind::Ghost,
+                Some(&icons::DOWNLOAD),
+                s.installation().is_some(),
+                |s, tx| dispatch(s, Intent::ImportWowUp, tx),
+            )),
     );
 
     let about = section("About").child(setting_row(
         brand::APP_NAME,
         "An addon manager for World of Warcraft: Forever. Free software under the MIT licence.",
-        text(format!("v{}", env!("CARGO_PKG_VERSION"))).key("settings/version").font(t().ty.mono).color(p.text_dim),
+        text(format!("v{}", env!("CARGO_PKG_VERSION")))
+            .key("settings/version")
+            .font(t().ty.mono)
+            .color(p.text_dim),
     ));
 
-    let mut themes = row().key("settings/theme").role("radiogroup").w_full().pt(14.0).gap(12.0).flex_wrap().focus_group();
+    let mut themes = row()
+        .key("settings/theme")
+        .role("radiogroup")
+        .w_full()
+        .pt(14.0)
+        .gap(12.0)
+        .flex_wrap()
+        .focus_group();
     for id in ThemeId::ALL {
         themes = themes.child(theme_card(s, *id));
     }
     let appearance = section("Appearance").child(themes);
 
-    let content = col().key("settings").w_full().max_w(880.0).px(theme::PAD).pb(40.0).child(curseforge).child(defaults).child(appearance).child(installs).child(about);
+    let content = col()
+        .key("settings")
+        .w_full()
+        .max_w(880.0)
+        .px(theme::PAD)
+        .pb(40.0)
+        .child(curseforge)
+        .child(defaults)
+        .child(appearance)
+        .child(installs)
+        .child(about);
     col()
         .w_full()
         .h_full()
-        .child(band("Settings", subtitle("Providers, defaults and your game installations"), vec![]))
-        .child(col().key("settings/scroll").grow(1.0).min_h(0.0).w_full().scroll(ScrollSpec { stick_bottom: false }).child(content))
+        .child(band(
+            "Settings",
+            subtitle("Providers, defaults and your game installations"),
+            vec![],
+        ))
+        .child(
+            col()
+                .key("settings/scroll")
+                .grow(1.0)
+                .min_h(0.0)
+                .w_full()
+                .scroll(ScrollSpec {
+                    stick_bottom: false,
+                })
+                .child(content),
+        )
 }
 
 /// A picker card: a miniature window painted in that theme's own skin, its name and a line.
@@ -133,13 +215,34 @@ fn theme_card(s: &State, id: ThemeId) -> El {
         .h(80.0)
         .clip_rounded(0.0)
         .skin(&sk.window)
-        .child(col().w(36.0).h_full().pt(10.0).items_center().skin(&sk.sidebar).child(icon(sk.emblem, 18.0).color(th.pal.accent)))
+        .child(
+            col()
+                .w(36.0)
+                .h_full()
+                .pt(10.0)
+                .items_center()
+                .skin(&sk.sidebar)
+                .child(icon(sk.emblem, 18.0).color(th.pal.accent)),
+        )
         .child(
             col()
                 .grow(1.0)
                 .min_w(0.0)
                 .h_full()
-                .child(row().w_full().h(38.0).px(10.0).center_y().skin(&sk.band).child(text(th.name).font(th.ty.heading).color(th.pal.heading).truncate()))
+                .child(
+                    row()
+                        .w_full()
+                        .h(38.0)
+                        .px(10.0)
+                        .center_y()
+                        .skin(&sk.band)
+                        .child(
+                            text(th.name)
+                                .font(th.ty.heading)
+                                .color(th.pal.heading)
+                                .truncate(),
+                        ),
+                )
                 .child(
                     row()
                         .w_full()
@@ -161,7 +264,10 @@ fn theme_card(s: &State, id: ThemeId) -> El {
         .w(186.0)
         .padding(8.0)
         .gap(10.0)
-        .border(if on { 2.0 } else { 1.0 }, if on { p.accent } else { p.border })
+        .border(
+            if on { 2.0 } else { 1.0 },
+            if on { p.accent } else { p.border },
+        )
         .hover(p.hover)
         .cursor(Cursor::Pointer)
         .on_press_tx(move |s: &mut State, tx: &mut Tx| dispatch(s, Intent::SetTheme(id), tx))
@@ -178,15 +284,29 @@ fn theme_card(s: &State, id: ThemeId) -> El {
                     .min_w(0.0)
                     .gap(2.0)
                     .child(text(th.name).font(t().ty.body).color(p.text))
-                    .child(text(th.blurb).font(t().ty.small).color(p.text_muted).truncate()),
+                    .child(
+                        text(th.blurb)
+                            .font(t().ty.small)
+                            .color(p.text_muted)
+                            .truncate(),
+                    ),
             )
-            .child(icon(&icons::CHECK, 16.0).color(if on { p.accent } else { p.accent.alpha(0.0) })),
+            .child(icon(&icons::CHECK, 16.0).color(if on {
+                p.accent
+            } else {
+                p.accent.alpha(0.0)
+            })),
     )
 }
 
 fn section(title: &str) -> El {
     let p = pal();
-    col().w_full().pt(28.0).child(text(title.to_string()).font(t().ty.heading).color(p.heading).pb(4.0))
+    col().w_full().pt(28.0).child(
+        text(title.to_string())
+            .font(t().ty.heading)
+            .color(p.heading)
+            .pb(4.0),
+    )
 }
 
 fn setting_row(label: &str, description: &str, control: El) -> El {
@@ -203,7 +323,12 @@ fn setting_row(label: &str, description: &str, control: El) -> El {
                 .min_w(0.0)
                 .gap(3.0)
                 .child(text(label.to_string()).font(t().ty.body).color(p.text))
-                .child(text(description.to_string()).font(t().ty.note).color(p.text_muted).wrap()),
+                .child(
+                    text(description.to_string())
+                        .font(t().ty.note)
+                        .color(p.text_muted)
+                        .wrap(),
+                ),
         )
         .child(control)
 }

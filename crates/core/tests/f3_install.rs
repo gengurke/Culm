@@ -70,7 +70,10 @@ fn f4_3_install_creates_record_and_replaces_existing_folders() {
         "old folder content replaced"
     );
     assert_eq!(read(&w, "Foo/Core.lua"), "new");
-    assert_eq!(*server.hits.borrow(), std::slice::from_ref(&stable.download_url));
+    assert_eq!(
+        *server.hits.borrow(),
+        std::slice::from_ref(&stable.download_url)
+    );
     // No staging/backup leftovers next to AddOns.
     let leftovers: Vec<_> = std::fs::read_dir(w.addons().parent().unwrap())
         .unwrap()

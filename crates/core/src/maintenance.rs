@@ -71,7 +71,10 @@ pub fn clear_cache(inst: &Installation, wdb_only: bool) -> Result<Cleanup> {
     } else {
         inst.root.join("Cache")
     };
-    if dir.symlink_metadata().is_ok_and(|m| m.file_type().is_symlink()) {
+    if dir
+        .symlink_metadata()
+        .is_ok_and(|m| m.file_type().is_symlink())
+    {
         bail!("{} is a link - not following it", dir.display());
     }
     let c = remove_files(&walk_files(&dir)?)?;

@@ -90,7 +90,9 @@ fn f3_1_check_updates_batches_per_provider_and_isolates_failures() {
 
     // WowInterface is not in `providers::all` (no flavor info); add it to check failure isolation.
     let mut list = providers::all(&config(&s, Some("k")));
-    list.push(Box::new(WowInterface { base_url: format!("{}/wowi", s.url()) }));
+    list.push(Box::new(WowInterface {
+        base_url: format!("{}/wowi", s.url()),
+    }));
     let errors = check_updates(Flavor::Forever, &mut addons, &list);
 
     assert_eq!(errors.len(), 1, "{errors:?}");

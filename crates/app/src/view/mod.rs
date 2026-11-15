@@ -8,10 +8,10 @@ mod settings;
 use crate::brand;
 use crate::icons;
 use crate::state::{Intent, Job, Screen, State, Tone, dispatch};
+use crate::theme::{self, StyleExt, SurfaceExt, light, pal, t};
 use crate::theme::{BandDeco, Surface};
-use crate::theme::{self, StyleExt, SurfaceExt, pal, t};
 use crate::ui::{self, Kind};
-use rune::{Cursor, Cx, El, Icon, Tx, col, el, icon, row, text};
+use rune::{Color, Cursor, Cx, El, Icon, Tx, col, el, icon, row, text};
 use rune_kit::{Toast, ToastRegion};
 
 pub fn view(s: &State, _cx: &mut Cx<State>) -> El {
@@ -24,20 +24,32 @@ pub fn view(s: &State, _cx: &mut Cx<State>) -> El {
         (Screen::GetAddons, Some(_)) => get_addons::page(s),
         (Screen::Maintenance, Some(_)) => maintenance::page(s),
     };
-    row()
-        .key("app")
-        .w_full()
-        .h_full()
-        .skin(&t().skin.window)
+    let mut root = row().key("app").w_full().h_full().skin(&t().skin.window);
+    let lights = theme::lights();
+    if let Some(mist) = lights.and_then(light::ground) {
+        root = root.child(mist);
+    }
+    root = root
         .child(sidebar(s))
-        .child(col().key("main").grow(1.0).min_w(0.0).h_full().child(page))
-        .child(toasts(s))
+        .child(col().key("main").grow(1.0).min_w(0.0).h_full().child(page));
+    if let Some(l) = lights {
+        root = light::track(root.child(light::layer(l)), l);
+    }
+    root.child(toasts(s))
 }
 
 /// The band every page starts with: title, a subtitle and actions on the right.
 pub(crate) fn band(title: &str, subtitle: El, actions: Vec<El>) -> El {
     let (th, p) = (t(), pal());
-    let mut b = row().key("band").w_full().h(theme::BAND_H).px(theme::PAD).pb(22.0).gap(16.0).items_end().skin(&th.skin.band);
+    let mut b = row()
+        .key("band")
+        .w_full()
+        .h(theme::BAND_H)
+        .px(theme::PAD)
+        .pb(22.0)
+        .gap(16.0)
+        .items_end()
+        .skin(&th.skin.band);
     if let Some(deco) = band_deco(th.skin.band_deco) {
         b = b.child(deco);
     }
@@ -46,20 +58,33 @@ pub(crate) fn band(title: &str, subtitle: El, actions: Vec<El>) -> El {
             .grow(1.0)
             .min_w(0.0)
             .gap(6.0)
-            .child(text(title).key("page-title").role("heading").font(th.ty.hero).color(p.heading))
+            .child(
+                text(title)
+                    .key("page-title")
+                    .role("heading")
+                    .font(th.ty.hero)
+                    .color(p.heading),
+            )
             .child(subtitle),
     )
-        .child(row().gap(8.0).center_y().children(actions))
+    .child(row().gap(8.0).center_y().children(actions))
 }
 
 pub(crate) fn subtitle(s: impl Into<String>) -> El {
-    text(s.into()).font(t().ty.note).color(pal().text_dim).truncate()
+    text(s.into())
+        .font(t().ty.note)
+        .color(pal().text_dim)
+        .truncate()
 }
 
 /// The band's decoration layer: a fixed scatter (a tiny LCG keeps it the same every frame).
 fn band_deco(deco: BandDeco) -> Option<El> {
     let p = pal();
-    let mut layer = el().key("band/stars").pin(Some(0.0), Some(0.0), Some(0.0), Some(0.0)).clip_rounded(0.0).a11y_hidden();
+    let mut layer = el()
+        .key("band/stars")
+        .pin(Some(0.0), Some(0.0), Some(0.0), Some(0.0))
+        .clip_rounded(0.0)
+        .a11y_hidden();
     let mut seed: u32 = 0x9e37_79b9;
     let mut next = || {
         seed = seed.wrapping_mul(1_664_525).wrapping_add(1_013_904_223);
@@ -69,20 +94,75 @@ fn band_deco(deco: BandDeco) -> Option<El> {
         BandDeco::None => return None,
         BandDeco::Stars => {
             for _ in 0..46 {
-                let (x, y, size, a) = (next() * 1600.0, next() * theme::BAND_H, if next() > 0.85 { 2.0 } else { 1.0 }, 0.18 + next() * 0.55);
-                layer = layer.child(el().absolute(x, y).size(size, size).radius(size / 2.0).fill(p.text.alpha(a)));
+                let (x, y, size, a) = (
+                    next() * 1600.0,
+                    next() * theme::BAND_H,
+                    if next() > 0.85 { 2.0 } else { 1.0 },
+                    0.18 + next() * 0.55,
+                );
+                layer = layer.child(
+                    el().absolute(x, y)
+                        .size(size, size)
+                        .radius(size / 2.0)
+                        .fill(p.text.alpha(a)),
+                );
             }
         }
         BandDeco::Embers => {
             // Sparks thin out and fade as they rise from the bottom edge.
             for _ in 0..40 {
-                let (x, rise, size) = (next() * 1600.0, next() * next(), if next() > 0.8 { 3.0 } else { 2.0 });
+                let (x, rise, size) = (
+                    next() * 1600.0,
+                    next() * next(),
+                    if next() > 0.8 { 3.0 } else { 2.0 },
+                );
                 let a = 0.85 - rise * 0.75;
                 let spark = p.warning.mix(p.accent_hi, next());
                 layer = layer.child(
-                    el().absolute(x, theme::BAND_H - 6.0 - rise * theme::BAND_H * 0.9).size(size, size).radius(size / 2.0).fill(spark.alpha(a)).shadow(0.0, 6.0, spark.alpha(a * 0.8)),
+                    el().absolute(x, theme::BAND_H - 6.0 - rise * theme::BAND_H * 0.9)
+                        .size(size, size)
+                        .radius(size / 2.0)
+                        .fill(spark.alpha(a))
+                        .shadow(0.0, 6.0, spark.alpha(a * 0.8)),
                 );
             }
+        }
+        BandDeco::Treeline => {
+            for _ in 0..22 {
+                let (x, y, a) = (
+                    next() * 1600.0,
+                    next() * theme::BAND_H * 0.45,
+                    0.12 + next() * 0.35,
+                );
+                layer = layer.child(el().absolute(x, y).size(1.0, 1.0).fill(p.text.alpha(a)));
+            }
+            // Two rows of silhouettes with mist between: the far row smaller and fainter.
+            let row = |layer: El, scale: f32, a: f32, gap: f32, next: &mut dyn FnMut() -> f32| {
+                let (mut layer, mut x) = (layer, next() * gap);
+                while x < 1600.0 {
+                    let pick = next();
+                    let (glyph, size) = match pick {
+                        _ if pick < 0.45 => (&icons::DEAD_TREE, 72.0 + next() * 40.0),
+                        _ if pick < 0.75 => (&icons::FENCE, 54.0 + next() * 16.0),
+                        _ => (&icons::GRAVES, 40.0 + next() * 16.0),
+                    };
+                    let size = size * scale;
+                    layer = layer.child(
+                        el().absolute(x, theme::BAND_H - size + 3.0)
+                            .size(size, size)
+                            .child(icon(glyph, size).color(Color::BLACK.alpha(a))),
+                    );
+                    x += size * 0.7 + next() * gap;
+                }
+                layer
+            };
+            layer = row(layer, 0.7, 0.32, 120.0, &mut next);
+            layer = layer.child(
+                el().pin(Some(0.0), None, Some(0.0), Some(0.0))
+                    .h(44.0)
+                    .gradient(p.haze.alpha(0.0), p.haze),
+            );
+            layer = row(layer, 1.0, 0.62, 260.0, &mut next);
         }
     }
     Some(layer)
@@ -98,18 +178,64 @@ fn sidebar(s: &State) -> El {
         .gap(10.0)
         .center_y()
         .child(el().size(28.0, 28.0).center().child(ui::emblem(19.0)))
-        .child(text(brand::APP_NAME.to_uppercase()).font(t().ty.wordmark).color(p.heading).truncate());
+        .child(
+            text(brand::APP_NAME.to_uppercase())
+                .font(t().ty.wordmark)
+                .color(p.heading)
+                .truncate(),
+        );
     let nav = col()
         .key("nav")
         .role("list")
         .focus_group()
         .pt(8.0)
-        .child(text("LIBRARY").font(t().ty.eyebrow).color(p.text_muted).px(24.0).pb(8.0))
-        .child(nav_row(s, Screen::MyAddons, "nav/my-addons", "My Addons", &icons::PACKAGE, updates))
-        .child(nav_row(s, Screen::GetAddons, "nav/get-addons", "Get Addons", &icons::COMPASS, 0))
-        .child(text("CLIENT").font(t().ty.eyebrow).color(p.text_muted).px(24.0).pt(20.0).pb(8.0))
-        .child(nav_row(s, Screen::Maintenance, "nav/maintenance", "Maintenance", &icons::WRENCH, 0))
-        .child(nav_row(s, Screen::Settings, "nav/settings", "Settings", &icons::SLIDERS, 0));
+        .child(
+            text("LIBRARY")
+                .font(t().ty.eyebrow)
+                .color(p.text_muted)
+                .px(24.0)
+                .pb(8.0),
+        )
+        .child(nav_row(
+            s,
+            Screen::MyAddons,
+            "nav/my-addons",
+            "My Addons",
+            &icons::PACKAGE,
+            updates,
+        ))
+        .child(nav_row(
+            s,
+            Screen::GetAddons,
+            "nav/get-addons",
+            "Get Addons",
+            &icons::COMPASS,
+            0,
+        ))
+        .child(
+            text("CLIENT")
+                .font(t().ty.eyebrow)
+                .color(p.text_muted)
+                .px(24.0)
+                .pt(20.0)
+                .pb(8.0),
+        )
+        .child(nav_row(
+            s,
+            Screen::Maintenance,
+            "nav/maintenance",
+            "Maintenance",
+            &icons::WRENCH,
+            0,
+        ))
+        .child(nav_row(
+            s,
+            Screen::Settings,
+            "nav/settings",
+            "Settings",
+            &icons::SLIDERS,
+            0,
+        ));
     col()
         .key("sidebar")
         .w(theme::SIDEBAR_W)
@@ -121,7 +247,14 @@ fn sidebar(s: &State) -> El {
         .child(installation_picker(s))
 }
 
-fn nav_row(s: &State, screen: Screen, key: &str, label: &str, glyph: &'static Icon, count: usize) -> El {
+fn nav_row(
+    s: &State,
+    screen: Screen,
+    key: &str,
+    label: &str,
+    glyph: &'static Icon,
+    count: usize,
+) -> El {
     let (th, p) = (t(), pal());
     let on = s.screen == screen;
     let mut r = row()
@@ -135,7 +268,11 @@ fn nav_row(s: &State, screen: Screen, key: &str, label: &str, glyph: &'static Ic
         .pr(16.0)
         .gap(12.0)
         .center_y()
-        .skin(if on { &th.skin.nav_active } else { &th.skin.nav })
+        .skin(if on {
+            &th.skin.nav_active
+        } else {
+            &th.skin.nav
+        })
         .cursor(Cursor::Pointer)
         .on_press_tx(move |s: &mut State, tx: &mut Tx| dispatch(s, Intent::Navigate(screen), tx));
     if on {
@@ -143,7 +280,12 @@ fn nav_row(s: &State, screen: Screen, key: &str, label: &str, glyph: &'static Ic
     }
     r = r
         .child(icon(glyph, 16.0).color(if on { p.accent } else { p.text_muted }))
-        .child(text(label).font(th.ty.body).color(if on { p.text } else { p.text_dim }).grow(1.0));
+        .child(
+            text(label)
+                .font(th.ty.body)
+                .color(if on { p.text } else { p.text_dim })
+                .grow(1.0),
+        );
     if count > 0 {
         r = r.child(
             row()
@@ -151,8 +293,15 @@ fn nav_row(s: &State, screen: Screen, key: &str, label: &str, glyph: &'static Ic
                 .h(18.0)
                 .px(7.0)
                 .center()
-                .skin(&Surface { fill: p.warning_soft, ..th.skin.chip.clone() })
-                .child(text(count.to_string()).font(t().ty.number.lh(14.0)).color(p.warning)),
+                .skin(&Surface {
+                    fill: p.warning_soft,
+                    ..th.skin.chip.clone()
+                })
+                .child(
+                    text(count.to_string())
+                        .font(t().ty.number.lh(14.0))
+                        .color(p.warning),
+                ),
         );
     }
     r
@@ -160,9 +309,15 @@ fn nav_row(s: &State, screen: Screen, key: &str, label: &str, glyph: &'static Ic
 
 fn installation_picker(s: &State) -> El {
     let p = pal();
-    let mut wrap = col().key("installation").border_sides([1.0, 0.0, 0.0, 0.0], p.divider);
+    let mut wrap = col()
+        .key("installation")
+        .border_sides([1.0, 0.0, 0.0, 0.0], p.divider);
     if s.inst_menu {
-        let mut menu = col().key("installation/menu").role("menu").py(6.0).skin(&t().skin.menu);
+        let mut menu = col()
+            .key("installation/menu")
+            .role("menu")
+            .py(6.0)
+            .skin(&t().skin.menu);
         for inst in &s.installations {
             let id = inst.id.clone();
             let on = s.current.as_deref() == Some(&inst.id);
@@ -176,9 +331,21 @@ fn installation_picker(s: &State) -> El {
                     .center_y()
                     .hover(p.hover)
                     .cursor(Cursor::Pointer)
-                    .on_press_tx(move |s: &mut State, tx: &mut Tx| dispatch(s, Intent::SelectInstallation(id.clone()), tx))
-                    .child(icon(&icons::CHECK, 14.0).color(if on { p.accent } else { p.accent.alpha(0.0) }))
-                    .child(text(inst.label.clone()).font(t().ty.small).color(p.text_dim).truncate().grow(1.0)),
+                    .on_press_tx(move |s: &mut State, tx: &mut Tx| {
+                        dispatch(s, Intent::SelectInstallation(id.clone()), tx)
+                    })
+                    .child(icon(&icons::CHECK, 14.0).color(if on {
+                        p.accent
+                    } else {
+                        p.accent.alpha(0.0)
+                    }))
+                    .child(
+                        text(inst.label.clone())
+                            .font(t().ty.small)
+                            .color(p.text_dim)
+                            .truncate()
+                            .grow(1.0),
+                    ),
             );
         }
         menu = menu.child(
@@ -193,12 +360,21 @@ fn installation_picker(s: &State) -> El {
                 .cursor(Cursor::Pointer)
                 .on_press_tx(|s: &mut State, tx: &mut Tx| dispatch(s, Intent::AddInstallation, tx))
                 .child(icon(&icons::PLUS, 14.0).color(p.text_muted))
-                .child(text("Add installation…").font(t().ty.small).color(p.text_dim)),
+                .child(
+                    text("Add installation…")
+                        .font(t().ty.small)
+                        .color(p.text_dim),
+                ),
         );
         wrap = wrap.child(menu);
     }
     let (label, version) = match s.installation() {
-        Some(i) => (i.label.clone(), i.version.clone().unwrap_or_else(|| "unknown version".into())),
+        Some(i) => (
+            i.label.clone(),
+            i.version
+                .clone()
+                .unwrap_or_else(|| "unknown version".into()),
+        ),
         None => ("No installation".into(), "Add one to start".into()),
     };
     let selector = row()
@@ -221,14 +397,26 @@ fn installation_picker(s: &State) -> El {
                 .min_w(0.0)
                 .gap(2.0)
                 .child(text(label).font(t().ty.small).color(p.text).truncate())
-                .child(text(version).font(t().ty.mono.size_of(11.0)).color(p.text_muted).truncate()),
+                .child(
+                    text(version)
+                        .font(t().ty.mono.size_of(11.0))
+                        .color(p.text_muted)
+                        .truncate(),
+                ),
         )
         .child(icon(&icons::UPDOWN, 14.0).color(p.text_muted));
     wrap.child(selector)
 }
 
 fn centered(content: El) -> El {
-    col().key("content").grow(1.0).min_h(0.0).w_full().center().padding(theme::PAD).child(content)
+    col()
+        .key("content")
+        .grow(1.0)
+        .min_h(0.0)
+        .w_full()
+        .center()
+        .padding(theme::PAD)
+        .child(content)
 }
 
 fn loading_page(_s: &State) -> El {
@@ -236,9 +424,22 @@ fn loading_page(_s: &State) -> El {
     col()
         .w_full()
         .h_full()
-        .child(band("Welcome", subtitle("Looking for World of Warcraft: Forever…"), vec![]))
+        .child(band(
+            "Welcome",
+            subtitle("Looking for World of Warcraft: Forever…"),
+            vec![],
+        ))
         .child(centered(
-            row().key("loading").gap(12.0).center_y().child(ui::spinner(16.0, p.accent)).child(text("Looking for installations…").font(t().ty.body).color(p.text_dim)),
+            row()
+                .key("loading")
+                .gap(12.0)
+                .center_y()
+                .child(ui::spinner(16.0, p.accent))
+                .child(
+                    text("Looking for installations…")
+                        .font(t().ty.body)
+                        .color(p.text_dim),
+                ),
         ))
 }
 
@@ -266,7 +467,15 @@ fn onboarding_page() -> El {
             true,
             |s, tx| dispatch(s, Intent::AddInstallation, tx),
         )));
-    col().w_full().h_full().child(band("Welcome", subtitle("Let's get your addons in order"), vec![])).child(centered(card))
+    col()
+        .w_full()
+        .h_full()
+        .child(band(
+            "Welcome",
+            subtitle("Let's get your addons in order"),
+            vec![],
+        ))
+        .child(centered(card))
 }
 
 fn toasts(s: &State) -> El {
@@ -280,13 +489,19 @@ fn toasts(s: &State) -> El {
             Tone::Danger => (p.danger, &icons::ALERT),
         };
         let id = t.id;
-        let mut toast = Toast::new(format!("toast/{id}"), t.title.clone()).lead(icon(glyph, 16.0).color(tone)).on_close(move |s: &mut State| s.dismiss_toast(id));
+        let mut toast = Toast::new(format!("toast/{id}"), t.title.clone())
+            .lead(icon(glyph, 16.0).color(tone))
+            .on_close(move |s: &mut State| s.dismiss_toast(id));
         if !t.body.is_empty() {
             toast = toast.description(t.body.clone());
         }
         region = region.toast(
             // The tone bar replaces the skin's border; the kit hard-codes its own radius (AGENTS.md).
-            toast.build(&k).w(340.0).skin(sk).border_sides([0.0, 0.0, 0.0, 2.0], tone),
+            toast
+                .build(&k)
+                .w(340.0)
+                .skin(sk)
+                .border_sides([0.0, 0.0, 0.0, 2.0], tone),
         );
     }
     region.build(&k).pin(None, None, Some(24.0), Some(24.0))

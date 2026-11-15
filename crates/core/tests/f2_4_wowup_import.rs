@@ -198,9 +198,16 @@ fn f2_4_zip_file_name_versions_show_the_toc_version() {
     let imported = wowup_import::import_wowup(&wowup, &w.inst).unwrap();
     let v = |i: usize| {
         let a = &imported[i];
-        (a.installed_version.clone().unwrap(), a.latest.as_ref().map(|l| l.version.clone()), a.update_available())
+        (
+            a.installed_version.clone().unwrap(),
+            a.latest.as_ref().map(|l| l.version.clone()),
+            a.update_available(),
+        )
     };
     // WowUp's "latest = installed" is dropped: we haven't checked it ourselves.
     assert_eq!(v(0), ("NoVer-1.2".into(), None, false));
-    assert_eq!(v(1), ("0.7.3".into(), Some("ForeverQuestTint-0.7.4".into()), true));
+    assert_eq!(
+        v(1),
+        ("0.7.3".into(), Some("ForeverQuestTint-0.7.4".into()), true)
+    );
 }

@@ -23,7 +23,9 @@ fn app(prepare: fn(&mut State)) -> Runtime<State> {
 }
 
 fn tap(rt: &mut Runtime<State>, key: &str) {
-    let (x, y) = rt.find(key).unwrap_or_else(|| panic!("no element keyed {key}"));
+    let (x, y) = rt
+        .find(key)
+        .unwrap_or_else(|| panic!("no element keyed {key}"));
     rt.pointer_down(x, y);
     rt.pointer_up(x, y);
     rt.frame(1.0 / 60.0);
@@ -33,7 +35,10 @@ fn tap(rt: &mut Runtime<State>, key: &str) {
 fn wait(rt: &mut Runtime<State>, what: &str, done: impl Fn(&State) -> bool) {
     let start = Instant::now();
     while !done(&rt.state) {
-        assert!(start.elapsed() < Duration::from_secs(10), "timed out waiting for {what}");
+        assert!(
+            start.elapsed() < Duration::from_secs(10),
+            "timed out waiting for {what}"
+        );
         std::thread::sleep(Duration::from_millis(5));
         rt.frame(1.0 / 60.0);
     }
@@ -41,11 +46,16 @@ fn wait(rt: &mut Runtime<State>, what: &str, done: impl Fn(&State) -> bool) {
 }
 
 fn shows(rt: &Runtime<State>, needle: &str) -> bool {
-    rt.elements().iter().any(|e| e.text.as_deref().is_some_and(|t| t.contains(needle)) && !e.exiting)
+    rt.elements()
+        .iter()
+        .any(|e| e.text.as_deref().is_some_and(|t| t.contains(needle)) && !e.exiting)
 }
 
 fn type_text(rt: &mut Runtime<State>, t: &str) {
-    rt.key(KeyEvent { key: Key::Text(t.into()), mods: Mods::default() });
+    rt.key(KeyEvent {
+        key: Key::Text(t.into()),
+        mods: Mods::default(),
+    });
     rt.frame(1.0 / 60.0);
 }
 
@@ -60,7 +70,11 @@ fn navigation_switches_screens() {
     ] {
         tap(&mut rt, key);
         assert_eq!(rt.state.screen, screen);
-        let heading = rt.elements().into_iter().find(|e| e.key.as_deref() == Some("page-title") && !e.exiting).unwrap();
+        let heading = rt
+            .elements()
+            .into_iter()
+            .find(|e| e.key.as_deref() == Some("page-title") && !e.exiting)
+            .unwrap();
         assert_eq!(heading.text.as_deref(), Some(title));
     }
 }
@@ -94,7 +108,9 @@ fn f3_2_failed_update_shows_error() {
     rt.update(|s, _| s.selected = Some("spoken".into()));
     rt.frame(1.0 / 60.0);
     tap(&mut rt, "detail/update");
-    wait(&mut rt, "update to fail", |s| matches!(s.addon("spoken").unwrap().op, Some(Op::Failed(_))));
+    wait(&mut rt, "update to fail", |s| {
+        matches!(s.addon("spoken").unwrap().op, Some(Op::Failed(_)))
+    });
     assert_eq!(rt.state.addon("spoken").unwrap().status(), Status::Error);
     assert!(shows(&rt, "GitHub answered 503"));
 }
@@ -104,7 +120,10 @@ fn f5_3_open_website() {
     let mut rt = app(loaded);
     tap(&mut rt, "addon/ace3");
     tap(&mut rt, "detail/website");
-    assert_eq!(rt.take_url_requests(), vec!["https://www.curseforge.com/wow/addons/ace3".to_string()]);
+    assert_eq!(
+        rt.take_url_requests(),
+        vec!["https://www.curseforge.com/wow/addons/ace3".to_string()]
+    );
 }
 
 #[test]
@@ -117,7 +136,11 @@ fn f6_1_maintenance_locked_while_game_runs() {
     rt.frame(1.0 / 60.0);
     assert!(rt.find("maintenance/game-running").is_some());
     tap(&mut rt, "maint/cache/run");
-    assert_eq!(rt.state.maint.get(&MaintCard::Cache), None, "disabled button does nothing");
+    assert_eq!(
+        rt.state.maint.get(&MaintCard::Cache),
+        None,
+        "disabled button does nothing"
+    );
 }
 
 #[test]
@@ -129,13 +152,25 @@ fn late_results_never_land_on_the_wrong_installation_or_restart_updates() {
     let before: Vec<String> = s.addons.iter().map(|a| a.addon.name.clone()).collect();
 
     // The scan of an installation the user switched away from answers late: dropped.
-    s.apply(Msg::Scanned { inst: "other-installation".into(), result: Ok((vec![], vec![])) });
-    assert_eq!(s.addons.iter().map(|a| a.addon.name.clone()).collect::<Vec<_>>(), before);
+    s.apply(Msg::Scanned {
+        inst: "other-installation".into(),
+        result: Ok((vec![], vec![])),
+    });
+    assert_eq!(
+        s.addons
+            .iter()
+            .map(|a| a.addon.name.clone())
+            .collect::<Vec<_>>(),
+        before
+    );
 
     // A rescan of the current installation keeps showing a running update, so it can't start twice.
     let id = s.addons[0].addon.id.clone();
     s.addons[0].op = Some(Op::Downloading(0.5));
     let list = s.addons.iter().map(|a| a.addon.clone()).collect();
-    s.apply(Msg::Scanned { inst: current, result: Ok((list, vec![])) });
+    s.apply(Msg::Scanned {
+        inst: current,
+        result: Ok((list, vec![])),
+    });
     assert_eq!(s.addon(&id).unwrap().op, Some(Op::Downloading(0.5)));
 }

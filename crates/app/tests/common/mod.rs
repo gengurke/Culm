@@ -8,7 +8,9 @@ use addon_app::state::{Op, Status};
 use addon_app::{Job, State, runtime};
 use addon_core::fingerprint::folder_fingerprint;
 use addon_core::providers::ProviderConfig;
-use addon_testkit::{FakeServer, cf_envelope, cf_file, cf_mod_with_files, fixture, fixture_at, make_zip};
+use addon_testkit::{
+    FakeServer, cf_envelope, cf_file, cf_mod_with_files, fixture, fixture_at, make_zip,
+};
 use rune::prefs::Prefs;
 use rune::{Key, KeyEvent, Mods, Runtime};
 use serde_json::{Value, json};
@@ -29,13 +31,19 @@ pub fn write(path: &Path, content: impl AsRef<[u8]>) {
 
 /// `Foo_Options` requires `Foo`, so unmatched it still groups under `Foo` (F2.2).
 fn toc(title: &str, version: &str) -> String {
-    let deps = title.split_once('_').map(|(parent, _)| format!("## RequiredDeps: {parent}\n")).unwrap_or_default();
+    let deps = title
+        .split_once('_')
+        .map(|(parent, _)| format!("## RequiredDeps: {parent}\n"))
+        .unwrap_or_default();
     format!("## Interface: 16001\n## Title: {title}\n## Version: {version}\n{deps}\nCore.lua\n")
 }
 
 /// Points the CDN URLs of provider JSON at the fake server.
 fn local(v: Value, base: &str) -> Value {
-    let s = v.to_string().replace("https://edge.forgecdn.net", base).replace("https://media.forgecdn.net", &format!("{base}/media"));
+    let s = v
+        .to_string()
+        .replace("https://edge.forgecdn.net", base)
+        .replace("https://media.forgecdn.net", &format!("{base}/media"));
     serde_json::from_str(&s).unwrap()
 }
 
@@ -62,7 +70,14 @@ impl World {
         let wow_root = prefix.join("drive_c/Program Files (x86)/World of Warcraft");
         let client = wow_root.join("_forever_");
         write(&wow_root.join(".build.info"), BUILD_INFO);
-        let w = World { server: FakeServer::start(), wow_root, client, search_roots: vec![prefix], wowup_dirs: vec![], tmp };
+        let w = World {
+            server: FakeServer::start(),
+            wow_root,
+            client,
+            search_roots: vec![prefix],
+            wowup_dirs: vec![],
+            tmp,
+        };
         w.folder("Ace", "1.0");
         w.folder("Bee", "2.0");
         w.folder("Bee_Options", "2.0");
@@ -97,13 +112,35 @@ impl World {
     fn serve(&self) {
         let s = &self.server;
         let base = s.url();
-        let ace = cf_mod_with_files(1, "Ace", vec![cf_file(11, "1.1", 1, &["Ace"], 0), cf_file(10, "1.0", 1, &["Ace"], 0)]);
+        let ace = cf_mod_with_files(
+            1,
+            "Ace",
+            vec![
+                cf_file(11, "1.1", 1, &["Ace"], 0),
+                cf_file(10, "1.0", 1, &["Ace"], 0),
+            ],
+        );
         let bee_files = |id, v| cf_file(id, v, 1, &["Bee", "Bee_Options"], 0);
         let bee = cf_mod_with_files(2, "Bee", vec![bee_files(21, "2.1"), bee_files(20, "2.0")]);
         let cee = cf_mod_with_files(3, "Cee", vec![cf_file(30, "3.0", 1, &["Cee"], 0)]);
-        s.json("POST", "/v1/mods", &local(cf_envelope(json!([ace, bee, cee.clone()])), base));
-        s.json("GET", "/v1/mods/search", &local(cf_envelope(json!([cee.clone()])), base));
-        s.json("POST", "/v1/mods/featured", &local(cf_envelope(json!({ "popular": [cee], "recentlyUpdated": [] })), base));
+        s.json(
+            "POST",
+            "/v1/mods",
+            &local(cf_envelope(json!([ace, bee, cee.clone()])), base),
+        );
+        s.json(
+            "GET",
+            "/v1/mods/search",
+            &local(cf_envelope(json!([cee.clone()])), base),
+        );
+        s.json(
+            "POST",
+            "/v1/mods/featured",
+            &local(
+                cf_envelope(json!({ "popular": [cee], "recentlyUpdated": [] })),
+                base,
+            ),
+        );
 
         // The installed files, with module fingerprints of the folders on disk.
         let mut ace10 = cf_file(10, "1.0", 1, &["Ace"], 0);
@@ -114,20 +151,53 @@ impl World {
             { "name": "Bee_Options", "fingerprint": self.fp("Bee_Options") }
         ]);
         let matches = json!({ "exactMatches": [{ "id": 1, "file": ace10 }, { "id": 2, "file": bee20 }], "partialMatches": [] });
-        s.json("POST", "/v1/fingerprints/1", &local(cf_envelope(matches), base));
+        s.json(
+            "POST",
+            "/v1/fingerprints/1",
+            &local(cf_envelope(matches), base),
+        );
 
         let zip = |folder: &str, version: &str, extra: &str| {
             let toc = toc(folder, version);
-            make_zip(&[(&format!("{folder}/{folder}.toc"), toc.as_bytes()), (&format!("{folder}/{extra}"), version.as_bytes())])
+            make_zip(&[
+                (&format!("{folder}/{folder}.toc"), toc.as_bytes()),
+                (&format!("{folder}/{extra}"), version.as_bytes()),
+            ])
         };
         s.bytes("GET", "/files/0/11/1.1.zip", zip("Ace", "1.1", "New.lua"));
-        s.bytes("GET", "/files/0/21/2.1.zip", make_zip(&[("Bee/Bee.toc", toc("Bee", "2.1").as_bytes()), ("Bee_Options/Bee_Options.toc", toc("Bee_Options", "2.1").as_bytes())]));
+        s.bytes(
+            "GET",
+            "/files/0/21/2.1.zip",
+            make_zip(&[
+                ("Bee/Bee.toc", toc("Bee", "2.1").as_bytes()),
+                (
+                    "Bee_Options/Bee_Options.toc",
+                    toc("Bee_Options", "2.1").as_bytes(),
+                ),
+            ]),
+        );
         s.bytes("GET", "/files/0/30/3.0.zip", zip("Cee", "3.0", "Core.lua"));
         s.respond("GET", "/media/*", 200, "image/svg+xml", THUMB_SVG);
-        s.json("GET", "/repos/Questie/Questie", &fixture("github_repo.json"));
-        s.json("GET", "/repos/Questie/Questie/releases", &fixture_at("github_releases.json", base));
-        s.json("GET", "/dl/82/release.json", &fixture("github_release.json"));
-        s.bytes("GET", "/dl/80/Questie-v12.9.0.zip", zip("Questie", "12.9.0", "Core.lua"));
+        s.json(
+            "GET",
+            "/repos/Questie/Questie",
+            &fixture("github_repo.json"),
+        );
+        s.json(
+            "GET",
+            "/repos/Questie/Questie/releases",
+            &fixture_at("github_releases.json", base),
+        );
+        s.json(
+            "GET",
+            "/dl/82/release.json",
+            &fixture("github_release.json"),
+        );
+        s.bytes(
+            "GET",
+            "/dl/80/Questie-v12.9.0.zip",
+            zip("Questie", "12.9.0", "Core.lua"),
+        );
     }
 
     /// WowUp (CurseForge edition) config that knows Ace for this client: installed 1.0, 1.1 out.
@@ -142,7 +212,10 @@ impl World {
             "downloadUrl": format!("{}/files/0/11/1.1.zip", self.server.url())
         });
         write(&dir.join("preferences.json"), prefs.to_string());
-        write(&dir.join("addons.json"), json!({ "wowup-ace": ace }).to_string());
+        write(
+            &dir.join("addons.json"),
+            json!({ "wowup-ace": ace }).to_string(),
+        );
         self.wowup_dirs = vec![dir];
         self
     }
@@ -153,7 +226,9 @@ impl World {
 
     /// Stores a CurseForge key as if the user had saved it earlier.
     pub fn with_key(self, key: &str) -> World {
-        Prefs::at(self.prefs_path()).set("curseforge_key", key).unwrap();
+        Prefs::at(self.prefs_path())
+            .set("curseforge_key", key)
+            .unwrap();
         self
     }
 
@@ -165,7 +240,12 @@ impl World {
             prefs: Prefs::at(self.prefs_path()),
             search_roots: self.search_roots.clone(),
             wowup_dirs: self.wowup_dirs.clone(),
-            providers: ProviderConfig { curseforge_base_url: url.clone(), github_base_url: url.clone(), wowinterface_base_url: url, ..Default::default() },
+            providers: ProviderConfig {
+                curseforge_base_url: url.clone(),
+                github_base_url: url.clone(),
+                wowinterface_base_url: url,
+                ..Default::default()
+            },
         }
     }
 
@@ -199,14 +279,20 @@ impl App {
     }
 
     pub fn tap(&mut self, key: &str) {
-        let (x, y) = self.rt.find(key).unwrap_or_else(|| panic!("nothing keyed {key} on screen"));
+        let (x, y) = self
+            .rt
+            .find(key)
+            .unwrap_or_else(|| panic!("nothing keyed {key} on screen"));
         self.rt.pointer_down(x, y);
         self.rt.pointer_up(x, y);
         self.frame();
     }
 
     pub fn type_text(&mut self, t: &str) {
-        self.rt.key(KeyEvent { key: Key::Text(t.into()), mods: Mods::default() });
+        self.rt.key(KeyEvent {
+            key: Key::Text(t.into()),
+            mods: Mods::default(),
+        });
         self.frame();
     }
 
@@ -216,17 +302,33 @@ impl App {
 
     /// Visible text anywhere on screen contains `needle`.
     pub fn shows(&self, needle: &str) -> bool {
-        self.rt.elements().iter().any(|e| !e.exiting && e.text.as_deref().is_some_and(|t| t.contains(needle)))
+        self.rt
+            .elements()
+            .iter()
+            .any(|e| !e.exiting && e.text.as_deref().is_some_and(|t| t.contains(needle)))
     }
 
     /// Visible text inside the element keyed `key` contains `needle` (by layout target, so a row
     /// that is still animating in counts).
     pub fn shows_in(&self, key: &str, needle: &str) -> bool {
-        let Some(rect) = self.rt.elements().into_iter().find(|e| e.key.as_deref() == Some(key) && !e.exiting).map(|e| e.target) else {
+        let Some(rect) = self
+            .rt
+            .elements()
+            .into_iter()
+            .find(|e| e.key.as_deref() == Some(key) && !e.exiting)
+            .map(|e| e.target)
+        else {
             return false;
         };
-        let inside = |r: [f32; 4]| r[0] >= rect[0] && r[1] >= rect[1] && r[0] + r[2] <= rect[0] + rect[2] + 0.5 && r[1] + r[3] <= rect[1] + rect[3] + 0.5;
-        self.rt.elements().iter().any(|e| !e.exiting && inside(e.target) && e.text.as_deref().is_some_and(|t| t.contains(needle)))
+        let inside = |r: [f32; 4]| {
+            r[0] >= rect[0]
+                && r[1] >= rect[1]
+                && r[0] + r[2] <= rect[0] + rect[2] + 0.5
+                && r[1] + r[3] <= rect[1] + rect[3] + 0.5
+        };
+        self.rt.elements().iter().any(|e| {
+            !e.exiting && inside(e.target) && e.text.as_deref().is_some_and(|t| t.contains(needle))
+        })
     }
 
     /// Steps frames (and real time, for the workers) until `done` holds.
@@ -251,26 +353,49 @@ impl App {
     /// No background job and no addon busy.
     pub fn wait_idle(&mut self) {
         self.wait_for("the app to settle", |s| {
-            s.job == Job::Idle && !s.url_busy && s.installing.is_empty() && !s.addons.iter().any(|a| a.op.as_ref().is_some_and(Op::busy))
+            s.job == Job::Idle
+                && !s.url_busy
+                && s.installing.is_empty()
+                && !s.addons.iter().any(|a| a.op.as_ref().is_some_and(Op::busy))
         });
     }
 
     /// Local id of the addon named `name`.
     pub fn id(&self, name: &str) -> String {
-        self.state().addons.iter().find(|a| a.addon.name == name).unwrap_or_else(|| panic!("no addon {name}")).addon.id.clone()
+        self.state()
+            .addons
+            .iter()
+            .find(|a| a.addon.name == name)
+            .unwrap_or_else(|| panic!("no addon {name}"))
+            .addon
+            .id
+            .clone()
     }
 
     pub fn status(&self, name: &str) -> Status {
-        self.state().addons.iter().find(|a| a.addon.name == name).unwrap_or_else(|| panic!("no addon {name}")).status()
+        self.state()
+            .addons
+            .iter()
+            .find(|a| a.addon.name == name)
+            .unwrap_or_else(|| panic!("no addon {name}"))
+            .status()
     }
 
     /// Key of the addon's row, or of a part of it (`row("Ace", "update")`).
     pub fn row(&self, name: &str, part: &str) -> String {
         let id = self.id(name);
-        if part.is_empty() { format!("addon/{id}") } else { format!("addon/{id}/{part}") }
+        if part.is_empty() {
+            format!("addon/{id}")
+        } else {
+            format!("addon/{id}/{part}")
+        }
     }
 
     pub fn names(&self) -> Vec<String> {
-        self.state().addons.iter().map(|a| a.addon.name.clone()).collect()
+        self.state()
+            .addons
+            .iter()
+            .map(|a| a.addon.name.clone())
+            .collect()
     }
 }

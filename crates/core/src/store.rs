@@ -168,7 +168,11 @@ pub fn owned_folders(addons: &[Addon], addon: &Addon) -> Vec<String> {
     let mine = addons.iter().find(|a| a.id == addon.id).unwrap_or(addon);
     mine.folders
         .iter()
-        .filter(|f| !addons.iter().any(|o| o.id != addon.id && o.folders.contains(f)))
+        .filter(|f| {
+            !addons
+                .iter()
+                .any(|o| o.id != addon.id && o.folders.contains(f))
+        })
         .cloned()
         .collect()
 }

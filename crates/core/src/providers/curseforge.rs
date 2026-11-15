@@ -209,7 +209,11 @@ fn to_file(f: &CfFile) -> RemoteFile {
     RemoteFile {
         id: f.id.to_string(),
         // Some authors upload with the zip name as the display name ("ForeverQuestTint-0.7.3.zip").
-        version: f.display_name.strip_suffix(".zip").unwrap_or(&f.display_name).to_string(),
+        version: f
+            .display_name
+            .strip_suffix(".zip")
+            .unwrap_or(&f.display_name)
+            .to_string(),
         channel: match f.release_type {
             2 => Channel::Beta,
             3 => Channel::Alpha,

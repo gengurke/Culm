@@ -77,9 +77,16 @@ fn clean_file_name_version(a: &mut Addon, addons_dir: &Path) {
     let is_file = |v: &str| v.to_ascii_lowercase().ends_with(".zip");
     let strip = |v: &str| v[..v.len() - 4].to_string();
     if let Some(v) = a.installed_version.clone().filter(|v| is_file(v)) {
-        let main = a.folders.iter().min_by(|x, y| x.len().cmp(&y.len()).then(x.cmp(y)));
+        let main = a
+            .folders
+            .iter()
+            .min_by(|x, y| x.len().cmp(&y.len()).then(x.cmp(y)));
         let toc = main
-            .and_then(|m| crate::toc::read_folder_toc(&addons_dir.join(m)).ok().flatten())
+            .and_then(|m| {
+                crate::toc::read_folder_toc(&addons_dir.join(m))
+                    .ok()
+                    .flatten()
+            })
             .and_then(|t| t.version);
         a.installed_version = Some(toc.unwrap_or_else(|| strip(&v)));
     }

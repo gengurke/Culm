@@ -37,7 +37,8 @@ impl Config {
     /// `ADDONS_GITHUB_URL` or `ADDONS_WOWINTERFACE_URL` point elsewhere (a fake server, or a
     /// closed port for an offline run).
     pub fn from_env() -> Result<Config> {
-        let dirs = rune::dirs::AppDirs::new(brand::APP_ID).context("no home folder to keep data in")?;
+        let dirs =
+            rune::dirs::AppDirs::new(brand::APP_ID).context("no home folder to keep data in")?;
         let mut providers = ProviderConfig::default();
         if let Ok(url) = std::env::var("ADDONS_CURSEFORGE_URL") {
             providers.curseforge_base_url = url;
@@ -93,7 +94,10 @@ impl CoreBackend {
     }
 
     fn provider_config(&self) -> ProviderConfig {
-        ProviderConfig { curseforge_api_key: self.load_settings().curseforge_key, ..self.endpoints.clone() }
+        ProviderConfig {
+            curseforge_api_key: self.load_settings().curseforge_key,
+            ..self.endpoints.clone()
+        }
     }
 
     /// Built per call from the current settings, so a new API key applies at once.
@@ -103,7 +107,10 @@ impl CoreBackend {
 
     fn curseforge(&self) -> CurseForge {
         let c = self.provider_config();
-        CurseForge { api_key: c.curseforge_api_key, base_url: c.curseforge_base_url }
+        CurseForge {
+            api_key: c.curseforge_api_key,
+            base_url: c.curseforge_base_url,
+        }
     }
 
     /// Load, change and save an installation's addon list under the store lock.
@@ -154,7 +161,10 @@ impl Backend for CoreBackend {
             curseforge_key: prefs.get::<String>(KEY).filter(|k| !k.trim().is_empty()),
             default_channel: prefs.get::<Channel>(CHANNEL).unwrap_or_default(),
             installation: prefs.get(INSTALLATION),
-            theme: prefs.get::<String>(THEME).map(|id| ThemeId::from_id(&id)).unwrap_or_default(),
+            theme: prefs
+                .get::<String>(THEME)
+                .map(|id| ThemeId::from_id(&id))
+                .unwrap_or_default(),
         }
     }
 
@@ -225,7 +235,8 @@ impl Backend for CoreBackend {
             for s in stored.iter_mut() {
                 if let Some(a) = list.iter().find(|a| a.id == s.id) {
                     s.latest = a.latest.clone();
-                    (s.name, s.author, s.summary) = (a.name.clone(), a.author.clone(), a.summary.clone());
+                    (s.name, s.author, s.summary) =
+                        (a.name.clone(), a.author.clone(), a.summary.clone());
                     (s.url, s.thumbnail_url) = (a.url.clone(), a.thumbnail_url.clone());
                 }
             }
@@ -236,10 +247,23 @@ impl Backend for CoreBackend {
     /// Update and reinstall both install `addon.latest` (fresh from the update check). Only the
     /// stored folders no other record lists are replaced; channel / ignore changes made while it
     /// downloaded are kept.
-    fn update(&self, inst: &Installation, addon: &Addon, _reinstall: bool, progress: &dyn Fn(f32)) -> Result<Addon> {
+    fn update(
+        &self,
+        inst: &Installation,
+        addon: &Addon,
+        _reinstall: bool,
+        progress: &dyn Fn(f32),
+    ) -> Result<Addon> {
         let _disk = self.disk_shared();
         let folders = self.edit(inst, |list| store::owned_folders(list, addon))?;
-        let mut a = install::update_addon(inst, &Addon { folders, ..addon.clone() }, &|url| self.download(url, progress))?;
+        let mut a = install::update_addon(
+            inst,
+            &Addon {
+                folders,
+                ..addon.clone()
+            },
+            &|url| self.download(url, progress),
+        )?;
         self.edit(inst, |list| {
             if let Some(s) = list.iter().find(|s| s.id == a.id) {
                 (a.channel, a.ignored, a.auto_update) = (s.channel, s.ignored, s.auto_update);
@@ -249,9 +273,16 @@ impl Backend for CoreBackend {
         Ok(a)
     }
 
-    fn install(&self, inst: &Installation, remote: &RemoteAddon, channel: Channel, progress: &dyn Fn(f32)) -> Result<Addon> {
+    fn install(
+        &self,
+        inst: &Installation,
+        remote: &RemoteAddon,
+        channel: Channel,
+        progress: &dyn Fn(f32),
+    ) -> Result<Addon> {
         let _disk = self.disk_shared();
-        let a = install::install_remote(inst, remote, channel, &|url| self.download(url, progress))?;
+        let a =
+            install::install_remote(inst, remote, channel, &|url| self.download(url, progress))?;
         self.save_record(inst, &a)?;
         Ok(a)
     }
@@ -261,7 +292,13 @@ impl Backend for CoreBackend {
         let _disk = self.disk_shared();
         self.edit(inst, |list| {
             let folders = store::owned_folders(list, addon);
-            install::remove_addon(inst, &Addon { folders, ..addon.clone() })?;
+            install::remove_addon(
+                inst,
+                &Addon {
+                    folders,
+                    ..addon.clone()
+                },
+            )?;
             list.retain(|a| a.id != addon.id);
             anyhow::Ok(())
         })?
@@ -300,15 +337,26 @@ impl Backend for CoreBackend {
         Ok(match job {
             Maintenance::ClearCache { wdb_only } => {
                 let c = maintenance::clear_cache(inst, wdb_only)?;
-                format!("Freed {} from {}", bytes(c.bytes), if wdb_only { "Cache/WDB" } else { "Cache" })
+                format!(
+                    "Freed {} from {}",
+                    bytes(c.bytes),
+                    if wdb_only { "Cache/WDB" } else { "Cache" }
+                )
             }
             Maintenance::CleanBackups => {
                 let c = maintenance::clean_backup_files(inst)?;
-                format!("Removed {} .bak and .old files ({})", c.files, bytes(c.bytes))
+                format!(
+                    "Removed {} .bak and .old files ({})",
+                    c.files,
+                    bytes(c.bytes)
+                )
             }
             Maintenance::BackupWtf => {
                 let path = maintenance::backup_wtf(inst, &self.backups_dir(inst))?;
-                format!("Saved {}", path.file_name().unwrap_or_default().to_string_lossy())
+                format!(
+                    "Saved {}",
+                    path.file_name().unwrap_or_default().to_string_lossy()
+                )
             }
         })
     }
@@ -316,7 +364,11 @@ impl Backend for CoreBackend {
     fn backups(&self, inst: &Installation) -> Result<Vec<Backup>> {
         Ok(maintenance::list_wtf_backups(&self.backups_dir(inst))?
             .into_iter()
-            .map(|b| Backup { name: b.name(), created_at: b.created_rfc3339().unwrap_or_default(), size_bytes: b.size })
+            .map(|b| Backup {
+                name: b.name(),
+                created_at: b.created_rfc3339().unwrap_or_default(),
+                size_bytes: b.size,
+            })
             .collect())
     }
 
@@ -329,12 +381,19 @@ impl Backend for CoreBackend {
             bail!("WowUp has no addons for {}", inst.root.display());
         }
         let n = records.len();
-        self.edit(inst, |list| records.into_iter().for_each(|r| store::upsert_addon(list, r)))?;
+        self.edit(inst, |list| {
+            records
+                .into_iter()
+                .for_each(|r| store::upsert_addon(list, r))
+        })?;
         Ok(n)
     }
 
     fn open_folder(&self, path: &Path) -> Result<()> {
-        let mut child = std::process::Command::new("xdg-open").arg(path).spawn().context("running xdg-open")?;
+        let mut child = std::process::Command::new("xdg-open")
+            .arg(path)
+            .spawn()
+            .context("running xdg-open")?;
         // Reap it in the background so it doesn't linger as a zombie.
         std::thread::spawn(move || child.wait());
         Ok(())
@@ -346,14 +405,19 @@ impl Backend for CoreBackend {
         }
         let mut h = DefaultHasher::new();
         url.hash(&mut h);
-        let path = self.cache_dir.join("thumbnails").join(format!("{:016x}", h.finish()));
+        let path = self
+            .cache_dir
+            .join("thumbnails")
+            .join(format!("{:016x}", h.finish()));
         if let Ok(bytes) = std::fs::read(&path) {
             return Ok(bytes);
         }
         let bytes = http::download(url, &mut |_, _| {})?;
         // Best effort: a failed cache write only costs a refetch next time.
         let tmp = path.with_extension("part");
-        if std::fs::create_dir_all(path.parent().unwrap_or(&self.cache_dir)).is_ok() && std::fs::write(&tmp, &bytes).is_ok() {
+        if std::fs::create_dir_all(path.parent().unwrap_or(&self.cache_dir)).is_ok()
+            && std::fs::write(&tmp, &bytes).is_ok()
+        {
             let _ = std::fs::rename(&tmp, &path);
         }
         Ok(bytes)

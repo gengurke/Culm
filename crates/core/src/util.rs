@@ -4,8 +4,8 @@ use anyhow::{Context, Result};
 use std::collections::hash_map::RandomState;
 use std::hash::{BuildHasher, Hasher};
 use std::io::Write;
-use std::sync::atomic::{AtomicU64, Ordering};
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 /// FNV-1a 64: stable across Rust versions (unlike `DefaultHasher`), used for path-derived ids.

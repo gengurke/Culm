@@ -135,7 +135,10 @@ fn f6_1_only_touches_a_forever_client_folder() {
     wrong.root = w.wow_root.clone();
     write(&w.wow_root.join("Cache/keep.bin"), "x");
     let err = maintenance::clear_cache(&wrong, false).unwrap_err();
-    assert!(err.to_string().contains("not a WoW Forever client"), "{err:#}");
+    assert!(
+        err.to_string().contains("not a WoW Forever client"),
+        "{err:#}"
+    );
     assert!(maintenance::clean_backup_files(&wrong).is_err());
     assert!(w.wow_root.join("Cache/keep.bin").exists());
 

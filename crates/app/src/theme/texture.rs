@@ -15,10 +15,19 @@ pub enum Tex {
     Leather,
     /// Dark cracked flagstone with mottled moss.
     Moss,
+    /// Soft wisps of cold mist (light only, no shade).
+    Mist,
 }
 
 impl Tex {
-    pub const ALL: [Tex; 5] = [Tex::Wood, Tex::Parchment, Tex::Stone, Tex::Leather, Tex::Moss];
+    pub const ALL: [Tex; 6] = [
+        Tex::Wood,
+        Tex::Parchment,
+        Tex::Stone,
+        Tex::Leather,
+        Tex::Moss,
+        Tex::Mist,
+    ];
 
     /// Pixel size; it tiles at one point per pixel.
     pub fn size(self) -> (u32, u32) {
@@ -40,9 +49,19 @@ impl Tex {
                     Tex::Stone => stone(x, y),
                     Tex::Leather => leather(x, y),
                     Tex::Moss => moss(x, y),
+                    Tex::Mist => mist(x, y),
                 }
                 .clamp(-1.0, 1.0);
-                let (rgb, a) = if v < 0.0 { ([12, 6, 2], -v) } else { ([255, 236, 200], v) };
+                let light = if self == Tex::Mist {
+                    [196, 212, 236]
+                } else {
+                    [255, 236, 200]
+                };
+                let (rgb, a) = if v < 0.0 {
+                    ([12, 6, 2], -v)
+                } else {
+                    (light, v)
+                };
                 out.extend_from_slice(&[rgb[0], rgb[1], rgb[2], (a * 255.0) as u8]);
             }
         }
@@ -51,7 +70,9 @@ impl Tex {
 }
 
 fn hash(x: i32, y: i32, seed: u32) -> f32 {
-    let mut h = (x as u32).wrapping_mul(0x8da6_b343) ^ (y as u32).wrapping_mul(0xd816_3841) ^ seed.wrapping_mul(0xcb1a_b31f);
+    let mut h = (x as u32).wrapping_mul(0x8da6_b343)
+        ^ (y as u32).wrapping_mul(0xd816_3841)
+        ^ seed.wrapping_mul(0xcb1a_b31f);
     h ^= h >> 13;
     h = h.wrapping_mul(0x5bd1_e995);
     h ^= h >> 15;
@@ -107,7 +128,14 @@ fn wood(x: u32, y: u32, w: u32) -> f32 {
     let (fx, fy) = (x as f32, y as f32);
     // Grain: noise stretched along the board, warped into wavy streaks.
     let warp = fbm(fx / 128.0, fy / 32.0, (w / 128) as i32, 16, 3, seed);
-    let streak = fbm(fx / 128.0, fy / 4.0 + warp * 5.0, (w / 128) as i32, 128, 4, seed + 11);
+    let streak = fbm(
+        fx / 128.0,
+        fy / 4.0 + warp * 5.0,
+        (w / 128) as i32,
+        128,
+        4,
+        seed + 11,
+    );
     let ring = (fy / 2.6 + warp * 22.0).sin() * 0.5 + 0.5;
     let rings = ring * ring * ring;
     tone + (streak - 0.5) * 0.9 - rings * rings * 0.28
@@ -117,7 +145,11 @@ fn parchment(x: u32, y: u32) -> f32 {
     let (fx, fy) = (x as f32, y as f32);
     let blotch = fbm(fx / 128.0, fy / 128.0, 4, 4, 5, 7);
     let fibre = noise(fx / 4.0, fy / 32.0, 128, 16, 8) - 0.5;
-    let speck = if hash(x as i32, y as i32, 9) > 0.996 { -0.35 } else { 0.0 };
+    let speck = if hash(x as i32, y as i32, 9) > 0.996 {
+        -0.35
+    } else {
+        0.0
+    };
     (blotch - 0.5) * 1.3 + fibre * 0.18 + speck
 }
 
@@ -192,8 +224,22 @@ fn moss(x: u32, y: u32) -> f32 {
     let patch = fbm(fx / 64.0, fy / 64.0, 8, 8, 4, 37);
     let near = (1.0 - edge / 40.0).max(0.0);
     v -= ((patch - 0.45) * 2.5 + near * 0.4).clamp(0.0, 0.45);
-    let grit = if hash(x as i32, y as i32, 38) > 0.993 { 0.25 } else { 0.0 };
+    let grit = if hash(x as i32, y as i32, 38) > 0.993 {
+        0.25
+    } else {
+        0.0
+    };
     v + grit
+}
+
+/// Cold mist banks stretched sideways, curling, thinning to nothing between.
+fn mist(x: u32, y: u32) -> f32 {
+    let (fx, fy) = (x as f32, y as f32);
+    // Banks stretched sideways, warped so they curl, thinning to nothing between.
+    let warp = fbm(fx / 128.0, fy / 64.0, 4, 8, 3, 31);
+    let bank = fbm(fx / 256.0 + warp * 0.6, fy / 128.0, 2, 4, 4, 32);
+    let v = ((bank - 0.42) * 2.6).clamp(0.0, 1.0);
+    v * v * (3.0 - 2.0 * v)
 }
 
 #[cfg(test)]

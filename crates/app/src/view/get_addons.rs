@@ -13,20 +13,36 @@ const COLUMNS: usize = 3;
 pub fn page(s: &State) -> El {
     let p = pal();
     let ready = s.curseforge_ready();
-    let search = ui::field("get-addons/search", &s.query, "Search CurseForge for Forever addons", Some(&icons::SEARCH), |s: &mut State| &mut s.query)
-        .on_change(|s, tx| dispatch(s, Intent::Search, tx))
-        .on_submit(|s, tx| dispatch(s, Intent::Search, tx))
-        .disabled(!ready)
-        .build()
-        .grow(1.0)
-        .max_w(560.0);
-    let url = ui::field("get-addons/url", &s.url, "Paste a CurseForge or GitHub URL", Some(&icons::LINK), |s: &mut State| &mut s.url)
-        .on_submit(|s, tx| dispatch(s, Intent::InstallFromUrl, tx))
-        .build()
-        .w(300.0);
+    let search = ui::field(
+        "get-addons/search",
+        &s.query,
+        "Search CurseForge for Forever addons",
+        Some(&icons::SEARCH),
+        |s: &mut State| &mut s.query,
+    )
+    .on_change(|s, tx| dispatch(s, Intent::Search, tx))
+    .on_submit(|s, tx| dispatch(s, Intent::Search, tx))
+    .disabled(!ready)
+    .build()
+    .grow(1.0)
+    .max_w(560.0);
+    let url = ui::field(
+        "get-addons/url",
+        &s.url,
+        "Paste a CurseForge or GitHub URL",
+        Some(&icons::LINK),
+        |s: &mut State| &mut s.url,
+    )
+    .on_submit(|s, tx| dispatch(s, Intent::InstallFromUrl, tx))
+    .build()
+    .w(300.0);
     let install_url = ui::button(
         "get-addons/url-install",
-        if s.url_busy { "Installing…" } else { "Install" },
+        if s.url_busy {
+            "Installing…"
+        } else {
+            "Install"
+        },
         Kind::Secondary,
         Some(&icons::DOWNLOAD),
         !s.url_busy && !s.url.text.trim().is_empty(),
@@ -50,26 +66,71 @@ pub fn page(s: &State) -> El {
         content = content.child(no_key_card());
     } else {
         let q = s.query.text.trim();
-        let (title, fetch) = if q.is_empty() { ("POPULAR FOR FOREVER".to_string(), &s.featured) } else { (format!("RESULTS FOR “{}”", q.to_uppercase()), &s.results) };
-        content = content.child(text(title).key("get-addons/section").font(t().ty.eyebrow).color(p.text_muted));
+        let (title, fetch) = if q.is_empty() {
+            ("POPULAR FOR FOREVER".to_string(), &s.featured)
+        } else {
+            (format!("RESULTS FOR “{}”", q.to_uppercase()), &s.results)
+        };
+        content = content.child(
+            text(title)
+                .key("get-addons/section")
+                .font(t().ty.eyebrow)
+                .color(p.text_muted),
+        );
         content = content.child(match fetch {
-            Fetch::Idle | Fetch::Loading => row().key("get-addons/loading").py(24.0).gap(10.0).center_y().child(ui::spinner(14.0, p.accent)).child(text("Searching CurseForge…").font(t().ty.body).color(p.text_dim)),
-            Fetch::Failed(e) => row().key("get-addons/error").gap(8.0).child(icon(&icons::ALERT, 14.0).color(p.danger)).child(text(e.clone()).font(t().ty.body).color(p.danger)),
+            Fetch::Idle | Fetch::Loading => row()
+                .key("get-addons/loading")
+                .py(24.0)
+                .gap(10.0)
+                .center_y()
+                .child(ui::spinner(14.0, p.accent))
+                .child(
+                    text("Searching CurseForge…")
+                        .font(t().ty.body)
+                        .color(p.text_dim),
+                ),
+            Fetch::Failed(e) => row()
+                .key("get-addons/error")
+                .gap(8.0)
+                .child(icon(&icons::ALERT, 14.0).color(p.danger))
+                .child(text(e.clone()).font(t().ty.body).color(p.danger)),
             Fetch::Ready(list) if list.is_empty() => col()
                 .key("get-addons/none")
                 .py(32.0)
                 .gap(6.0)
-                .child(text(format!("No addons match “{q}”")).font(t().ty.body).color(p.text_dim))
-                .child(text("Try a shorter name, or paste the addon's URL above.").font(t().ty.small).color(p.text_muted)),
+                .child(
+                    text(format!("No addons match “{q}”"))
+                        .font(t().ty.body)
+                        .color(p.text_dim),
+                )
+                .child(
+                    text("Try a shorter name, or paste the addon's URL above.")
+                        .font(t().ty.small)
+                        .color(p.text_muted),
+                ),
             Fetch::Ready(list) => grid(s, list),
         });
     }
     col()
         .w_full()
         .h_full()
-        .child(band("Get Addons", subtitle("Find new addons for World of Warcraft: Forever"), vec![]))
+        .child(band(
+            "Get Addons",
+            subtitle("Find new addons for World of Warcraft: Forever"),
+            vec![],
+        ))
         .child(toolbar)
-        .child(col().key("get-addons/scroll").grow(1.0).min_h(0.0).w_full().scroll(ScrollSpec { stick_bottom: false }).child(content))
+        .child(
+            col()
+                .key("get-addons/scroll")
+                .grow(1.0)
+                .min_h(0.0)
+                .w_full()
+                .scroll(ScrollSpec {
+                    stick_bottom: false,
+                })
+                .child(content),
+        )
 }
 
 fn no_key_card() -> El {
@@ -120,16 +181,38 @@ fn result_card(s: &State, remote: &RemoteAddon) -> El {
                 .key(format!("{key}/progress"))
                 .w(120.0)
                 .gap(6.0)
-                .child(text(format!("Installing… {:.0}%", done * 100.0)).font(t().ty.small).color(p.text_dim))
+                .child(
+                    text(format!("Installing… {:.0}%", done * 100.0))
+                        .font(t().ty.small)
+                        .color(p.text_dim),
+                )
                 .child(ui::progress_line(*done, 2.0)),
-            Some(_) => row().key(format!("{key}/progress")).gap(8.0).center_y().child(ui::spinner(12.0, p.accent)).child(text("Installing…").font(t().ty.small).color(p.text_dim)),
+            Some(_) => row()
+                .key(format!("{key}/progress"))
+                .gap(8.0)
+                .center_y()
+                .child(ui::spinner(12.0, p.accent))
+                .child(text("Installing…").font(t().ty.small).color(p.text_dim)),
             None => {
                 let r = remote.clone();
-                ui::button(format!("{key}/install"), "Install", Kind::Secondary, Some(&icons::DOWNLOAD), true, move |s, tx| dispatch(s, Intent::Install(r.clone()), tx)).h(28.0)
+                ui::button(
+                    format!("{key}/install"),
+                    "Install",
+                    Kind::Secondary,
+                    Some(&icons::DOWNLOAD),
+                    true,
+                    move |s, tx| dispatch(s, Intent::Install(r.clone()), tx),
+                )
+                .h(28.0)
             }
         }
     };
-    let thumb = ui::addon_tile(&remote.name, 40.0, s.thumb(remote.thumbnail_url.as_deref()), format!("{key}/thumb"));
+    let thumb = ui::addon_tile(
+        &remote.name,
+        40.0,
+        s.thumb(remote.thumbnail_url.as_deref()),
+        format!("{key}/thumb"),
+    );
     col()
         .key(key)
         .skin(&t().skin.panel)
@@ -137,20 +220,33 @@ fn result_card(s: &State, remote: &RemoteAddon) -> El {
         .gap(12.0)
         .hover(p.hover)
         .child(
-            row()
-                .w_full()
-                .gap(12.0)
-                .child(thumb)
-                .child(
-                    col()
-                        .grow(1.0)
-                        .min_w(0.0)
-                        .gap(3.0)
-                        .child(text(remote.name.clone()).font(t().ty.heading).color(p.text).truncate())
-                        .child(text(remote.author.clone()).font(t().ty.small).color(p.text_muted).truncate()),
-                ),
+            row().w_full().gap(12.0).child(thumb).child(
+                col()
+                    .grow(1.0)
+                    .min_w(0.0)
+                    .gap(3.0)
+                    .child(
+                        text(remote.name.clone())
+                            .font(t().ty.heading)
+                            .color(p.text)
+                            .truncate(),
+                    )
+                    .child(
+                        text(remote.author.clone())
+                            .font(t().ty.small)
+                            .color(p.text_muted)
+                            .truncate(),
+                    ),
+            ),
         )
-        .child(text(remote.summary.clone()).font(t().ty.note).color(p.text_dim).wrap().max_lines(2).h(38.0))
+        .child(
+            text(remote.summary.clone())
+                .font(t().ty.note)
+                .color(p.text_dim)
+                .wrap()
+                .max_lines(2)
+                .h(38.0),
+        )
         .child(
             row()
                 .w_full()
@@ -158,8 +254,16 @@ fn result_card(s: &State, remote: &RemoteAddon) -> El {
                 .gap(10.0)
                 .center_y()
                 .child(icon(&icons::DOWNLOAD, 12.0).color(p.text_muted))
-                .child(text(ui::count(remote.download_count)).font(t().ty.number).color(p.text_dim))
-                .child(text(remote.provider.clone()).font(t().ty.small).color(p.text_muted))
+                .child(
+                    text(ui::count(remote.download_count))
+                        .font(t().ty.number)
+                        .color(p.text_dim),
+                )
+                .child(
+                    text(remote.provider.clone())
+                        .font(t().ty.small)
+                        .color(p.text_muted),
+                )
                 .child(el().grow(1.0))
                 .child(action),
         )

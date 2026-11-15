@@ -143,7 +143,10 @@ fn f3_1_get_many_reports_latest_file_per_channel() {
         ["Bee", "Bee_Options"]
     );
     // A zip name uploaded as the display name shows as a version.
-    assert_eq!(addons[1].latest_for(Channel::Stable).unwrap().version, "Bee-2.0");
+    assert_eq!(
+        addons[1].latest_for(Channel::Stable).unwrap().version,
+        "Bee-2.0"
+    );
 }
 
 #[test]
@@ -393,13 +396,7 @@ fn f7_1_curseforge_unavailable_without_key() {
 
     let all = providers::all(&ProviderConfig::default());
     let names: Vec<(&str, bool)> = all.iter().map(|p| (p.name(), p.available())).collect();
-    assert_eq!(
-        names,
-        [
-            ("CurseForge", false),
-            ("GitHub", true)
-        ]
-    );
+    assert_eq!(names, [("CurseForge", false), ("GitHub", true)]);
     let cfg = ProviderConfig {
         curseforge_api_key: Some("k".into()),
         ..Default::default()

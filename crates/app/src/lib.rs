@@ -27,7 +27,8 @@ pub fn init() -> State {
     if headless && std::env::var("ADDONS_BACKEND").as_deref() != Ok("core") {
         return State::new(Arc::new(MockBackend::new()));
     }
-    let config = core_backend::Config::from_env().expect("no home folder to keep the app's data in");
+    let config =
+        core_backend::Config::from_env().expect("no home folder to keep the app's data in");
     State::new(Arc::new(core_backend::CoreBackend::new(config)))
 }
 
@@ -69,10 +70,14 @@ fn on_key(s: &mut State, ev: &KeyEvent, tx: &mut Tx) -> bool {
 /// State as it is once the mock installation is scanned and checked (no workers involved).
 pub fn loaded(s: &mut State) {
     s.settings = s.backend.load_settings();
-    s.api_key.replace_text(s.settings.curseforge_key.clone().unwrap_or_default());
+    s.api_key
+        .replace_text(s.settings.curseforge_key.clone().unwrap_or_default());
     s.installations = vec![mock::installation()];
     s.current = Some(mock::installation().id);
-    s.addons = mock::with_latest(&mock::installed_addons()).into_iter().map(|addon| AddonUi { addon, op: None }).collect();
+    s.addons = mock::with_latest(&mock::installed_addons())
+        .into_iter()
+        .map(|addon| AddonUi { addon, op: None })
+        .collect();
     s.addons.sort_by_key(|a| a.addon.name.to_lowercase());
     s.job = Job::Idle;
     scene_theme(s);
@@ -118,8 +123,16 @@ const SCENES: &[Scene] = &[
         set_op(s, "baganator", Op::Downloading(0.42));
         set_op(s, "chattynator", Op::Downloading(0.88));
         set_op(s, "bartender4", Op::Installing);
-        set_op(s, "spoken", Op::Failed("Download failed: GitHub answered 503".into()));
-        s.toast(Tone::Success, "Updated Details! Damage Meter", "20261113.15433");
+        set_op(
+            s,
+            "spoken",
+            Op::Failed("Download failed: GitHub answered 503".into()),
+        );
+        s.toast(
+            Tone::Success,
+            "Updated Details! Damage Meter",
+            "20261113.15433",
+        );
     }),
     ("my-addons-detail", |s| {
         loaded(s);
@@ -136,14 +149,20 @@ const SCENES: &[Scene] = &[
         let mut featured = mock::catalog();
         featured.sort_by_key(|r| std::cmp::Reverse(r.download_count));
         featured.truncate(12);
-        s.installing.insert("deadlybossmods".into(), Op::Downloading(0.6));
+        s.installing
+            .insert("deadlybossmods".into(), Op::Downloading(0.6));
         s.featured = Fetch::Ready(featured);
     }),
     ("get-addons-search", |s| {
         loaded(s);
         s.screen = Screen::GetAddons;
         s.query.replace_text("bag");
-        s.results = Fetch::Ready(mock::catalog().into_iter().filter(|r| r.name.to_lowercase().contains("bag")).collect());
+        s.results = Fetch::Ready(
+            mock::catalog()
+                .into_iter()
+                .filter(|r| r.name.to_lowercase().contains("bag"))
+                .collect(),
+        );
     }),
     ("get-addons-no-key", |s| {
         loaded(s);
@@ -155,10 +174,21 @@ const SCENES: &[Scene] = &[
         loaded(s);
         s.screen = Screen::Maintenance;
         s.backups = vec![
-            backend::Backup { name: "WTF-2026-11-12_2114.zip".into(), created_at: "2026-11-12T21:14:00Z".into(), size_bytes: 18_404_311 },
-            backend::Backup { name: "WTF-2026-11-02_0930.zip".into(), created_at: "2026-11-02T09:30:00Z".into(), size_bytes: 17_990_120 },
+            backend::Backup {
+                name: "WTF-2026-11-12_2114.zip".into(),
+                created_at: "2026-11-12T21:14:00Z".into(),
+                size_bytes: 18_404_311,
+            },
+            backend::Backup {
+                name: "WTF-2026-11-02_0930.zip".into(),
+                created_at: "2026-11-02T09:30:00Z".into(),
+                size_bytes: 17_990_120,
+            },
         ];
-        s.maint.insert(MaintCard::Cache, MaintPhase::Done("Freed 412 MB from Cache".into()));
+        s.maint.insert(
+            MaintCard::Cache,
+            MaintPhase::Done("Freed 412 MB from Cache".into()),
+        );
         s.maint.insert(MaintCard::Leftovers, MaintPhase::Confirm);
     }),
     ("maintenance-game-running", |s| {
