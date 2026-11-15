@@ -395,7 +395,6 @@ fn f7_1_curseforge_unavailable_without_key() {
         names,
         [
             ("CurseForge", false),
-            ("WowInterface", true),
             ("GitHub", true)
         ]
     );

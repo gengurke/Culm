@@ -22,7 +22,7 @@ What the addon manager does, one short paragraph per feature. Ids are referenced
 - **F2.2 Grouping** ✅ — Folders that belong to one addon (same provider match, folders listed in the installed file,
   or unmatched folders requiring a prefix parent such as `Details_*`) form one entry. (`f2_2_groups_by_provider_and_dependencies`)
 - **F2.3 Matching** ✅ — Folders are matched to CurseForge via fingerprints (murmur2)
-  and to other providers via TOC ids (`X-Curse-Project-ID`, `X-WoWI-ID`). Unmatched addons are "Unknown" and ignored for updates;
+  and to other providers via TOC ids (`X-Curse-Project-ID`; the WowInterface provider exists but is disabled for now because its files carry no game-version info). Unmatched addons are "Unknown" and ignored for updates;
   git checkouts are ignored as such. CurseForge `POST /v1/fingerprints/1` maps matched files' `modules[].name` to folders. (`f2_3_fingerprint_match_maps_modules_to_folders`, `f2_3_wowinterface_matches_toc_ids`, `f2_3_fingerprint_matches_golden_value`, `f2_3_unmatched_are_unknown_and_provider_errors_are_reported`)
 - **F2.4 WowUp import** ✅ — Imports addon records (`~/.config/WowUpCf`, `~/.config/WowUp`) of the WowUp installation in the same
   client folder, so switching from WowUp keeps provider links without rescanning online. Runs automatically on the first
@@ -91,7 +91,7 @@ What the addon manager does, one short paragraph per feature. Ids are referenced
 
 ## F7 Settings
 - **F7.1 CurseForge API key** ✅ — Stored in Rune prefs; providers are rebuilt from it per call and saving a key rescans.
-  Without a key: My Addons still scans, imports, removes, maintains and updates GitHub/WowInterface addons (and
+  Without a key: My Addons still scans, imports, removes, maintains and updates GitHub addons (and
   CurseForge ones from the imported last known release), shows an "Add a CurseForge key" hint; search is disabled with a
   Settings hint; nothing calls CurseForge. (`f7_1_curseforge_unavailable_without_key`,
   e2e `f7_1_without_a_key_search_is_off_and_points_to_settings`, `f7_1_f7_2_saved_settings_survive_a_restart`)

@@ -42,9 +42,8 @@ pub fn all(config: &ProviderConfig) -> Vec<Box<dyn Provider>> {
             api_key: config.curseforge_api_key.clone(),
             base_url: config.curseforge_base_url.clone(),
         }),
-        Box::new(WowInterface {
-            base_url: config.wowinterface_base_url.clone(),
-        }),
+        // shortcut: WowInterface is left out because its files carry no game-version info, so
+        // for Forever it could offer a retail build. Re-add once it can be filtered per flavor.
         Box::new(GitHub {
             token: config.github_token.clone(),
             api_base: config.github_base_url.clone(),

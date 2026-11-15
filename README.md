@@ -5,7 +5,7 @@ An addon manager for **World of Warcraft: Forever** on Linux, written in Rust on
 
 **Status:** early but usable. Detects Forever clients in Wine/Proton/Faugus/Lutris/Bottles prefixes, imports
 existing addon records, scans and groups `Interface/AddOns`, updates/installs/removes addons from CurseForge,
-GitHub and WowInterface, and has client maintenance (cache, WTF leftovers, WTF backups). What exactly works and
+GitHub (WowInterface is implemented but disabled: no game-version info for Forever), and has client maintenance (cache, WTF leftovers, WTF backups). What exactly works and
 how it is tested: [docs/FEATURES.md](docs/FEATURES.md).
 
 ## Build and run
@@ -29,7 +29,7 @@ CurseForge (search, update checks, fingerprint matching) needs your own free API
 1. Sign in at <https://console.curseforge.com> and create an API key (section "API keys").
 2. In the app: **Settings → CurseForge → API key**, paste it, **Save**. It is stored only on this computer.
 
-Without a key the app still scans, imports existing records, updates GitHub/WowInterface addons and offers updates
+Without a key the app still scans, imports existing records, updates GitHub addons and offers updates
 the import already knew about; CurseForge addons show "Not checked".
 
 ## Where data lives

@@ -1,6 +1,6 @@
 //! F3.1 at core level: one batch per provider, failures isolated, ignored addons left alone.
 
-use addon_core::providers::{self, ProviderConfig};
+use addon_core::providers::{self, ProviderConfig, WowInterface};
 use addon_core::updates::check_updates;
 use addon_core::{Addon, Channel, Flavor, IgnoreReason};
 use addon_testkit::{
@@ -88,11 +88,10 @@ fn f3_1_check_updates_batches_per_provider_and_isolates_failures() {
     ignored.ignored = Some(IgnoreReason::User);
     addons.push(ignored);
 
-    let errors = check_updates(
-        Flavor::Forever,
-        &mut addons,
-        &providers::all(&config(&s, Some("k"))),
-    );
+    // WowInterface is not in `providers::all` (no flavor info); add it to check failure isolation.
+    let mut list = providers::all(&config(&s, Some("k")));
+    list.push(Box::new(WowInterface { base_url: format!("{}/wowi", s.url()) }));
+    let errors = check_updates(Flavor::Forever, &mut addons, &list);
 
     assert_eq!(errors.len(), 1, "{errors:?}");
     assert!(errors[0].starts_with("WowInterface: "), "{errors:?}");
