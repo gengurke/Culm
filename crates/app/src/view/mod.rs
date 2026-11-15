@@ -9,9 +9,9 @@ use crate::brand;
 use crate::icons;
 use crate::state::{Intent, Job, Screen, State, Tone, dispatch};
 use crate::theme::{BandDeco, Surface};
-use crate::theme::{self, StyleExt, SurfaceExt, pal, t};
+use crate::theme::{self, StyleExt, SurfaceExt, light, pal, t};
 use crate::ui::{self, Kind};
-use rune::{Cursor, Cx, El, Icon, Tx, col, el, icon, row, text};
+use rune::{Color, Cursor, Cx, El, Icon, Tx, col, el, icon, row, text};
 use rune_kit::{Toast, ToastRegion};
 
 pub fn view(s: &State, _cx: &mut Cx<State>) -> El {
@@ -24,14 +24,16 @@ pub fn view(s: &State, _cx: &mut Cx<State>) -> El {
         (Screen::GetAddons, Some(_)) => get_addons::page(s),
         (Screen::Maintenance, Some(_)) => maintenance::page(s),
     };
-    row()
-        .key("app")
-        .w_full()
-        .h_full()
-        .skin(&t().skin.window)
-        .child(sidebar(s))
-        .child(col().key("main").grow(1.0).min_w(0.0).h_full().child(page))
-        .child(toasts(s))
+    let mut root = row().key("app").w_full().h_full().skin(&t().skin.window);
+    let lights = theme::lights();
+    if let Some(mist) = lights.and_then(light::ground) {
+        root = root.child(mist);
+    }
+    root = root.child(sidebar(s)).child(col().key("main").grow(1.0).min_w(0.0).h_full().child(page));
+    if let Some(l) = lights {
+        root = light::track(root.child(light::layer(l)), l);
+    }
+    root.child(toasts(s))
 }
 
 /// The band every page starts with: title, a subtitle and actions on the right.
@@ -83,6 +85,31 @@ fn band_deco(deco: BandDeco) -> Option<El> {
                     el().absolute(x, theme::BAND_H - 6.0 - rise * theme::BAND_H * 0.9).size(size, size).radius(size / 2.0).fill(spark.alpha(a)).shadow(0.0, 6.0, spark.alpha(a * 0.8)),
                 );
             }
+        }
+        BandDeco::Treeline => {
+            for _ in 0..22 {
+                let (x, y, a) = (next() * 1600.0, next() * theme::BAND_H * 0.45, 0.12 + next() * 0.35);
+                layer = layer.child(el().absolute(x, y).size(1.0, 1.0).fill(p.text.alpha(a)));
+            }
+            // Two rows of silhouettes with mist between: the far row smaller and fainter.
+            let row = |layer: El, scale: f32, a: f32, gap: f32, next: &mut dyn FnMut() -> f32| {
+                let (mut layer, mut x) = (layer, next() * gap);
+                while x < 1600.0 {
+                    let pick = next();
+                    let (glyph, size) = match pick {
+                        _ if pick < 0.45 => (&icons::DEAD_TREE, 72.0 + next() * 40.0),
+                        _ if pick < 0.75 => (&icons::FENCE, 54.0 + next() * 16.0),
+                        _ => (&icons::GRAVES, 40.0 + next() * 16.0),
+                    };
+                    let size = size * scale;
+                    layer = layer.child(el().absolute(x, theme::BAND_H - size + 3.0).size(size, size).child(icon(glyph, size).color(Color::BLACK.alpha(a))));
+                    x += size * 0.7 + next() * gap;
+                }
+                layer
+            };
+            layer = row(layer, 0.7, 0.32, 120.0, &mut next);
+            layer = layer.child(el().pin(Some(0.0), None, Some(0.0), Some(0.0)).h(44.0).gradient(p.haze.alpha(0.0), p.haze));
+            layer = row(layer, 1.0, 0.62, 260.0, &mut next);
         }
     }
     Some(layer)

@@ -84,3 +84,44 @@ fn f7_3_every_theme_renders_every_screen() {
         assert!(rt.find("onboarding/add").is_some(), "{}: onboarding", theme.id());
     }
 }
+
+#[test]
+fn f7_3_nightwatch_torch_follows_the_pointer_and_other_themes_have_no_lights() {
+    for &theme in ThemeId::ALL {
+        let mut state = State::new(Arc::new(MockBackend::new()));
+        loaded(&mut state);
+        state.settings.theme = theme;
+        let mut rt = runtime(state, (1280.0, 800.0));
+        rt.frame(0.0);
+        assert_eq!(rt.find("lights").is_some(), theme.lights().is_some(), "{}: a lights layer only with lights", theme.id());
+    }
+    let mut state = State::new(Arc::new(MockBackend::new()));
+    loaded(&mut state);
+    state.settings.theme = ThemeId::Nightwatch;
+    let mut rt = runtime(state, (1280.0, 800.0));
+    rt.frame(0.0);
+    let torch = |rt: &rune::Runtime<State>| {
+        let e = rt.elements().into_iter().find(|e| e.key.as_deref() == Some("lights/torch")).expect("the torch");
+        // `rect` is [x, y, width, height].
+        (e.rect[0] + e.rect[2] / 2.0, e.rect[1] + e.rect[3] / 2.0, e.opacity)
+    };
+    assert_eq!(torch(&rt).2, 0.0, "no torch before the pointer comes in");
+    rt.pointer_move(500.0, 300.0);
+    for _ in 0..60 {
+        rt.frame(1.0 / 60.0);
+    }
+    let commits = rt.stats.commits;
+    for i in 1..=20 {
+        rt.pointer_move(500.0 + i as f32 * 10.0, 300.0 + i as f32 * 7.0);
+        rt.frame(1.0 / 60.0);
+    }
+    // Debug builds still re-run the view for a live-only event a quarter second after the last
+    // commit, to check it; release builds don't.
+    assert!(rt.stats.commits - commits <= 2, "moving the torch rebuilt the view {} times", rt.stats.commits - commits);
+    for _ in 0..30 {
+        rt.frame(1.0 / 60.0);
+    }
+    let (x, y, lit) = torch(&rt);
+    assert!(lit > 0.9, "the torch is lit: {lit}");
+    assert!((x - 700.0).abs() < 1.0 && (y - 440.0).abs() < 1.0, "the torch is centred on the pointer, at {x},{y}");
+}

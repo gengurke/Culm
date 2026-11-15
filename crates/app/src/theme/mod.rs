@@ -3,8 +3,10 @@
 //! paint boxes with [`SurfaceExt::skin`], never with raw colours. Layout metrics are global.
 //!
 //! Adding a theme: write `theme/<name>.rs` with a `pub static THEME: LazyLock<Theme>` and add one
-//! `Variant => module` line to the `themes!` list below.
+//! `Variant => module` line to the `themes!` list below. A theme with lights and mist
+//! ([`light::Lights`]) also has `pub static LIGHTS: LazyLock<Lights>` and says `module + LIGHTS`.
 
+pub mod light;
 mod texture;
 
 use crate::state::{Screen, State};
@@ -16,7 +18,7 @@ use std::collections::HashMap;
 pub use texture::Tex;
 
 macro_rules! themes {
-    ($($variant:ident => $module:ident),+ $(,)?) => {
+    ($($variant:ident => $module:ident $(+ $lights:ident)?),+ $(,)?) => {
         $(mod $module;)+
 
         /// Which theme is on; stored in the settings by [`ThemeId::id`].
@@ -30,13 +32,21 @@ macro_rules! themes {
             pub fn theme(self) -> &'static Theme {
                 match self { $(ThemeId::$variant => &$module::THEME),+ }
             }
+
+            /// Its lights and mist; most themes have none.
+            pub fn lights(self) -> Option<&'static light::Lights> {
+                match self { $(ThemeId::$variant => themes!(@lights $module $($lights)?)),+ }
+            }
         }
     };
+    (@lights $module:ident) => { None };
+    (@lights $module:ident $lights:ident) => { Some(&*$module::$lights) };
 }
 
 themes! {
     Moonlit => moonlit,
     Hearthwood => hearthwood,
+    Nightwatch => nightwatch + LIGHTS,
 }
 
 impl Default for ThemeId {
@@ -209,6 +219,8 @@ pub enum BandDeco {
     Stars,
     /// Warm sparks drifting up from the bottom edge.
     Embers,
+    /// Dead trees, a fence and headstones in silhouette along the bottom edge, in low mist.
+    Treeline,
 }
 
 /// A box's look as data, painted by [`SurfaceExt::skin`]: fill, optional gradient and texture,
@@ -345,6 +357,11 @@ pub fn t() -> &'static Theme {
 
 pub fn pal() -> &'static Pal {
     &t().pal
+}
+
+/// The current theme's lights and mist, if it has any.
+pub fn lights() -> Option<&'static light::Lights> {
+    CURRENT.with(Cell::get).lights()
 }
 
 /// Starts a view: makes the stored theme current and makes sure the textures it shows exist

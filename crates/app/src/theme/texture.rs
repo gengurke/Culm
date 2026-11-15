@@ -13,10 +13,12 @@ pub enum Tex {
     Stone,
     /// Fine pebbled grain with creases.
     Leather,
+    /// Soft wisps of cold mist (light only, no shade).
+    Mist,
 }
 
 impl Tex {
-    pub const ALL: [Tex; 4] = [Tex::Wood, Tex::Parchment, Tex::Stone, Tex::Leather];
+    pub const ALL: [Tex; 5] = [Tex::Wood, Tex::Parchment, Tex::Stone, Tex::Leather, Tex::Mist];
 
     /// Pixel size; it tiles at one point per pixel.
     pub fn size(self) -> (u32, u32) {
@@ -37,9 +39,11 @@ impl Tex {
                     Tex::Parchment => parchment(x, y),
                     Tex::Stone => stone(x, y),
                     Tex::Leather => leather(x, y),
+                    Tex::Mist => mist(x, y),
                 }
                 .clamp(-1.0, 1.0);
-                let (rgb, a) = if v < 0.0 { ([12, 6, 2], -v) } else { ([255, 236, 200], v) };
+                let light = if self == Tex::Mist { [196, 212, 236] } else { [255, 236, 200] };
+                let (rgb, a) = if v < 0.0 { ([12, 6, 2], -v) } else { (light, v) };
                 out.extend_from_slice(&[rgb[0], rgb[1], rgb[2], (a * 255.0) as u8]);
             }
         }
@@ -148,6 +152,15 @@ fn leather(x: u32, y: u32) -> f32 {
     // Thin creases where a mid-scale noise crosses its middle.
     let crease = (1.0 - (fbm(fx / 64.0, fy / 64.0, 8, 8, 3, 23) - 0.5).abs() * 40.0).max(0.0);
     broad * 0.5 + grain * 0.22 - crease * 0.13
+}
+
+fn mist(x: u32, y: u32) -> f32 {
+    let (fx, fy) = (x as f32, y as f32);
+    // Banks stretched sideways, warped so they curl, thinning to nothing between.
+    let warp = fbm(fx / 128.0, fy / 64.0, 4, 8, 3, 31);
+    let bank = fbm(fx / 256.0 + warp * 0.6, fy / 128.0, 2, 4, 4, 32);
+    let v = ((bank - 0.42) * 2.6).clamp(0.0, 1.0);
+    v * v * (3.0 - 2.0 * v)
 }
 
 #[cfg(test)]
