@@ -108,6 +108,8 @@ fn to_addon(d: Details) -> RemoteAddon {
             folders: vec![],
             dependencies: vec![],
         }],
+        categories: vec![],
+        updated_at: None,
     }
 }
 

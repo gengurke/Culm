@@ -171,3 +171,97 @@ pub static STUD: Icon = Icon {
     view: 16.0,
     body: r##"<path d="M8 1 L15 8 L8 15 L1 8Z" fill="currentColor"/><path d="M8 1 L15 8 L8 15 L1 8Z" fill="none" stroke="#1a0d04" stroke-opacity="0.85" stroke-width="1.2" stroke-linejoin="round"/><path d="M8 2.6 L8 8 L2.6 8Z" fill="#fff8e0" fill-opacity="0.5"/><path d="M8 13.4 L8 8 L13.4 8Z" fill="#000" fill-opacity="0.35"/>"##,
 };
+
+line_icon!(CHEVRON_DOWN, "chevron-down", r#"<path d="m6 9 6 6 6-6"/>"#);
+line_icon!(
+    FILTER,
+    "filter",
+    r#"<path d="M3 6h18"/><path d="M7 12h10"/><path d="M10 18h4"/>"#
+);
+
+// Class glyphs for CurseForge's class categories: our own simple line drawings (no game art).
+line_icon!(
+    CLASS_WARRIOR,
+    "class-warrior",
+    r#"<path d="M20 3.5 18.5 8 9.5 17l-2.5-2.5 9-9z"/><path d="M5 12.5l6.5 6.5"/><path d="M8 18l-3.5 3.5"/><path d="M14 14h7v2.8c0 2.4-3.5 4.4-3.5 4.4S14 19.2 14 16.8z"/>"#
+);
+line_icon!(
+    CLASS_HUNTER,
+    "class-hunter",
+    r#"<path d="M5 3a16 16 0 0 1 16 16"/><path d="M5 3l16 16" stroke-width="1"/><path d="M3.5 20.5 17 7"/><path d="M12.5 7H17v4.5"/><path d="M3.5 20.5l.8-3M3.5 20.5l3-.8"/>"#
+);
+line_icon!(
+    CLASS_ROGUE,
+    "class-rogue",
+    r#"<path d="M20.5 3.5 19 9.5l-6 6-2.5-2.5 6-6z"/><path d="M8.5 11.5l4 4"/><path d="M10.5 15.5 5 21"/><circle cx="4.2" cy="21" r="0.6"/>"#
+);
+line_icon!(
+    CLASS_PRIEST,
+    "class-priest",
+    r#"<path d="M12 2.5v19"/><path d="M6.5 9h11"/><circle cx="12" cy="9" r="3.5"/><path d="M9.5 21.5h5"/>"#
+);
+line_icon!(
+    CLASS_MAGE,
+    "class-mage",
+    r#"<path d="M12 21.5c-3.8 0-6-2.6-6-6 0-3.8 2.6-5.6 3.8-9.5 1.9 1.6 3 3.6 3.2 5.6.9-.8 1.4-1.9 1.5-3 2 2 3.5 4.3 3.5 6.9 0 3.4-2.2 6-6 6z"/><path d="M12 21.5c-1.4 0-2.4-1-2.4-2.4 0-1.5 1.3-2.4 2.4-3.9 1.1 1.5 2.4 2.4 2.4 3.9s-1 2.4-2.4 2.4z"/>"#
+);
+line_icon!(
+    CLASS_WARLOCK,
+    "class-warlock",
+    r#"<path d="M12 2.5c-4.4 0-7.5 3-7.5 7.2 0 2.5 1.2 4.3 3 5.3v4h9v-4c1.8-1 3-2.8 3-5.3 0-4.2-3.1-7.2-7.5-7.2z"/><circle cx="9" cy="10.5" r="1.7"/><circle cx="15" cy="10.5" r="1.7"/><path d="M12 13.5v1.5"/><path d="M10.5 19v2.5M13.5 19v2.5"/>"#
+);
+line_icon!(
+    CLASS_DRUID,
+    "class-druid",
+    r#"<path d="M12 12c-3 0-5.5 3-5.5 5.6 0 1.8 1.3 2.6 2.8 2.6 1.1 0 1.8-.6 2.7-.6s1.6.6 2.7.6c1.5 0 2.8-.8 2.8-2.6C17.5 15 15 12 12 12z"/><ellipse cx="5.8" cy="10.2" rx="1.6" ry="2.1"/><ellipse cx="9.4" cy="5.8" rx="1.6" ry="2.2"/><ellipse cx="14.6" cy="5.8" rx="1.6" ry="2.2"/><ellipse cx="18.2" cy="10.2" rx="1.6" ry="2.1"/>"#
+);
+line_icon!(
+    CLASS_PALADIN,
+    "class-paladin",
+    r#"<rect x="4.5" y="3" width="15" height="6.5" rx="1.2"/><path d="M9.5 3v6.5M14.5 3v6.5"/><path d="M12 9.5V21"/><path d="M10 21h4"/>"#
+);
+line_icon!(
+    CLASS_SHAMAN,
+    "class-shaman",
+    r#"<rect x="8" y="2.5" width="8" height="19" rx="1"/><path d="M8 8.5H3.5l2 3H8M16 8.5h4.5l-2 3H16"/><path d="M10.4 6h.01M13.6 6h.01"/><path d="M8 12.5h8"/><path d="M10.5 16h3"/>"#
+);
+line_icon!(
+    CLASS_DEATH_KNIGHT,
+    "class-death-knight",
+    r#"<path d="M12 2.5v19"/><path d="M12 8 7 5M12 8l5-3M12 16l-5 3M12 16l5 3"/><path d="M9 12h6"/>"#
+);
+line_icon!(
+    CLASS_DEMON_HUNTER,
+    "class-demon-hunter",
+    r#"<path d="M8 21c-3.2-3-5-8.5-2-16 .3 4 2.2 6.4 4.5 7.5"/><path d="M16 21c3.2-3 5-8.5 2-16-.3 4-2.2 6.4-4.5 7.5"/><path d="M9 15.5h6"/>"#
+);
+line_icon!(
+    CLASS_MONK,
+    "class-monk",
+    r#"<circle cx="12" cy="12" r="9"/><path d="M12 3a4.5 4.5 0 0 1 0 9 4.5 4.5 0 0 0 0 9"/><path d="M12 7.5h.01M12 16.5h.01"/>"#
+);
+line_icon!(
+    CLASS_EVOKER,
+    "class-evoker",
+    r#"<path d="M2.5 18.5c4-1.2 6.2-4.2 7.2-9 1 2.8 2.8 4.6 5 4.8-.8-3.2.2-7.2 3.3-10.3 1.2 5 3 9.2 3.5 14.5-5.6-2-12-2-19 0z"/><path d="M9.7 9.5 8 17.6M18 4l-2.8 13.4"/>"#
+);
+
+/// The glyph for a CurseForge class category slug ("warrior", "death-knight"), if we drew one.
+pub fn class_icon(slug: &str) -> Option<&'static Icon> {
+    Some(match slug {
+        "warrior" => &CLASS_WARRIOR,
+        "hunter" => &CLASS_HUNTER,
+        "rogue" => &CLASS_ROGUE,
+        "priest" => &CLASS_PRIEST,
+        "mage" => &CLASS_MAGE,
+        "warlock" => &CLASS_WARLOCK,
+        "druid" => &CLASS_DRUID,
+        "paladin" => &CLASS_PALADIN,
+        "shaman" => &CLASS_SHAMAN,
+        "death-knight" => &CLASS_DEATH_KNIGHT,
+        "demon-hunters" => &CLASS_DEMON_HUNTER,
+        "monk" => &CLASS_MONK,
+        "evoker" => &CLASS_EVOKER,
+        _ => return None,
+    })
+}

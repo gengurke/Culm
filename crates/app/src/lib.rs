@@ -53,8 +53,13 @@ pub fn runtime(state: State, size: (f32, f32)) -> Runtime<State> {
     rt
 }
 
-/// `/` focuses the filter or search field when nothing else has focus.
+/// Esc closes an open dropdown, then the Get Addons detail panel; `/` focuses the filter or
+/// search field when nothing else has focus.
 fn on_key(s: &mut State, ev: &KeyEvent, tx: &mut Tx) -> bool {
+    if ev.key == Key::Escape {
+        return s.menu.take().is_some()
+            || (s.screen == Screen::GetAddons && s.detail.take().is_some());
+    }
     if tx.focused().is_some() || !matches!(&ev.key, Key::Text(t) if t == "/") {
         return false;
     }
@@ -174,6 +179,7 @@ const SCENES: &[Scene] = &[
         s.installing
             .insert("deadlybossmods".into(), Op::Downloading(0.6));
         s.featured = Fetch::Ready(featured);
+        s.categories = Fetch::Ready(mock::categories());
     }),
     ("get-addons-search", |s| {
         loaded(s);
@@ -184,6 +190,42 @@ const SCENES: &[Scene] = &[
                 .into_iter()
                 .filter(|r| r.name.to_lowercase().contains("bag"))
                 .collect(),
+        );
+    }),
+    ("get-addons-detail", |s| {
+        loaded(s);
+        s.screen = Screen::GetAddons;
+        s.categories = Fetch::Ready(mock::categories());
+        s.query.replace_text("bag");
+        let results: Vec<_> = mock::catalog()
+            .into_iter()
+            .filter(|r| r.name.to_lowercase().contains("bag"))
+            .collect();
+        let pick = results.iter().find(|r| r.name == "Bagnon").cloned();
+        s.results = Fetch::Ready(results);
+        s.detail = pick.map(|addon| state::Detail {
+            description: Fetch::Ready(Some(mock::description(&addon))),
+            addon,
+        });
+    }),
+    ("get-addons-category", |s| {
+        loaded(s);
+        s.screen = Screen::GetAddons;
+        s.categories = Fetch::Ready(mock::categories());
+        s.category = Some(1028); // Warrior
+        s.sort = addon_core::Sort::LastUpdated;
+        s.results = Fetch::Ready(mock::search(&s.search_filter()));
+        s.menu = Some(state::Menu::Category);
+    }),
+    ("get-addons-link", |s| {
+        loaded(s);
+        s.screen = Screen::GetAddons;
+        s.query.replace_text("https://github.com/Questie/Questie");
+        s.link = Fetch::Ready(
+            mock::catalog()
+                .into_iter()
+                .find(|r| r.name == "Questie Lite")
+                .unwrap_or_else(|| mock::catalog().remove(0)),
         );
     }),
     ("get-addons-no-key", |s| {

@@ -60,19 +60,35 @@ What the addon manager does, one short paragraph per feature. Ids are referenced
   automatically. (e2e `f3_4_ignored_addon_is_not_offered_for_update`)
 
 ## F4 Get Addons (remote)
-- **F4.1 Search** ✅ — Search CurseForge for Forever addons; results show name, author, downloads, summary.
-  Provider done: `gameVersionTypeId=88568`, sorted by popularity, files filtered to Forever (no alternatives), mods
-  without a Forever file dropped (`f4_1_search_curseforge_filters_forever_files`, e2e `f4_1_search_and_f4_3_install_from_a_result`).
+- **F4.1 Search** ✅ — One field takes search text or an install link: a CurseForge addon URL, a GitHub repo URL or bare
+  `owner/repo` (`providers::link_source`) shows "Install from <source>" with the resolved addon as the only result
+  (Enter installs it); anything else searches CurseForge for Forever addons (debounced, stale answers dropped). Results
+  show name, author, downloads, summary. Provider: `gameVersionTypeId=88568`, files filtered to Forever (no alternatives),
+  mods without a Forever file dropped; categories and `dateModified` kept for the detail (`f4_1_search_curseforge_filters_forever_files`,
+  `f4_4_link_source_tells_links_from_search_text`, e2e `f4_1_search_and_f4_3_install_from_a_result`,
+  `f4_1_one_field_routes_links_to_install_and_text_to_search`).
 - **F4.2 Popular** ✅ — Without a query, shows popular/recently updated Forever addons. Provider done:
   `POST /v1/mods/featured`, popular + recentlyUpdated deduped (`f4_2_popular_lists_featured`).
 - **F4.3 Install** ✅ — Installs a search result with the default channel; it appears in My Addons and takes the folders it
   installed from other records (records left without folders go). (`f4_3_install_creates_record_and_replaces_existing_folders`,
   `f4_3_install_takes_only_shared_folders_from_other_records`, e2e `f4_1_search_and_f4_3_install_from_a_result`)
-- **F4.4 Install from URL** ✅ — Paste a CurseForge addon URL or a GitHub repo URL (releases with
-  `release.json` or a `*-forever.zip`/plain zip asset). Provider `from_url` done for CurseForge (slug search),
+- **F4.4 Install from URL** ✅ — The F4.1 field resolves a pasted CurseForge addon URL or GitHub repo URL (releases with
+  `release.json` or a `*-forever.zip`/plain zip asset) on a worker and installs it from its card or detail. Provider `from_url` done for CurseForge (slug search),
   GitHub (`owner/repo`, newest 5 non-draft releases, prerelease = Beta; plain-zip fallback skips zips tagged for other
   flavors) and WowInterface (`info<ID>-...`) (`f4_4_curseforge_url_resolves_slug`, `f4_4_github_url_picks_forever_asset`,
   `f4_4_github_plain_zip_fallback_skips_other_flavors`, e2e `f4_4_install_from_github_url_without_a_key`).
+- **F4.5 Detail** ✅ — Clicking a result opens a side panel (like My Addons' detail): thumbnail, name, author, summary,
+  downloads, last updated, latest Forever file (version, date, channel, game version), categories, source, website link and
+  Install / progress / Installed ("Show in My Addons") / Update. CurseForge's long description (`GET /v1/mods/{id}/description`,
+  HTML) is fetched on a worker when it opens and shown as plain text (`html::to_text`: tags, scripts and images dropped,
+  paragraphs and list items kept, capped). Esc, the close button or clicking the result again closes it.
+  (`f4_5_description_is_plain_text`, e2e `f4_5_clicking_a_result_opens_its_detail_and_esc_closes_it`)
+- **F4.6 Filters** ✅ — A category dropdown (CurseForge's WoW addon tree from `GET /v1/categories?gameId=1`, fetched once
+  per run and cached 7 days in the cache dir; subcategories indented, class categories with our own line glyphs) and a
+  sort dropdown (Popularity, Last updated, Name, Total downloads) apply to search and browsing: `categoryId`, `sortField`
+  (2/3/4/6) and `sortOrder` on `/v1/mods/search`; with no text, category or order the popular list shows. Esc or a click
+  outside closes a dropdown. (`f4_6_categories_are_the_addon_tree`, `f4_6_search_sends_category_and_sort`,
+  e2e `f4_6_category_and_sort_filter_the_search`)
 
 ## F5 Manage
 - **F5.1 Remove** ✅ — Deletes the addon's stored folders after a confirm in the detail panel, never a folder another
@@ -93,8 +109,8 @@ What the addon manager does, one short paragraph per feature. Ids are referenced
 ## F7 Settings
 - **F7.1 CurseForge API key** ✅ — Stored in Rune prefs; providers are rebuilt from it per call and saving a key rescans.
   Without a key: My Addons still scans, imports, removes, maintains and updates GitHub addons (and
-  CurseForge ones from the imported last known release), shows an "Add a CurseForge key" hint; search is disabled with a
-  Settings hint; nothing calls CurseForge. (`f7_1_curseforge_unavailable_without_key`,
+  CurseForge ones from the imported last known release), shows an "Add a CurseForge key" hint; Get Addons hides the filters,
+  takes GitHub links but searches nothing, with a Settings hint; nothing calls CurseForge. (`f7_1_curseforge_unavailable_without_key`,
   e2e `f7_1_without_a_key_search_is_off_and_points_to_settings`, `f7_1_f7_2_saved_settings_survive_a_restart`)
 - **F7.2 Defaults** ✅ — Default channel for new addons, stored in prefs. (e2e `f7_1_f7_2_saved_settings_survive_a_restart`)
 - **F7.3 Themes** ✅ — Settings → Appearance picks the look (Moonlit; Hearthwood: carved wood, stone and gold; Emberglow: mossy
@@ -118,6 +134,6 @@ are dropped after a switch).
 ## UI shell ✅
 Rune UI in `crates/app` (themes in `src/theme/`, default Moonlit): sidebar nav with update badge and
 installation picker, header band (stars in Moonlit), My Addons (filter, virtual list, detail panel), Get Addons
-(debounced search, popular list, install from URL, no-key hint), Maintenance (confirm + result per
+(one search-or-link field, category and sort dropdowns, popular list, result detail panel, no-key hint), Maintenance (confirm + result per
 card, locked while the game runs), Settings (theme, API key, default channel, installations, WowUp import),
 toasts and onboarding. Every scene has a `<scene>@<theme>` variant (`--snap x.png --scene settings@hearthwood`).

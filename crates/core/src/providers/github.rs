@@ -74,7 +74,9 @@ impl GitHub {
                 .flat_map(|r| &r.assets)
                 .map(|a| a.download_count)
                 .sum(),
+            updated_at: files.iter().filter_map(|f| f.released_at.clone()).max(),
             files: newest_per_channel(files.into_iter()),
+            categories: vec![],
         })
     }
 }
@@ -155,7 +157,7 @@ fn forever_asset(r: &Release) -> Option<&Asset> {
 }
 
 /// `https://github.com/<owner>/<repo>[/...][.git]` or bare `owner/repo` → "owner/repo".
-fn parse_url(url: &str) -> Option<String> {
+pub(super) fn parse_url(url: &str) -> Option<String> {
     let url = url.trim();
     let (rest, bare) = match url.split_once("://") {
         Some((_, r)) => (
