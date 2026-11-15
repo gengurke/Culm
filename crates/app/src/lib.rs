@@ -139,7 +139,7 @@ const SCENES: &[Scene] = &[
             "20261113.15433",
         );
     }),
-    // shortcut: temporary, every status on one screen for the badge style comparison.
+    // Every status on one screen.
     ("my-addons-badges", |s| {
         loaded(s);
         let keep = [

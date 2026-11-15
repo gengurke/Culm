@@ -340,11 +340,6 @@ fn version_cell(a: &AddonUi) -> El {
             .color(p.text_muted)
             .truncate()
         }
-        // The icon-only badge style moves the status colour onto the version.
-        _ if ui::badge_style() == ui::BadgeStyle::Icon => text(installed)
-            .font(t().ty.mono)
-            .color(status_mark(a).1.colors().0)
-            .truncate(),
         _ => text(installed)
             .font(t().ty.mono)
             .color(p.text_dim)

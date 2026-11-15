@@ -94,7 +94,7 @@ pub fn icon_button(
         .child(icon(theme::glyph(glyph), 16.0).color(sk.ink))
 }
 
-/// What a status tag means; its colour, glyph and shape come from the theme and [`BadgeStyle`].
+/// What a status tag means; its colour and glyph come from the theme.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Mark {
     /// Up to date, installed, connected.
@@ -141,150 +141,48 @@ impl Mark {
     }
 }
 
-/// How status tags are drawn.
-// shortcut: temporary design comparison, picked by `ADDONS_BADGE_STYLE=0|a|b|c|d|e` (read once);
-// drop the losers and the variable once one style is chosen.
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub enum BadgeStyle {
-    /// 0: the old pill: caption on a soft fill, a dot when good.
-    Pill,
-    /// A: a glyph and a word, no box; only marks that need attention colour their word.
-    Glyph,
-    /// B: the glyph alone (label in the tooltip); My Addons colours the version instead.
-    Icon,
-    /// C: item-quality text: the label in the theme's heading face and status colour, in brackets.
-    Quality,
-    /// D: an engraved plate (the theme's tile) with a bevelled gem and a small-caps label.
-    Plate,
-    /// E: a gem in a socket (a lit gem of the status colour, an empty socket when nothing is
-    /// known), then the word.
-    Socket,
-}
-
-pub fn badge_style() -> BadgeStyle {
-    static STYLE: std::sync::OnceLock<BadgeStyle> = std::sync::OnceLock::new();
-    *STYLE.get_or_init(|| {
-        match std::env::var("ADDONS_BADGE_STYLE")
-            .unwrap_or_default()
-            .to_lowercase()
-            .as_str()
-        {
-            "a" => BadgeStyle::Glyph,
-            "b" => BadgeStyle::Icon,
-            "c" => BadgeStyle::Quality,
-            "d" => BadgeStyle::Plate,
-            "e" => BadgeStyle::Socket,
-            _ => BadgeStyle::Pill,
-        }
-    })
-}
-
-/// A status tag: `label` marked as `mark`, drawn in the current [`badge_style`].
+/// A status tag: a glyph and a word, no box; only marks that need attention colour their word.
+/// An update gets an engraved plate (the theme's tile) with a bevelled gem and a small-caps label.
 pub fn tag(label: &str, mark: Mark) -> El {
     let th = t();
     let p = &th.pal;
-    let (fg, soft) = mark.colors();
-    match badge_style() {
-        BadgeStyle::Pill => {
-            let mut b = row().h(20.0).px(9.0).gap(6.0).center().skin(&Surface {
-                fill: soft,
-                ..th.skin.chip.clone()
-            });
-            if mark == Mark::Good {
-                b = b.child(el().size(6.0, 6.0).radius(3.0).fill(fg).shadow(
-                    0.0,
-                    6.0,
-                    fg.alpha(0.6),
-                ));
-            }
-            b.child(text(label).font(th.ty.caption).color(fg))
-        }
-        BadgeStyle::Glyph => {
-            let quiet = if mark == Mark::Good { fg } else { p.text_muted };
-            row()
-                .h(20.0)
-                .gap(7.0)
-                .center_y()
-                .child(icon(mark.glyph(), 14.0).color(if mark.loud() { fg } else { quiet }))
-                .child(
-                    text(label)
-                        .font(if mark.loud() {
-                            th.ty.small.weight_of(600.0)
-                        } else {
-                            th.ty.small
-                        })
-                        .color(if mark.loud() { fg } else { p.text_muted }),
-                )
-        }
-        BadgeStyle::Icon => el()
-            .size(22.0, 22.0)
-            .center()
-            .label(label)
-            .help(label)
-            .child(icon(mark.glyph(), 16.0).color(fg)),
-        // Item quality: poor grey for what isn't tracked, uncommon green, rare blue while busy,
-        // legendary orange for an update, red for trouble.
-        BadgeStyle::Quality => text(format!("[{label}]"))
-            .font(th.ty.heading.size_of(12.5).weight_of(600.0))
-            .color(match mark {
-                Mark::Busy => p.info,
-                Mark::Muted | Mark::Off => p.text_muted,
-                _ => fg,
-            }),
-        // Only what needs the user gets the plate; quiet marks keep just the gem and the word.
-        BadgeStyle::Plate => {
-            let mut b = row().h(20.0).pl(6.0).pr(8.0).gap(6.0).center_y();
-            // On the plate the status ink may need lifting (a dark plate on a light page).
-            let fg = if mark.loud() {
-                b = b.skin(&Surface {
-                    corners: None,
-                    ..th.skin.tile.clone()
-                });
-                theme::readable(fg, th.skin.tile.fill)
-            } else {
-                fg
-            };
-            b.child(icon(&icons::STUD, 9.0).color(if mark == Mark::Off { p.text_off } else { fg }))
-                .child(
-                    text(label)
-                        .font(th.ty.eyebrow.size_of(10.0).tracking(0.9))
-                        .text_case(rune::TextCase::Uppercase)
-                        .color(if mark.loud() { fg } else { p.text_muted }),
-                )
-        }
-        // A gem set in a socket; nothing known yet or left alone: an empty socket.
-        BadgeStyle::Socket => {
-            let mut socket = el()
-                .size(16.0, 16.0)
-                .center()
-                .radius(8.0)
-                .fill(Color::BLACK.alpha(0.5))
-                .border_gradient(1.0, Color::BLACK.alpha(0.7), p.accent.alpha(0.6))
-                .box_shadow(theme::inset(1.5, Color::BLACK.alpha(0.6)));
-            if matches!(mark, Mark::Good | Mark::Update | Mark::Bad | Mark::Busy) {
-                let mut gem = el().size(10.0, 10.0).radius(5.0).radial_gradient(
-                    [0.35, 0.3],
-                    6.0,
-                    [
-                        (0.0, fg.mix(Color::WHITE, 0.55)),
-                        (0.5, fg),
-                        (1.0, fg.mix(Color::BLACK, 0.45)),
-                    ],
-                );
-                if mark.loud() {
-                    gem = gem.shadow(0.0, 8.0, fg.alpha(0.8));
-                }
-                socket = socket.child(gem);
-            }
-            row().h(20.0).gap(8.0).center_y().child(socket).child(
-                text(label).font(th.ty.small).color(match mark {
-                    _ if mark.loud() => fg,
-                    Mark::Good => p.text_dim,
-                    _ => p.text_muted,
-                }),
-            )
-        }
+    let (fg, _) = mark.colors();
+    if mark == Mark::Update {
+        // On the plate the status ink may need lifting (a dark plate on a light page).
+        let fg = theme::readable(fg, th.skin.tile.fill);
+        return row()
+            .h(20.0)
+            .pl(6.0)
+            .pr(8.0)
+            .gap(6.0)
+            .center_y()
+            .skin(&Surface {
+                corners: None,
+                ..th.skin.tile.clone()
+            })
+            .child(icon(&icons::STUD, 9.0).color(fg))
+            .child(
+                text(label)
+                    .font(th.ty.eyebrow.size_of(10.0).tracking(0.9))
+                    .text_case(rune::TextCase::Uppercase)
+                    .color(fg),
+            );
     }
+    let quiet = if mark == Mark::Good { fg } else { p.text_muted };
+    row()
+        .h(20.0)
+        .gap(7.0)
+        .center_y()
+        .child(icon(mark.glyph(), 14.0).color(if mark.loud() { fg } else { quiet }))
+        .child(
+            text(label)
+                .font(if mark.loud() {
+                    th.ty.small.weight_of(600.0)
+                } else {
+                    th.ty.small
+                })
+                .color(if mark.loud() { fg } else { p.text_muted }),
+        )
 }
 
 /// The slim progress line: gold fill over a hairline track.
