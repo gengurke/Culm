@@ -65,5 +65,8 @@ This program is free software: you can redistribute it and/or modify it under th
 License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later
 version. It is distributed WITHOUT ANY WARRANTY; see [LICENSE](LICENSE) for the full text.
 
+Fonts: Inter, JetBrains Mono, Cinzel, Marcellus and EB Garamond are bundled under the SIL Open Font License 1.1; see
+`crates/app/assets/fonts` (each family's `OFL.txt` beside it).
+
 World of Warcraft is a trademark of Blizzard Entertainment. Culm is a community project, not affiliated with or
 endorsed by Blizzard.

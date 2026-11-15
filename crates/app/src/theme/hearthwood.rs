@@ -9,7 +9,7 @@ use rune::{Color, Shadow};
 use std::sync::LazyLock;
 
 /// Only Noto Serif ships with the system; the others are used when the user has them.
-const SERIF: Family = Family::Named("Cinzel, Marcellus, Cormorant SC, Noto Serif, serif");
+const SERIF: Family = Family::Named("Cinzel");
 
 fn drop(y: f32, blur: f32, a: f32) -> Shadow {
     Shadow { y, blur, color: Color::BLACK.alpha(a), ..Shadow::default() }

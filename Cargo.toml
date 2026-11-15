@@ -10,7 +10,8 @@ license = "GPL-3.0-or-later"
 [workspace.dependencies]
 # Rune is pre-release: pinned to one commit of the dev branch (fast-forward only, never rewritten).
 # Bump deliberately: same rev everywhere, and re-sync [patch.crates-io] from Rune's root Cargo.toml.
-rune     = { git = "https://github.com/anomalyco/rune", rev = "bd4d42b12c0101660c939063b608edbd2a086686" }
+# Rune's defaults minus `embedded-fonts`: the app brings its own Inter (`theme::FONTS`).
+rune     = { git = "https://github.com/anomalyco/rune", rev = "bd4d42b12c0101660c939063b608edbd2a086686", default-features = false, features = ["accessibility", "dbus", "metal-backend", "ogg-audio", "svg"] }
 rune-kit = { git = "https://github.com/anomalyco/rune", rev = "bd4d42b12c0101660c939063b608edbd2a086686" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

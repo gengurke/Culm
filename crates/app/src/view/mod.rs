@@ -203,7 +203,7 @@ fn sidebar(s: &State) -> El {
         .child(installation_picker(s))
 }
 
-/// The app name over the tagline beside the brand mark, in Inter (embedded, so it looks the same
+/// The app name over the tagline beside the brand mark, in Inter (bundled, so it looks the same
 /// everywhere) whatever the theme.
 fn wordmark() -> El {
     use rune::TextStyle;

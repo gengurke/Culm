@@ -25,3 +25,5 @@ serde_json.workspace = true
 addon-testkit = { path = "../testkit" }
 serde_json.workspace = true
 tempfile = "3.27.0"
+# Reads the bundled fonts' family names (already in the tree through Rune).
+swash = "0.2"

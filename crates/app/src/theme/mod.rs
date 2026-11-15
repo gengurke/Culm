@@ -161,13 +161,24 @@ pub const BASE_TYPE: Type = Type {
     eyebrow: TextStyle::new(10.5, 600.0).tracking(1.26).lh(14.0),
     mono: TextStyle::new(12.0, 400.0).family(Family::Mono).lh(16.0),
     wordmark: TextStyle::new(15.0, 500.0)
-        .family(Family::Named("Cinzel, Cormorant SC, Noto Serif, serif"))
+        .family(Family::Named("Cinzel"))
         .tracking(2.7)
         .lh(20.0),
 };
 
-/// `AppSpec::families`: Inter (embedded by Rune) and a mono for versions and paths.
-pub const FAMILIES: (&str, &str) = ("Inter", "JetBrains Mono, ui-monospace");
+/// Every face the app draws text in (`AppSpec::fonts`), bundled so text looks the same on every
+/// OS: Inter, JetBrains Mono and each family a theme names with `Family::Named` (one name, no
+/// fallbacks). OFL fonts from google/fonts, licences beside them in `assets/fonts/<family>/`.
+pub const FONTS: &[&[u8]] = &[
+    include_bytes!("../../assets/fonts/inter/Inter[opsz,wght].ttf"),
+    include_bytes!("../../assets/fonts/jetbrainsmono/JetBrainsMono[wght].ttf"),
+    include_bytes!("../../assets/fonts/cinzel/Cinzel[wght].ttf"),
+    include_bytes!("../../assets/fonts/marcellus/Marcellus-Regular.ttf"),
+    include_bytes!("../../assets/fonts/ebgaramond/EBGaramond[wght].ttf"),
+];
+
+/// `AppSpec::families`: the sans and mono slots, both in [`FONTS`].
+pub const FAMILIES: (&str, &str) = ("Inter", "JetBrains Mono");
 
 // Layout metrics, the same in every theme.
 pub const SIDEBAR_W: f32 = 240.0;

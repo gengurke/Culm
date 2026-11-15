@@ -1,13 +1,14 @@
-//! F7.3 Themes: the picker in Settings, persistence, and every theme drawing every screen.
+//! F7.3 Themes: the picker in Settings, persistence, every theme drawing every screen in bundled fonts.
 
 mod common;
 
 use addon_app::mock::MockBackend;
-use addon_app::theme::ThemeId;
+use addon_app::theme::{FAMILIES, FONTS, ThemeId, Type};
 use addon_app::{Screen, State, loaded, runtime};
 use common::World;
 use rune::ImageCache;
 use rune::prefs::Prefs;
+use rune::tok::{Family, TextStyle};
 use std::sync::Arc;
 
 /// The page title's colour: each theme draws headings in its own.
@@ -105,5 +106,79 @@ fn f7_3_every_theme_renders_every_screen() {
             "{}: onboarding",
             theme.id()
         );
+    }
+}
+
+/// Every role's style in a type ladder.
+fn styles(ty: &Type) -> [(&'static str, TextStyle); 14] {
+    [
+        ("display", ty.display),
+        ("hero", ty.hero),
+        ("title", ty.title),
+        ("heading", ty.heading),
+        ("body", ty.body),
+        ("strong", ty.strong),
+        ("label", ty.label),
+        ("note", ty.note),
+        ("small", ty.small),
+        ("number", ty.number),
+        ("caption", ty.caption),
+        ("eyebrow", ty.eyebrow),
+        ("mono", ty.mono),
+        ("wordmark", ty.wordmark),
+    ]
+}
+
+#[test]
+fn f7_3_every_theme_font_is_bundled() {
+    let bundled: Vec<String> = FONTS
+        .iter()
+        .map(|data| {
+            let font = swash::FontRef::from_index(data, 0).expect("a bundled font parses");
+            let name = font
+                .localized_strings()
+                .find_by_id(swash::StringId::Family, None)
+                .expect("a family name");
+            name.to_string()
+        })
+        .collect();
+    for slot in [FAMILIES.0, FAMILIES.1] {
+        assert!(
+            bundled.iter().any(|b| b == slot),
+            "slot family {slot} isn't bundled: {bundled:?}"
+        );
+    }
+
+    // Shaped in the app's own text system, a named family draws differently from the fallback,
+    // so the name reaches a real face (and no system font: the name is one of the bundled).
+    let mut rt = runtime(State::new(Arc::new(MockBackend::new())), (800.0, 600.0));
+    let sample = "Culm Addon Manager 1.2.3";
+    for &id in ThemeId::ALL {
+        let th = id.theme();
+        for th in std::iter::once(th).chain(th.frame.map(|f| &**f)) {
+            for (role, style) in styles(&th.ty) {
+                let Family::Named(name) = style.family else {
+                    assert!(
+                        matches!(style.family, Family::Sans | Family::Mono),
+                        "{} {role}: {:?} is a system family",
+                        th.id,
+                        style.family
+                    );
+                    continue;
+                };
+                assert!(
+                    bundled.iter().any(|b| b == name),
+                    "{} {role}: {name:?} isn't one bundled family ({bundled:?})",
+                    th.id
+                );
+                let missing = style.family(Family::Named("No Such Family"));
+                assert_ne!(
+                    rt.text.measure(sample, style, 1.0),
+                    rt.text.measure(sample, missing, 1.0),
+                    "{} {role}: {name} draws as the fallback",
+                    th.id
+                );
+            }
+        }
     }
 }

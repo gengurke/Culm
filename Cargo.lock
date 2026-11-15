@@ -89,6 +89,7 @@ dependencies = [
  "rune",
  "rune-kit",
  "serde_json",
+ "swash",
  "tempfile",
 ]
 

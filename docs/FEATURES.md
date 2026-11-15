@@ -177,8 +177,12 @@ in the theme's tones, gilded on the active chip, around a disc showing the origi
   from the top left: raised parts lit and casting down-right, fields sunk, pressed buttons darken). Cards (five on one
   row) preview each theme in its own skin (a miniature window: sidebar with the brand mark, slim band, buttons), the choice applies at once, is kept in prefs (`theme`) and read before the
   first frame; an unknown stored id falls back to Moonlit. Layout is the same in every theme; every theme keeps text at
-  4.5:1 and dimmed or status ink at 3:1 on its window and cards. (e2e `f7_3_theme_choice_applies_and_survives_restart`,
-  `f7_3_unknown_stored_theme_falls_back_to_moonlit`, `f7_3_every_theme_renders_every_screen`; unit
+  4.5:1 and dimmed or status ink at 3:1 on its window and cards. Every font is bundled (`theme::FONTS`, OFL, in
+  `crates/app/assets/fonts`): Inter, JetBrains Mono for versions and paths, Cinzel (Hearthwood, Emberglow, Grimoire
+  titles), Marcellus (Ledger titles) and EB Garamond (Grimoire notes), so each theme looks the same on every OS; each
+  family a theme names resolves to a bundled face, never a system one. (e2e `f7_3_theme_choice_applies_and_survives_restart`,
+  `f7_3_unknown_stored_theme_falls_back_to_moonlit`, `f7_3_every_theme_renders_every_screen`,
+  `f7_3_every_theme_font_is_bundled`; unit
   `f7_3_every_theme_keeps_text_readable`)
 - **F7.4 Name and folders** ✅ — The app is Culm (`brand.rs`: name, tagline, app id `dev.culm.app`).
 

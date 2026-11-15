@@ -11,8 +11,8 @@ use rune::{Color, Shadow};
 use std::sync::LazyLock;
 
 /// Only Noto Serif ships with the system; the others are used when the user has them.
-const SERIF: Family = Family::Named("Cinzel, Marcellus, Cormorant SC, Noto Serif, serif");
-const BOOK: Family = Family::Named("EB Garamond, Cormorant Garamond, Noto Serif, Liberation Serif, serif");
+const SERIF: Family = Family::Named("Cinzel");
+const BOOK: Family = Family::Named("EB Garamond");
 
 /// Light on the top-left edge, inside the box.
 fn lit(a: f32) -> Shadow {

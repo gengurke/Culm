@@ -16,6 +16,7 @@ pub use view::view;
 
 use addon_core::Channel;
 use mock::MockBackend;
+use rune::text::TextSystem;
 use rune::{AppSpec, Env, Key, KeyEvent, Runtime, Tx};
 use state::{AddonUi, Fetch, MaintCard, MaintPhase, Tone};
 use std::sync::Arc;
@@ -37,6 +38,7 @@ pub fn spec() -> AppSpec<State> {
     AppSpec {
         min_size: Some((960.0, 600.0)),
         scenes: scenes(),
+        fonts: theme::FONTS,
         families: theme::FAMILIES,
         setup: Some(setup),
         poll: Some(poll),
@@ -45,9 +47,10 @@ pub fn spec() -> AppSpec<State> {
     }
 }
 
-/// A headless runtime over `state` with the app's poll wired, for tests.
+/// A headless runtime over `state` with the app's fonts and poll wired, for tests.
 pub fn runtime(state: State, size: (f32, f32)) -> Runtime<State> {
-    let mut rt = Runtime::new(state, view, size, Env::new(true, 1.0));
+    let text = TextSystem::new(theme::FONTS, theme::FAMILIES);
+    let mut rt = Runtime::with_text(state, view, size, Env::new(true, 1.0), text);
     rt.poll = Some(poll);
     rt.on_key = Some(on_key);
     rt

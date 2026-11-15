@@ -51,7 +51,8 @@ Build needs `libxkbcommon-devel wayland-devel` (Fedora). Without root, a gitigno
 - `tx.focus` doesn't reach a kit `TextInput` nested in a keyed row: set `edit.focused = true` in state.
 - `.border()` and `.border_sides()` replace each other; for a hairline plus a side accent use an inset
   `box_shadow` with spread 1.
-- `AppSpec.fonts` replaces the embedded Inter: use `families`.
+- `AppSpec.fonts` replaces Rune's embedded Inter, so Culm bundles its own (`theme::FONTS`, Rune's `embedded-fonts`
+  feature off). `Runtime::new` uses Rune's default text system: tests go through `addon_app::runtime` (`with_text`).
 - No const hex colour constructor: `LazyLock` + `rune::color::hex`.
 - `Runtime::new` has no setup/poll: set `rt.poll` (see `addon_app::runtime`); `setup` doesn't run in tests, so
   anything created there (the thumbnail `ImageCache`) must be set by the test.
@@ -82,8 +83,9 @@ Build needs `libxkbcommon-devel wayland-devel` (Fedora). Without root, a gitigno
 - Adding a theme: one file `theme/<name>.rs` with `pub static THEME: LazyLock<Theme>` (start from `moonlit.rs`) and one
   `Variant => module` line in the `themes!` list in `theme/mod.rs`. The picker, prefs id, scenes (`<scene>@<id>`) and
   `f7_3_every_theme_renders_every_screen` pick it up. Fonts: every family a theme names
-  (`Family::Named`) is bundled in the binary with its licence (OFL/Apache), so text looks identical on every OS; never
-  rely on system fonts, and never bundle proprietary game fonts or assets.
+  (`Family::Named`, one bundled name, no fallback list) is bundled in the binary with its licence (OFL/Apache) in
+  `assets/fonts/<family>/` and listed in `theme::FONTS`, so text looks identical on every OS
+  (`f7_3_every_theme_font_is_bundled`); never rely on system fonts, and never bundle proprietary game fonts or assets.
 - A light-paged theme (Grimoire) sets `Theme::frame` to a second, dark theme: views build the sidebar and the header band
   inside `theme::framed(|| ..)`, where `t()`/`pal()` return the frame. `Skin::glyphs` swaps stock glyphs per theme
   (`theme::glyph`, applied in `ui::button`/`icon_button`/`glyph_tile` and the nav). `Surface::press` sets the pressed wash.
