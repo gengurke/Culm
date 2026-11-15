@@ -125,9 +125,14 @@ fn f2_4_first_scan_imports_wowup_records_without_a_key() {
         app.has("my-addons/no-key"),
         "says why CurseForge isn't checked"
     );
+    // Only the keyless WowUp Hub is asked (its fingerprints match nothing here).
     assert!(
-        world.server.requests().is_empty(),
-        "no network without a key"
+        world
+            .server
+            .requests()
+            .iter()
+            .all(|r| r.path.starts_with("/hub/")),
+        "no CurseForge without a key"
     );
 }
 

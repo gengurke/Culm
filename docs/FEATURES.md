@@ -21,7 +21,8 @@ What the addon manager does, one short paragraph per feature. Ids are referenced
   e2e `f2_1_f2_3_scan_shows_matched_and_unknown_addons`, `f2_1_thumbnails_load_over_initials`)
 - **F2.2 Grouping** ✅ — Folders that belong to one addon (same provider match, folders listed in the installed file,
   or unmatched folders requiring a prefix parent such as `Details_*`) form one entry. (`f2_2_groups_by_provider_and_dependencies`)
-- **F2.3 Matching** ✅ — Folders are matched to CurseForge via fingerprints (murmur2)
+- **F2.3 Matching** ✅ — Folders are matched to CurseForge via fingerprints (murmur2), to WowUp Hub via
+  its md5 fingerprints (F4.7, no key needed)
   and to other providers via TOC ids (`X-Curse-Project-ID`; the WowInterface provider exists but is disabled for now because its files carry no game-version info). Unmatched addons are "Unknown" and ignored for updates;
   git checkouts are ignored as such. CurseForge `POST /v1/fingerprints/1` maps matched files' `modules[].name` to folders. (`f2_3_fingerprint_match_maps_modules_to_folders`, `f2_3_wowinterface_matches_toc_ids`, `f2_3_fingerprint_matches_golden_value`, `f2_3_unmatched_are_unknown_and_provider_errors_are_reported`)
 - **F2.4 WowUp import** ✅ — Imports addon records (`~/.config/WowUpCf`, `~/.config/WowUp`) of the WowUp installation in the same
@@ -60,19 +61,21 @@ What the addon manager does, one short paragraph per feature. Ids are referenced
   automatically. (e2e `f3_4_ignored_addon_is_not_offered_for_update`)
 
 ## F4 Get Addons (remote)
-- **F4.1 Search** ✅ — One field takes search text or an install link: a CurseForge addon URL, a GitHub repo URL or bare
-  `owner/repo` (`providers::link_source`) shows "Install from <source>" with the resolved addon as the only result
-  (Enter installs it); anything else searches CurseForge for Forever addons (debounced, stale answers dropped). Results
-  show name, author, downloads, summary. Provider: `gameVersionTypeId=88568`, files filtered to Forever (no alternatives),
+- **F4.1 Search** ✅ — One field takes search text or an install link: a CurseForge addon URL, a WowUp Hub page
+  (`wowup.io/addons/<id>`), a GitHub repo URL or bare `owner/repo` (`providers::link_source`) shows "Install from
+  <source>" with the resolved addon as the only result (Enter installs it); anything else searches every available
+  source for Forever addons (F4.8; debounced, stale answers dropped). Results show name, author, downloads, summary and
+  their sources. Provider: `gameVersionTypeId=88568`, files filtered to Forever (no alternatives),
   mods without a Forever file dropped; categories and `dateModified` kept for the detail (`f4_1_search_curseforge_filters_forever_files`,
   `f4_4_link_source_tells_links_from_search_text`, e2e `f4_1_search_and_f4_3_install_from_a_result`,
   `f4_1_one_field_routes_links_to_install_and_text_to_search`).
-- **F4.2 Popular** ✅ — Without a query, shows popular/recently updated Forever addons. Provider done:
-  `POST /v1/mods/featured`, popular + recentlyUpdated deduped (`f4_2_popular_lists_featured`).
+- **F4.2 Popular** ✅ — Without a query, shows popular/recently updated Forever addons from every available source,
+  grouped like search (`discover::featured`). CurseForge: `POST /v1/mods/featured`, popular + recentlyUpdated deduped
+  (`f4_2_popular_lists_featured`, e2e `f4_8_a_result_on_two_sources_installs_from_the_picked_one`).
 - **F4.3 Install** ✅ — Installs a search result with the default channel; it appears in My Addons and takes the folders it
   installed from other records (records left without folders go). (`f4_3_install_creates_record_and_replaces_existing_folders`,
   `f4_3_install_takes_only_shared_folders_from_other_records`, e2e `f4_1_search_and_f4_3_install_from_a_result`)
-- **F4.4 Install from URL** ✅ — The F4.1 field resolves a pasted CurseForge addon URL or GitHub repo URL (releases with
+- **F4.4 Install from URL** ✅ — The F4.1 field resolves a pasted CurseForge addon URL, WowUp Hub page or GitHub repo URL (releases with
   `release.json` or a `*-forever.zip`/plain zip asset) on a worker and installs it from its card or detail. Provider `from_url` done for CurseForge (slug search),
   GitHub (`owner/repo`, newest 5 non-draft releases, prerelease = Beta; plain-zip fallback skips zips tagged for other
   flavors) and WowInterface (`info<ID>-...`) (`f4_4_curseforge_url_resolves_slug`, `f4_4_github_url_picks_forever_asset`,
@@ -81,8 +84,9 @@ What the addon manager does, one short paragraph per feature. Ids are referenced
   downloads, last updated, latest Forever file (version, date, channel, game version), categories, source, website link and
   Install / progress / Installed ("Show in My Addons") / Update. The long description is fetched on a worker when it opens
   and shown as plain text, capped at 8000 characters: CurseForge's HTML (`GET /v1/mods/{id}/description`, `html::to_text`:
-  tags, scripts and images dropped, paragraphs and list items kept) or a GitHub repo's README (`GET /repos/{repo}/readme`
-  raw, `html::markdown_to_text`: badges, images and HTML dropped, link text kept). Esc, the close button or clicking the
+  tags, scripts and images dropped, paragraphs and list items kept) or, for GitHub and WowUp Hub addons, the repo's README
+  (`GET /repos/{repo}/readme` raw, `html::markdown_to_text`: badges, images and HTML dropped, link text kept). With several
+  sources the panel describes the picked one (F4.8). Esc, the close button or clicking the
   result again closes it. (`f4_5_description_is_plain_text`, `f4_5_github_readme_is_plain_text`,
   e2e `f4_5_clicking_a_result_opens_its_detail_and_esc_closes_it`, `f4_4_install_from_github_url_without_a_key`)
 - **F4.6 Filters** ✅ — A category dropdown (CurseForge's WoW addon tree from `GET /v1/categories?gameId=1`, fetched once
@@ -91,24 +95,32 @@ What the addon manager does, one short paragraph per feature. Ids are referenced
   click clears it, a class and a dropdown category replace each other since `categoryId` takes one) and a
   sort dropdown (Popularity, Last updated, Name, Total downloads) apply to search and browsing: `categoryId`, `sortField`
   (2/3/4/6) and `sortOrder` on `/v1/mods/search`; with no text, category or order the popular list shows. Esc or a click
-  outside closes a dropdown. (`f4_6_categories_are_the_addon_tree`, `f4_6_search_sends_category_and_sort`,
+  outside closes a dropdown. Filters are CurseForge's: while a category or class is set (or the list is browsed in another
+  order without text) only CurseForge is asked, and a quiet note says so. (`f4_6_categories_are_the_addon_tree`, `f4_6_search_sends_category_and_sort`,
   e2e `f4_6_category_and_sort_filter_the_search`)
-- **F4.7 WowUp Hub provider** 🚧 — `providers::Hub` (hub.wowup.io, no key, gameType `forever`, base URL in
+- **F4.7 WowUp Hub provider** ✅ — `providers::Hub` (hub.wowup.io, no key, gameType `forever`, base URL in
   `ProviderConfig::hub_base_url`): search, featured (popular + recent, deduped), batch `get_many` for update checks,
   `wowup.io/addons/<id>` URLs, and folder matching by WowUp's md5 fingerprint (`POST /addons/fingerprint`, exact matches
   of a Forever release only; scans now compute it next to the CurseForge one). Only releases with a `forever` game version
-  and an http(s) download count; file id = GitHub asset id, version = tag, folders from `addonFolders`. Core only: not yet
-  in `providers::all` (scan/update list) or the UI. (`f4_7_hub_search_keeps_forever_releases`,
+  and an http(s) download count; file id = GitHub asset id, version = tag, folders from `addonFolders`. In
+  `providers::all` between CurseForge and GitHub (scans, update checks, search); `ADDONS_HUB_URL` points it elsewhere. (`f4_7_hub_search_keeps_forever_releases`,
   `f4_7_hub_featured_dedupes_popular_and_recent`, `f4_7_hub_install_and_update`, `f4_7_hub_fingerprint_matches_folders`,
   `f4_7_hub_url_resolves_id`, `f2_3_fingerprint_matches_golden_value`)
-- **F4.8 Multi-source search** 🚧 — `discover::search` / `discover::featured` ask every available provider in parallel
+- **F4.8 Multi-source search** ✅ — `discover::search` / `discover::featured` ask every available provider in parallel
   and group the results into one entry per addon (`sources[0]` preferred: CurseForge if present, else the first provider).
   Results merge only on an exact shared id (`curse:`, `hub:`, `wowi:`, `github:<owner/repo>` lowercased; a CurseForge
   `links.sourceUrl` or Hub `repository` counts only when it is exactly a GitHub repo URL). Never on name, slug, author
   or folder; a merge that would join two different ids of one kind does not happen ("better a duplicate than a wrong
-  merge"). A failing provider is reported per source, the rest still answer. Core only, no UI yet.
+  merge"). A failing provider is reported per source, the rest still answer. Get Addons shows one card per entry (the
+  preferred source's facts, "CurseForge · also on WowUp Hub"); its Install uses the preferred source. The detail panel
+  lists every source (latest version, downloads) as a picker, preferred first, and installs from the picked one. A
+  source that fails is a one-line note over the others' results; only when all fail is it an error. A result counts as
+  installed when one of its sources is, or when an installed addon already has all of its folders. CurseForge also
+  gets the sort order; other sources' hits are merged and the list re-sorted by the order picked.
   (`f4_8_merges_curseforge_and_hub_on_exact_github_repo`, `f4_8_same_name_with_different_repos_is_not_merged`,
-  `f4_8_conflicting_ids_are_not_merged`, `f4_8_failing_provider_returns_partial_results`)
+  `f4_8_conflicting_ids_are_not_merged`, `f4_8_failing_provider_returns_partial_results`,
+  e2e `f4_8_a_result_on_two_sources_installs_from_the_picked_one`,
+  `f4_8_a_source_that_fails_is_a_note_and_the_rest_still_works`, `f4_1_search_and_f4_3_install_from_a_result`)
 
 ## F5 Manage
 - **F5.1 Remove** ✅ — Deletes the addon's stored folders after a confirm in the detail panel, never a folder another
@@ -131,8 +143,9 @@ What the addon manager does, one short paragraph per feature. Ids are referenced
 - **F7.1 CurseForge API key** ✅ — Stored in Rune prefs; providers are rebuilt from it per call and saving a key rescans.
   Without a key: My Addons still scans, imports, removes, maintains and updates GitHub addons (and
   CurseForge ones from the imported last known release), shows an "Add a CurseForge key" hint; Get Addons hides the filters,
-  takes GitHub links but searches nothing, with a Settings hint; nothing calls CurseForge. (`f7_1_curseforge_unavailable_without_key`,
-  e2e `f7_1_without_a_key_search_is_off_and_points_to_settings`, `f7_1_f7_2_saved_settings_survive_a_restart`)
+  shows and searches WowUp Hub only, takes links, and a hint says a key adds CurseForge; nothing calls CurseForge.
+  (`f7_1_curseforge_unavailable_without_key`, e2e `f7_1_without_a_key_the_hub_answers_and_settings_add_curseforge`,
+  `f7_1_f7_2_saved_settings_survive_a_restart`)
 - **F7.2 Defaults** ✅ — Default channel for new addons, stored in prefs. (e2e `f7_1_f7_2_saved_settings_survive_a_restart`)
 - **F7.3 Themes** ✅ — Settings → Appearance picks the look (Moonlit; Hearthwood: carved wood, stone and gold; Emberglow: mossy
   black stone, glowing gold, framed cards and small-caps serif controls; Goblin Ledger: calm charcoal menus, ochre gold;

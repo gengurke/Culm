@@ -1,5 +1,5 @@
 //! End-to-end feature specs for Get Addons and Settings: the real UI and core over a temp Forever
-//! tree and a fake CurseForge / GitHub (see `common`).
+//! tree and a fake CurseForge / WowUp Hub / GitHub (see `common`).
 
 mod common;
 use addon_app::Screen;
@@ -23,9 +23,18 @@ fn f4_1_search_and_f4_3_install_from_a_result() {
     app.type_text("cee");
     app.wait_for(
         "search results",
-        |s| matches!(&s.results, Fetch::Ready(r) if !r.is_empty()),
+        |s| matches!(&s.results, Fetch::Ready(r) if !r.entries.is_empty()),
     );
     assert!(app.shows("RESULTS FOR “CEE”"));
+    // CurseForge's Cee and the Hub's Cee are one card (same repo); Dee is the Hub's alone.
+    assert!(app.shows_in("remote/3/sources", "CurseForge · also on WowUp Hub"));
+    assert!(app.has("remote/wowuphub-8") && !app.has("remote/wowuphub-7"));
+    assert_eq!(
+        world.server.requests_to("/hub/addons/search/forever")[0]
+            .query_param("query")
+            .as_deref(),
+        Some("cee")
+    );
     let search = &world.server.requests_to("/v1/mods/search")[0];
     assert_eq!(search.query_param("searchFilter").as_deref(), Some("cee"));
     assert_eq!(search.header("x-api-key"), Some("test-key"));
@@ -110,7 +119,7 @@ fn f4_1_one_field_routes_links_to_install_and_text_to_search() {
     app.type_text("cee");
     app.wait_for(
         "search results",
-        |s| matches!(&s.results, Fetch::Ready(r) if !r.is_empty()),
+        |s| matches!(&s.results, Fetch::Ready(r) if !r.entries.is_empty()),
     );
     assert_eq!(app.state().link, Fetch::Idle);
     let search = world.server.requests_to("/v1/mods/search");
@@ -175,9 +184,18 @@ fn f4_6_category_and_sort_filter_the_search() {
     app.tap("class/1028");
     app.wait_for(
         "filtered results",
-        |s| matches!(&s.results, Fetch::Ready(r) if !r.is_empty()),
+        |s| matches!(&s.results, Fetch::Ready(r) if !r.entries.is_empty()),
     );
     assert!(app.shows("WARRIOR") && app.has("remote/3"));
+    // The Hub has no categories: CurseForge's results alone, and the page says so.
+    assert!(app.has("get-addons/curseforge-only"));
+    assert!(!app.has("remote/wowuphub-8"));
+    assert!(
+        world
+            .server
+            .requests_to("/hub/addons/search/forever")
+            .is_empty()
+    );
     let req = world.server.requests_to("/v1/mods/search").pop().unwrap();
     assert_eq!(req.query_param("categoryId").as_deref(), Some("1028"));
     assert_eq!(req.query_param("searchFilter"), None);
@@ -212,7 +230,84 @@ fn f4_6_category_and_sort_filter_the_search() {
 }
 
 #[test]
-fn f7_1_without_a_key_search_is_off_and_points_to_settings() {
+fn f4_8_a_result_on_two_sources_installs_from_the_picked_one() {
+    let world = World::new().with_key("test-key");
+    let mut app = world.app();
+    app.wait_idle();
+    app.tap("nav/get-addons");
+    app.wait_for("the popular list", |s| {
+        matches!(s.featured, Fetch::Ready(_))
+    });
+    // The landing list merges CurseForge's and the Hub's too.
+    assert!(app.shows_in("remote/3/sources", "also on WowUp Hub"));
+    assert!(app.has("remote/wowuphub-8"));
+
+    app.tap("remote/3");
+    assert!(app.has("remote-detail/sources"));
+    assert!(app.has("remote-detail/source/curseforge") && app.has("remote-detail/source/wowuphub"));
+    // CurseForge is preferred: picked first, with its description.
+    assert!(app.shows("Install from CurseForge"));
+    app.wait_for_text("Cee keeps your bags tidy.");
+
+    app.tap("remote-detail/source/wowuphub");
+    assert_eq!(app.state().detail.as_ref().unwrap().source, 1);
+    assert!(app.shows("Install from WowUp Hub") && app.shows("Open on WowUp Hub"));
+    assert!(app.shows("v70"));
+    // A Hub addon's long description is its repo's README.
+    app.wait_for_text("Cee, straight from GitHub.");
+
+    app.tap("remote-detail/addon/install");
+    app.wait_idle();
+    assert!(app.shows("Installed Cee"));
+    assert!(app.has("remote/3/installed") && app.has("remote-detail/show"));
+    assert!(
+        world
+            .read("Interface/AddOns/Cee/Cee.toc")
+            .contains("## Version: 3.0-hub")
+    );
+    assert_eq!(world.server.requests_to("/hubdl/Cee-v70.zip").len(), 1);
+    assert!(world.server.requests_to("/files/0/30/3.0.zip").is_empty());
+    let cee = &app
+        .state()
+        .addons
+        .iter()
+        .find(|a| a.addon.name == "Cee")
+        .unwrap()
+        .addon;
+    assert_eq!(
+        (cee.provider.as_deref(), cee.external_id.as_deref()),
+        (Some("WowUpHub"), Some("7"))
+    );
+}
+
+#[test]
+fn f4_8_a_source_that_fails_is_a_note_and_the_rest_still_works() {
+    let world = World::new().with_key("test-key");
+    world.server.respond(
+        "GET",
+        "/hub/addons/search/forever",
+        503,
+        "text/plain",
+        "down",
+    );
+    let mut app = world.app();
+    app.wait_idle();
+    app.tap("nav/get-addons");
+    app.tap("get-addons/search");
+    app.type_text("cee");
+    app.wait_for(
+        "search results",
+        |s| matches!(&s.results, Fetch::Ready(r) if !r.entries.is_empty()),
+    );
+    assert!(app.has("get-addons/source-error"));
+    assert!(app.shows("WowUp Hub didn't answer"));
+    assert!(app.has("remote/3/install") && !app.has("get-addons/error"));
+    assert!(app.shows_in("remote/3/sources", "CurseForge"));
+    assert!(!app.shows("also on"));
+}
+
+#[test]
+fn f7_1_without_a_key_the_hub_answers_and_settings_add_curseforge() {
     let world = World::new();
     let mut app = world.app();
     app.wait_idle();
@@ -224,12 +319,25 @@ fn f7_1_without_a_key_search_is_off_and_points_to_settings() {
     app.tap("nav/get-addons");
     assert!(app.has("get-addons/no-key"));
     assert!(!app.has("get-addons/category"), "no filters without a key");
+    app.wait_for("the Hub's popular list", |s| {
+        matches!(s.featured, Fetch::Ready(_))
+    });
+    assert!(app.has("remote/wowuphub-7") && app.has("remote/wowuphub-8"));
+    assert!(app.shows_in("remote/wowuphub-7/sources", "WowUp Hub"));
+
     app.tap("get-addons/search");
-    app.type_text("cee");
-    app.frame();
-    assert!(app.has("get-addons/no-key"), "text is not searched");
+    app.type_text("dee");
+    app.wait_for(
+        "Hub results",
+        |s| matches!(&s.results, Fetch::Ready(r) if !r.entries.is_empty()),
+    );
+    assert!(app.has("remote/wowuphub-8") && app.has("get-addons/no-key"));
     assert!(
-        world.server.requests().is_empty(),
+        world
+            .server
+            .requests()
+            .iter()
+            .all(|r| !r.path.starts_with("/v1/")),
         "nothing asked CurseForge"
     );
     app.tap("get-addons/open-settings");

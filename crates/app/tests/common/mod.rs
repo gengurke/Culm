@@ -1,6 +1,6 @@
 //! End-to-end harness: the real UI (`addon_app::runtime`) over the real core backend, against a
 //! temp World of Warcraft: Forever tree, temp app folders, an optional fake WowUp config and a
-//! local FakeServer that speaks CurseForge and GitHub. Nothing leaves the temp dir or 127.0.0.1.
+//! local FakeServer that speaks CurseForge, WowUp Hub (under `/hub`) and GitHub. Nothing leaves the temp dir or 127.0.0.1.
 #![allow(dead_code)]
 
 use addon_app::core_backend::{Config, CoreBackend};
@@ -9,7 +9,7 @@ use addon_app::{Job, State, runtime};
 use addon_core::fingerprint::folder_fingerprint;
 use addon_core::providers::ProviderConfig;
 use addon_testkit::{
-    FakeServer, cf_envelope, cf_file, cf_mod_with_files, fixture, fixture_at, make_zip,
+    FakeServer, cf_envelope, cf_file, cf_mod_with_files, fixture, fixture_at, hub_addon, make_zip,
 };
 use rune::prefs::Prefs;
 use rune::{Key, KeyEvent, Mods, Runtime};
@@ -51,7 +51,8 @@ fn local(v: Value, base: &str) -> Value {
 ///
 /// On disk: Ace 1.0 (CurseForge 1, 1.1 out), Bee + Bee_Options 2.0 (CurseForge 2, 2.1 out) and
 /// Homebrew (no provider knows it). CurseForge also offers Cee (3) in search and the popular list.
-/// GitHub has `Questie/Questie` (stable v12.9.0).
+/// WowUp Hub offers Cee too (7, same repo `cee-dev/Cee`, release `v70` = Cee 3.0-hub) and Dee (8),
+/// in search and its featured list. GitHub has `Questie/Questie` (stable v12.9.0).
 pub struct World {
     pub tmp: tempfile::TempDir,
     pub server: FakeServer,
@@ -122,7 +123,8 @@ impl World {
         );
         let bee_files = |id, v| cf_file(id, v, 1, &["Bee", "Bee_Options"], 0);
         let bee = cf_mod_with_files(2, "Bee", vec![bee_files(21, "2.1"), bee_files(20, "2.0")]);
-        let cee = cf_mod_with_files(3, "Cee", vec![cf_file(30, "3.0", 1, &["Cee"], 0)]);
+        let mut cee = cf_mod_with_files(3, "Cee", vec![cf_file(30, "3.0", 1, &["Cee"], 0)]);
+        cee["links"]["sourceUrl"] = json!("https://github.com/cee-dev/Cee");
         s.json(
             "POST",
             "/v1/mods",
@@ -177,6 +179,51 @@ impl World {
             ]),
         );
         s.bytes("GET", "/files/0/30/3.0.zip", zip("Cee", "3.0", "Core.lua"));
+
+        // WowUp Hub: Cee (same repo as CurseForge's Cee) and Dee, nothing matched on disk.
+        let hub_entry = |id, repo, folder: &str, asset| {
+            let url = format!("{base}/hubdl/{folder}-v{asset}.zip");
+            let mut a = hub_addon(id, repo, &[folder], asset, &url);
+            // Avatars from the fake server too: nothing leaves 127.0.0.1.
+            a["owner_image_url"] = json!(format!("{base}/media/hub/{id}.png"));
+            a
+        };
+        let hub = json!([
+            hub_entry(7, "cee-dev/Cee", "Cee", 70),
+            hub_entry(8, "dee-dev/Dee", "Dee", 80),
+        ]);
+        s.json(
+            "GET",
+            "/hub/addons/search/forever",
+            &json!({ "addons": hub }),
+        );
+        s.json(
+            "GET",
+            "/hub/addons/featured/forever",
+            &json!({ "addons": hub, "recent": [] }),
+        );
+        s.json(
+            "POST",
+            "/hub/addons/fingerprint",
+            &json!({ "exactMatches": [] }),
+        );
+        s.json(
+            "POST",
+            "/hub/addons/batch/forever",
+            &json!({ "addons": [] }),
+        );
+        s.bytes(
+            "GET",
+            "/hubdl/Cee-v70.zip",
+            zip("Cee", "3.0-hub", "Core.lua"),
+        );
+        s.respond(
+            "GET",
+            "/repos/cee-dev/Cee/readme",
+            200,
+            "text/plain",
+            "# Cee\n\nCee, straight from GitHub.\n",
+        );
         s.respond("GET", "/media/*", 200, "image/svg+xml", THUMB_SVG);
         let cat = |id: u32, name: &str, slug: &str, parent: u32| json!({ "id": id, "gameId": 1, "name": name, "slug": slug, "classId": 1, "parentCategoryId": parent });
         s.json(
@@ -269,6 +316,7 @@ impl World {
             providers: ProviderConfig {
                 curseforge_base_url: url.clone(),
                 github_base_url: url.clone(),
+                hub_base_url: format!("{url}/hub"),
                 wowinterface_base_url: url,
                 ..Default::default()
             },

@@ -1,13 +1,17 @@
 //! Get Addons: one field for search text or an install link (debounced), category and sort
-//! filters, the popular list, and a detail panel for the clicked result.
+//! filters, the popular list, and a detail panel for the clicked result. Results come from every
+//! source, one card per addon (F4.8); the detail panel picks the source to install from.
 
 use super::{band, subtitle};
+use crate::backend::{Found, curseforge_only, source_label};
 use crate::icons;
 use crate::state::{
-    Detail, Fetch, Input, Intent, Menu, Op, Screen, State, Status, dispatch, remote_key,
+    Detail, Fetch, Input, Intent, Menu, Op, Screen, State, Status, dispatch, install_key, single,
 };
 use crate::theme::{self, SurfaceExt, pal, t};
 use crate::ui::{self, Kind};
+use addon_core::discover::Entry;
+use addon_core::providers::{curseforge, github};
 use addon_core::{Category, Channel, RemoteAddon, Sort};
 use rune::{Align, Cursor, El, Icon, ScrollSpec, Side, Tx, col, el, icon, row, text};
 
@@ -98,9 +102,9 @@ pub fn page(s: &State) -> El {
     let ready = s.curseforge_ready();
     let input = s.input();
     let placeholder = if ready {
-        "Search, or paste a CurseForge / GitHub link"
+        "Search, or paste an addon link"
     } else {
-        "Paste a GitHub link (search needs a CurseForge key)"
+        "Search WowUp Hub, or paste an addon link"
     };
     let mut field = ui::field(
         "get-addons/search",
@@ -117,7 +121,8 @@ pub fn page(s: &State) -> El {
     .on_submit(|s, tx| dispatch(s, Intent::Submit, tx));
     if let Input::Link(_, source) = input {
         field = field.trailing(
-            ui::tag(&format!("{source} link"), ui::Mark::Busy).key("get-addons/link-source"),
+            ui::tag(&format!("{} link", source_label(source)), ui::Mark::Busy)
+                .key("get-addons/link-source"),
         );
     }
     let mut toolbar = row()
@@ -172,15 +177,20 @@ pub fn page(s: &State) -> El {
     let mut content = col().w_full().gap(16.0).px(theme::PAD).py(24.0);
     match input {
         Input::Link(_, source) => {
-            content = content.child(section(format!("INSTALL FROM {}", source.to_uppercase())));
+            content = content.child(section(format!(
+                "INSTALL FROM {}",
+                source_label(source).to_uppercase()
+            )));
             content = content.child(match &s.link {
                 Fetch::Idle | Fetch::Loading => loading("Looking up the link…"),
                 Fetch::Failed(e) => error(e),
-                Fetch::Ready(r) => grid(s, std::slice::from_ref(r)),
+                Fetch::Ready(r) => grid(s, &[single(r.clone())]),
             });
         }
-        _ if !ready => content = content.child(no_key_card()),
         _ => {
+            if !ready {
+                content = content.child(no_key_hint());
+            }
             let filter = s.search_filter();
             let category = filter
                 .category
@@ -197,10 +207,39 @@ pub fn page(s: &State) -> El {
                 (q, None) => (format!("RESULTS FOR “{}”", q.to_uppercase()), &s.results),
             };
             content = content.child(section(title));
+            let cf_only = ready && !filter.is_default() && curseforge_only(&filter);
+            if cf_only {
+                content = content.child(note(
+                    "get-addons/curseforge-only",
+                    &icons::FILTER,
+                    if filter.category.is_some() {
+                        "CurseForge results only: WowUp Hub has no categories."
+                    } else {
+                        "CurseForge results only: type a name to search WowUp Hub too."
+                    },
+                ));
+            }
+            if let Fetch::Ready(found) = fetch {
+                for (provider, e) in &found.failed {
+                    content = content.child(note(
+                        "get-addons/source-error",
+                        &icons::ALERT,
+                        &format!(
+                            "{} didn't answer, showing the other sources ({e}).",
+                            source_label(provider)
+                        ),
+                    ));
+                }
+            }
+            let searching = match (ready, cf_only) {
+                (false, _) => "Searching WowUp Hub…",
+                (true, true) => "Searching CurseForge…",
+                (true, false) => "Searching CurseForge and WowUp Hub…",
+            };
             content = content.child(match fetch {
-                Fetch::Idle | Fetch::Loading => loading("Searching CurseForge…"),
+                Fetch::Idle | Fetch::Loading => loading(searching),
                 Fetch::Failed(e) => error(e),
-                Fetch::Ready(list) if list.is_empty() => {
+                Fetch::Ready(Found { entries, .. }) if entries.is_empty() => {
                     let (line, hint) = if filter.text.is_empty() {
                         ("No Forever addons in this category".to_string(), "Pick another category above.")
                     } else {
@@ -216,7 +255,7 @@ pub fn page(s: &State) -> El {
                         .child(text(line).font(t().ty.body).color(p.text_dim))
                         .child(text(hint).font(t().ty.small).color(p.text_muted))
                 }
-                Fetch::Ready(list) => grid(s, list),
+                Fetch::Ready(found) => grid(s, &found.entries),
             });
         }
     }
@@ -297,26 +336,68 @@ fn error(e: &str) -> El {
         )
 }
 
-fn no_key_card() -> El {
+/// Without a key: WowUp Hub still answers, a key adds CurseForge (F7.1).
+fn no_key_hint() -> El {
     let p = pal();
     // The accent bar replaces the panel's border; an inset hairline keeps the other edges.
-    ui::edge(row().key("get-addons/no-key").w_full().max_w(760.0).gap(16.0).padding(20.0).skin(&t().skin.panel), p.border)
-        .border_sides([0.0, 0.0, 0.0, 2.0], p.accent)
-        .child(el().size(36.0, 36.0).center().fill(p.accent_soft).child(icon(&icons::KEY, 18.0).color(p.accent)))
+    ui::edge(
+        row()
+            .key("get-addons/no-key")
+            .w_full()
+            .max_w(760.0)
+            .gap(14.0)
+            .px(16.0)
+            .py(12.0)
+            .center_y()
+            .skin(&t().skin.panel),
+        p.border,
+    )
+    .border_sides([0.0, 0.0, 0.0, 2.0], p.accent)
+    .child(icon(&icons::KEY, 16.0).color(p.accent))
+    .child(
+        col()
+            .grow(1.0)
+            .min_w(0.0)
+            .gap(2.0)
+            .child(
+                text("Add a CurseForge key to search CurseForge too")
+                    .font(t().ty.label)
+                    .color(p.heading),
+            )
+            .child(
+                text("Results below come from WowUp Hub. Categories and CurseForge updates use your own free key from console.curseforge.com.")
+                    .font(t().ty.small)
+                    .color(p.text_dim)
+                    .wrap(),
+            ),
+    )
+    .child(ui::button(
+        "get-addons/open-settings",
+        "Open Settings",
+        Kind::Secondary,
+        None,
+        true,
+        |s, tx| dispatch(s, Intent::Navigate(Screen::Settings), tx),
+    ))
+}
+
+/// A quiet one-line note over the results.
+fn note(key: &str, glyph: &'static Icon, line: &str) -> El {
+    let p = pal();
+    row()
+        .key(key)
+        .w_full()
+        .gap(8.0)
+        .center_y()
+        .child(icon(glyph, 12.0).color(p.text_muted))
         .child(
-            col()
+            text(line.to_string())
+                .font(t().ty.small)
+                .color(p.text_muted)
+                .wrap()
                 .grow(1.0)
-                .min_w(0.0)
-                .gap(6.0)
-                .child(text("CurseForge needs an API key").font(t().ty.heading).color(p.heading))
-                .child(
-                    text("Search, categories and CurseForge updates use your own free key from console.curseforge.com. Add it in Settings. GitHub links work without one: paste one above.")
-                        .font(t().ty.note)
-                        .color(p.text_dim)
-                        .wrap(),
-                ),
+                .min_w(0.0),
         )
-        .child(ui::button("get-addons/open-settings", "Open Settings", Kind::Primary, None, true, |s, tx| dispatch(s, Intent::Navigate(Screen::Settings), tx)))
 }
 
 /// A filter trigger: glyph, current value and a chevron; opens `menu`.
@@ -500,14 +581,14 @@ fn menu_panel(s: &State, menu: Menu) -> El {
         .anchored_fit(anchor, Side::Bottom, Align::Start, 4.0)
 }
 
-fn grid(s: &State, list: &[RemoteAddon]) -> El {
+fn grid(s: &State, list: &[Entry]) -> El {
     // The detail panel takes a column's width.
     let columns = if s.detail.is_some() { 2 } else { 3 };
     let mut g = col().key("get-addons/results").w_full().gap(16.0);
     for chunk in list.chunks(columns) {
         let mut r = row().w_full().gap(16.0).items_stretch();
-        for remote in chunk {
-            r = r.child(result_card(s, remote).grow(1.0).min_w(0.0));
+        for entry in chunk {
+            r = r.child(result_card(s, entry).grow(1.0).min_w(0.0));
         }
         for _ in chunk.len()..columns {
             r = r.child(el().grow(1.0));
@@ -517,10 +598,33 @@ fn grid(s: &State, list: &[RemoteAddon]) -> El {
     g
 }
 
+/// A result's key part: the id for CurseForge and GitHub (`remote/61284`, `remote/owner/repo`),
+/// else prefixed by the provider, since ids are only unique per provider (`remote/wowuphub-12`).
+fn card_id(r: &RemoteAddon) -> String {
+    match r.provider.as_str() {
+        curseforge::NAME | github::NAME => r.external_id.clone(),
+        other => format!("{}-{}", ui::slug(other), r.external_id),
+    }
+}
+
+/// "CurseForge · also on WowUp Hub".
+fn source_line(entry: &Entry) -> String {
+    let mut line = source_label(&entry.preferred().provider).to_string();
+    let others: Vec<&str> = entry.sources[1..]
+        .iter()
+        .map(|r| source_label(&r.provider))
+        .collect();
+    if !others.is_empty() {
+        line.push_str(" · also on ");
+        line.push_str(&others.join(", "));
+    }
+    line
+}
+
 /// Install progress, or the install button (`primary`: the detail panel's wide one).
-fn install_action(s: &State, remote: &RemoteAddon, key: &str, primary: bool) -> El {
+fn install_action(s: &State, remote: &RemoteAddon, key: &str, label: &str, primary: bool) -> El {
     let p = pal();
-    match s.installing.get(&remote.external_id) {
+    match s.installing.get(&install_key(remote)) {
         Some(Op::Downloading(done)) => col()
             .key(format!("{key}/progress"))
             .w(if primary { 200.0 } else { 120.0 })
@@ -541,7 +645,7 @@ fn install_action(s: &State, remote: &RemoteAddon, key: &str, primary: bool) -> 
             let r = remote.clone();
             let b = ui::button(
                 format!("{key}/install"),
-                "Install",
+                label,
                 if primary {
                     Kind::Primary
                 } else {
@@ -549,34 +653,34 @@ fn install_action(s: &State, remote: &RemoteAddon, key: &str, primary: bool) -> 
                 },
                 Some(&icons::DOWNLOAD),
                 true,
-                move |s, tx| dispatch(s, Intent::Install(r.clone()), tx),
+                move |s, tx| dispatch(s, Intent::Install(Box::new(r.clone())), tx),
             );
             if primary { b.w_full() } else { b.h(28.0) }
         }
     }
 }
 
-fn result_card(s: &State, remote: &RemoteAddon) -> El {
+/// One addon: the preferred source's facts, the other sources as a line, and install (from the
+/// preferred source).
+fn result_card(s: &State, entry: &Entry) -> El {
     let p = pal();
-    let key = format!("remote/{}", remote.external_id);
-    let action = if s.is_installed(remote) {
+    let remote = entry.preferred();
+    let key = format!("remote/{}", card_id(remote));
+    let action = if s.installed_entry(entry).is_some() {
         ui::tag("Installed", ui::Mark::Good).key(format!("{key}/installed"))
     } else {
-        install_action(s, remote, &key, false)
+        install_action(s, remote, &key, "Install", false)
     };
-    let selected = s
-        .detail
-        .as_ref()
-        .is_some_and(|d| remote_key(&d.addon) == remote_key(remote));
+    let selected = s.detail.as_ref().is_some_and(|d| d.entry.ids == entry.ids);
     let thumb = ui::addon_tile(
         &remote.name,
         40.0,
         s.thumb(remote.thumbnail_url.as_deref()),
         format!("{key}/thumb"),
     );
-    let r = remote.clone();
+    let e = entry.clone();
     let mut card = col()
-        .key(key)
+        .key(key.clone())
         .role("button")
         .label(remote.name.clone())
         .skin(&t().skin.panel)
@@ -585,7 +689,7 @@ fn result_card(s: &State, remote: &RemoteAddon) -> El {
         .hover(p.hover)
         .cursor(Cursor::Pointer)
         .on_press_tx(move |s: &mut State, tx: &mut Tx| {
-            dispatch(s, Intent::ShowRemote(r.clone()), tx)
+            dispatch(s, Intent::ShowRemote(e.clone()), tx)
         });
     if selected {
         card = card.border(1.0, p.accent);
@@ -620,6 +724,22 @@ fn result_card(s: &State, remote: &RemoteAddon) -> El {
     )
     .child(
         row()
+            .key(format!("{key}/sources"))
+            .w_full()
+            .gap(6.0)
+            .center_y()
+            .child(icon(&icons::LAYERS, 12.0).color(p.text_muted))
+            .child(
+                text(source_line(entry))
+                    .font(t().ty.small)
+                    .color(p.text_muted)
+                    .truncate()
+                    .grow(1.0)
+                    .min_w(0.0),
+            ),
+    )
+    .child(
+        row()
             .w_full()
             .h(28.0)
             .gap(10.0)
@@ -629,11 +749,6 @@ fn result_card(s: &State, remote: &RemoteAddon) -> El {
                 text(ui::count(remote.download_count))
                     .font(t().ty.number)
                     .color(p.text_dim),
-            )
-            .child(
-                text(remote.provider.clone())
-                    .font(t().ty.small)
-                    .color(p.text_muted),
             )
             .child(el().grow(1.0))
             .child(action),
@@ -664,10 +779,11 @@ fn channel_name(c: Channel) -> &'static str {
 }
 
 /// The clicked result: what My Addons' detail panel shows for an installed addon, plus the
-/// provider's long description.
+/// picked source's long description. Several sources: a picker chooses the one to install from.
 fn detail(s: &State, d: &Detail) -> El {
     let p = pal();
-    let remote = &d.addon;
+    let remote = d.addon();
+    let several = d.entry.sources.len() > 1;
     let key = |part: &str| format!("remote-detail/{part}");
     let fact = |label: &str, value: String, mono: bool| {
         row()
@@ -690,7 +806,7 @@ fn detail(s: &State, d: &Detail) -> El {
                     .wrap(),
             )
     };
-    let installed = s.installed(remote);
+    let installed = s.installed_entry(&d.entry);
     let state = match installed {
         Some(a) if a.status() == Status::UpdateAvailable => {
             Some(ui::tag("Update available", ui::Mark::Update))
@@ -736,7 +852,14 @@ fn detail(s: &State, d: &Detail) -> El {
                 .w_full(),
             )
         }
-        None => install_action(s, remote, &key("addon"), true),
+        None if several => install_action(
+            s,
+            remote,
+            &key("addon"),
+            &format!("Install from {}", source_label(&remote.provider)),
+            true,
+        ),
+        None => install_action(s, remote, &key("addon"), "Install", true),
     };
     let file = remote
         .latest_for(s.settings.default_channel)
@@ -770,12 +893,18 @@ fn detail(s: &State, d: &Detail) -> El {
     if !remote.categories.is_empty() {
         facts = facts.child(fact("Categories", remote.categories.join(", "), false));
     }
-    facts = facts.child(fact("Source", remote.provider.clone(), false));
+    if !several {
+        facts = facts.child(fact(
+            "Source",
+            source_label(&remote.provider).to_string(),
+            false,
+        ));
+    }
 
     let website = remote.url.clone();
     let website = ui::button(
         key("website"),
-        &format!("Open on {}", remote.provider),
+        &format!("Open on {}", source_label(&remote.provider)),
         Kind::Secondary,
         Some(&icons::EXTERNAL),
         website.is_some(),
@@ -824,30 +953,29 @@ fn detail(s: &State, d: &Detail) -> El {
     if let Some(b) = state {
         head = head.child(row().pt(6.0).child(b));
     }
-    let mut body = col()
-        .w_full()
-        .gap(18.0)
-        .padding(24.0)
-        .child(
-            row()
-                .w_full()
-                .gap(14.0)
-                .items_start()
-                .child(ui::addon_tile(
-                    &remote.name,
-                    48.0,
-                    s.thumb(remote.thumbnail_url.as_deref()),
-                    key("thumb"),
-                ))
-                .child(head)
-                .child(ui::icon_button(
-                    key("close"),
-                    "Close details",
-                    &icons::CLOSE,
-                    |s, tx| dispatch(s, Intent::CloseRemote, tx),
-                )),
-        )
-        .child(action);
+    let mut body = col().w_full().gap(18.0).padding(24.0).child(
+        row()
+            .w_full()
+            .gap(14.0)
+            .items_start()
+            .child(ui::addon_tile(
+                &remote.name,
+                48.0,
+                s.thumb(remote.thumbnail_url.as_deref()),
+                key("thumb"),
+            ))
+            .child(head)
+            .child(ui::icon_button(
+                key("close"),
+                "Close details",
+                &icons::CLOSE,
+                |s, tx| dispatch(s, Intent::CloseRemote, tx),
+            )),
+    );
+    if several {
+        body = body.child(source_picker(s, d));
+    }
+    body = body.child(action);
     if !remote.summary.is_empty() {
         body = body.child(
             text(remote.summary.clone())
@@ -879,6 +1007,76 @@ fn detail(s: &State, d: &Detail) -> El {
                 })
                 .child(body),
         )
+}
+
+/// The sources that have the addon, one radio row each (name, latest version, downloads); the
+/// picked one is what Install uses and what the facts describe.
+fn source_picker(s: &State, d: &Detail) -> El {
+    let (th, p) = (t(), pal());
+    let mut list = col()
+        .key("remote-detail/sources")
+        .role("radiogroup")
+        .label("Install from")
+        .w_full()
+        .gap(6.0)
+        .focus_group()
+        .child(text("INSTALL FROM").font(th.ty.eyebrow).color(p.text_muted));
+    for (i, r) in d.entry.sources.iter().enumerate() {
+        let on = i == d.source;
+        let sk = if on {
+            &th.skin.segment_on
+        } else {
+            &th.skin.chip
+        };
+        let ink = if on { sk.ink } else { p.text_dim };
+        let version = r
+            .latest_for(s.settings.default_channel)
+            .or_else(|| r.latest_for(Channel::Alpha))
+            .map_or_else(String::new, |f| f.version.clone());
+        list = list.child(
+            row()
+                .key(format!("remote-detail/source/{}", ui::slug(&r.provider)))
+                .role("radio")
+                .label(source_label(&r.provider))
+                .checked(on)
+                .focusable(true)
+                .w_full()
+                .h(34.0)
+                .pl(10.0)
+                .pr(12.0)
+                .gap(8.0)
+                .center_y()
+                .skin(sk)
+                .focus_ring(1.0, 2.0, p.accent_focus)
+                .hover(p.hover)
+                .cursor(Cursor::Pointer)
+                .on_press_tx(move |s: &mut State, tx: &mut Tx| {
+                    dispatch(s, Intent::PickSource(i), tx)
+                })
+                .child(icon(&icons::CHECK, 13.0).color(if on { ink } else { ink.alpha(0.0) }))
+                .child(
+                    text(source_label(&r.provider).to_string())
+                        .font(th.ty.label)
+                        .color(ink)
+                        .truncate()
+                        .grow(1.0)
+                        .min_w(0.0),
+                )
+                .child(
+                    text(version)
+                        .font(th.ty.mono)
+                        .color(ink)
+                        .truncate()
+                        .max_w(120.0),
+                )
+                .child(
+                    text(ui::count(r.download_count))
+                        .font(th.ty.small)
+                        .color(if on { ink } else { p.text_muted }),
+                ),
+        );
+    }
+    list
 }
 
 /// Plain-text description: paragraphs, and `• ` lines as a list with a hanging indent.

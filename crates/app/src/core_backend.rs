@@ -1,10 +1,13 @@
 //! The real [`Backend`]: `addon-core` over the app's own folders and prefs. Everything here runs
 //! on workers; the stored addon lists are read-modify-written under one lock.
 
-use crate::backend::{Backend, Backup, Maintenance, Settings, Warned};
+use crate::backend::{
+    Backend, Backup, Found, Maintenance, Settings, Warned, curseforge_only, sort_entries,
+};
 use crate::brand;
 use crate::theme::ThemeId;
 use crate::ui::bytes;
+use addon_core::discover::{self, Discovery};
 use addon_core::providers::{self, CurseForge, GitHub, Provider, ProviderConfig};
 use addon_core::{
     Addon, Category, Channel, Flavor, Installation, RemoteAddon, SearchFilter, http, install,
@@ -38,7 +41,7 @@ pub struct Config {
 impl Config {
     /// The app's XDG folders and prefs (`RUNE_DIRS_ROOT` relocates them), the usual WoW and
     /// WowUp places, and the real provider endpoints unless `ADDONS_CURSEFORGE_URL`,
-    /// `ADDONS_GITHUB_URL` or `ADDONS_WOWINTERFACE_URL` point elsewhere (a fake server, or a
+    /// `ADDONS_GITHUB_URL`, `ADDONS_HUB_URL` or `ADDONS_WOWINTERFACE_URL` point elsewhere (a fake server, or a
     /// closed port for an offline run).
     pub fn from_env() -> Result<Config> {
         let dirs =
@@ -49,6 +52,9 @@ impl Config {
         }
         if let Ok(url) = std::env::var("ADDONS_GITHUB_URL") {
             providers.github_base_url = url;
+        }
+        if let Ok(url) = std::env::var("ADDONS_HUB_URL") {
+            providers.hub_base_url = url;
         }
         if let Ok(url) = std::env::var("ADDONS_WOWINTERFACE_URL") {
             providers.wowinterface_base_url = url;
@@ -117,6 +123,14 @@ impl CoreBackend {
         }
     }
 
+    fn github(&self) -> GitHub {
+        let c = self.provider_config();
+        GitHub {
+            token: c.github_token,
+            api_base: c.github_base_url,
+        }
+    }
+
     /// Load, change and save an installation's addon list under the store lock.
     fn edit<R>(&self, inst: &Installation, f: impl FnOnce(&mut Vec<Addon>) -> R) -> Result<R> {
         let _lock = self.store.lock().unwrap_or_else(|e| e.into_inner());
@@ -156,6 +170,23 @@ impl CoreBackend {
     fn disk_shared(&self) -> std::sync::RwLockReadGuard<'_, ()> {
         self.disk.read().unwrap_or_else(|e| e.into_inner())
     }
+}
+
+/// Grouped results with the failed sources by name; an error when all `asked` sources failed.
+fn found(d: Discovery, asked: usize) -> Result<Found> {
+    if d.errors.len() >= asked
+        && let Some((name, e)) = d.errors.first()
+    {
+        bail!("{}: {e}", crate::backend::source_label(name));
+    }
+    Ok(Found {
+        entries: d.entries,
+        failed: d
+            .errors
+            .into_iter()
+            .map(|(name, e)| (name.to_string(), e))
+            .collect(),
+    })
 }
 
 impl Backend for CoreBackend {
@@ -316,8 +347,61 @@ impl Backend for CoreBackend {
         })
     }
 
-    fn search(&self, filter: &SearchFilter) -> Result<Vec<RemoteAddon>> {
-        self.curseforge().search_filtered(filter)
+    fn search(&self, filter: &SearchFilter) -> Result<Found> {
+        if curseforge_only(filter) {
+            let list = self.curseforge().search_filtered(filter)?;
+            return Ok(Found {
+                entries: discover::group(vec![list]),
+                failed: vec![],
+            });
+        }
+        // Like `discover::search`, except that CurseForge also gets the sort order.
+        let providers = self.providers();
+        let curseforge = self.curseforge();
+        let available: Vec<&dyn Provider> = providers
+            .iter()
+            .filter(|p| p.available())
+            .map(|p| p.as_ref())
+            .collect();
+        let results: Vec<Result<Vec<RemoteAddon>>> = std::thread::scope(|s| {
+            let handles: Vec<_> = available
+                .iter()
+                .map(|p| {
+                    let cf = &curseforge;
+                    s.spawn(move || {
+                        if p.name() == providers::curseforge::NAME {
+                            cf.search_filtered(filter)
+                        } else {
+                            p.search(Flavor::Forever, &filter.text)
+                        }
+                    })
+                })
+                .collect();
+            handles
+                .into_iter()
+                .map(|h| {
+                    h.join()
+                        .unwrap_or_else(|_| Err(anyhow::anyhow!("search thread panicked")))
+                })
+                .collect()
+        });
+        let mut lists = Vec::new();
+        let mut errors = Vec::new();
+        for (p, r) in available.iter().zip(results) {
+            match r {
+                Ok(list) => lists.push(list),
+                Err(e) => errors.push((p.name(), format!("{e:#}"))),
+            }
+        }
+        let mut found = found(
+            Discovery {
+                entries: discover::group(lists),
+                errors,
+            },
+            available.len(),
+        )?;
+        sort_entries(&mut found.entries, filter.sort);
+        Ok(found)
     }
 
     /// From `<cache>/curseforge-categories.json` while it is fresh; a failed refresh falls back
@@ -353,21 +437,23 @@ impl Backend for CoreBackend {
     fn description(&self, remote: &RemoteAddon) -> Result<Option<String>> {
         let text = match remote.provider.as_str() {
             providers::curseforge::NAME => self.curseforge().description(&remote.external_id)?,
-            providers::github::NAME => {
-                let c = self.provider_config();
-                let gh = GitHub {
-                    token: c.github_token,
-                    api_base: c.github_base_url,
-                };
-                gh.readme(&remote.external_id)?
-            }
+            providers::github::NAME => self.github().readme(&remote.external_id)?,
+            // Hub addons are GitHub repos: their README is the long description.
+            providers::hub::NAME => match remote.source_url.as_deref() {
+                Some(repo) if discover::github_repo(repo).is_some() => {
+                    self.github().readme(repo)?
+                }
+                _ => return Ok(None),
+            },
             _ => return Ok(None),
         };
         Ok((!text.is_empty()).then_some(text))
     }
 
-    fn featured(&self) -> Result<Vec<RemoteAddon>> {
-        self.curseforge().featured(Flavor::Forever)
+    fn featured(&self) -> Result<Found> {
+        let providers = self.providers();
+        let asked = providers.iter().filter(|p| p.available()).count();
+        found(discover::featured(Flavor::Forever, &providers), asked)
     }
 
     fn resolve_url(&self, url: &str) -> Result<RemoteAddon> {
@@ -376,7 +462,7 @@ impl Backend for CoreBackend {
                 return Ok(addon);
             }
         }
-        bail!("Not a CurseForge, GitHub or WowInterface addon URL")
+        bail!("Not a CurseForge, WowUp Hub or GitHub addon URL")
     }
 
     fn game_running(&self, inst: &Installation) -> bool {

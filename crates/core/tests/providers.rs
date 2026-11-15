@@ -229,6 +229,9 @@ fn f4_4_link_source_tells_links_from_search_text() {
         ),
         ("https://github.com/Questie/Questie", Some("GitHub")),
         ("  Questie/Questie ", Some("GitHub")),
+        ("https://wowup.io/addons/1234", Some("WowUpHub")),
+        ("wowup.io/addons/1234/questie", Some("WowUpHub")),
+        ("https://wowup.io/addons/questie", None),
         ("details", None),
         ("damage meter", None),
         ("bag / bank", None),
@@ -546,7 +549,10 @@ fn f7_1_curseforge_unavailable_without_key() {
 
     let all = providers::all(&ProviderConfig::default());
     let names: Vec<(&str, bool)> = all.iter().map(|p| (p.name(), p.available())).collect();
-    assert_eq!(names, [("CurseForge", false), ("GitHub", true)]);
+    assert_eq!(
+        names,
+        [("CurseForge", false), ("WowUpHub", true), ("GitHub", true)]
+    );
     let cfg = ProviderConfig {
         curseforge_api_key: Some("k".into()),
         ..Default::default()

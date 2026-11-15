@@ -1,9 +1,9 @@
 //! Background work: backend calls run on Rune's task pool and come back as [`Msg`]s over a
 //! channel; the waker runs the window's `poll`, which lands them with `State::apply`.
 
-use crate::backend::{Backend, Backup, Settings, Warned};
+use crate::backend::{Backend, Backup, Found, Settings, Warned};
 use crate::state::{MaintCard, State};
-use addon_core::{Addon, Category, Installation, RemoteAddon};
+use addon_core::{Addon, Category, Installation};
 use rune::Waker;
 use std::sync::mpsc::Sender;
 
@@ -23,7 +23,7 @@ pub enum Msg {
         inst: String,
         result: Result<Warned<Vec<Addon>>, String>,
     },
-    /// Download progress 0..=1 of an addon id (update) or external id (install).
+    /// Download progress 0..=1 of an addon id (update) or a result's install key (install).
     Progress {
         id: String,
         done: f32,
@@ -34,14 +34,15 @@ pub enum Msg {
     },
     Installed {
         inst: String,
-        external_id: String,
+        /// The result's `state::install_key`.
+        key: String,
         result: Result<Addon, String>,
     },
     Removed {
         id: String,
         result: Result<(), String>,
     },
-    Featured(Result<Vec<RemoteAddon>, String>),
+    Featured(Result<Found, String>),
     Categories(Result<Vec<Category>, String>),
     /// The long description of the remote addon `(provider, external_id)` (None: it has none).
     Description {
