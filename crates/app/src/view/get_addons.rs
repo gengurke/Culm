@@ -42,8 +42,7 @@ pub fn page(s: &State) -> El {
     .on_submit(|s, tx| dispatch(s, Intent::Submit, tx));
     if let Input::Link(_, source) = input {
         field = field.trailing(
-            ui::badge(&format!("{source} link"), p.accent, p.accent_soft, false)
-                .key("get-addons/link-source"),
+            ui::tag(&format!("{source} link"), ui::Mark::Busy).key("get-addons/link-source"),
         );
     }
     let mut toolbar = row()
@@ -607,13 +606,10 @@ fn detail(s: &State, d: &Detail) -> El {
     };
     let installed = s.installed(remote);
     let state = match installed {
-        Some(a) if a.status() == Status::UpdateAvailable => Some(ui::badge(
-            "Update available",
-            p.warning,
-            p.warning_soft,
-            false,
-        )),
-        Some(_) => Some(ui::badge("Installed", p.success, p.success_soft, true)),
+        Some(a) if a.status() == Status::UpdateAvailable => {
+            Some(ui::tag("Update available", ui::Mark::Update))
+        }
+        Some(_) => Some(ui::tag("Installed", ui::Mark::Good)),
         None => None,
     };
     let action = match installed {
