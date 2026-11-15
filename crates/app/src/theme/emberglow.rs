@@ -2,7 +2,7 @@
 //! mossy flagstone, parchment text, warm gold serif headings, gold gradient buttons and tabs that
 //! glow amber from below. Textures are generated (texture.rs).
 
-use super::{BASE_TYPE, BandDeco, Border, Corners, Overlay, Pal, Skin, Surface, Tex, Theme, Type, h, inset};
+use super::{Medal, BASE_TYPE, BandDeco, Border, Corners, Overlay, Pal, Skin, Surface, Tex, Theme, Type, h, inset};
 use crate::icons;
 use rune::tok::{Family, TextStyle};
 use rune::{Color, Shadow};
@@ -214,6 +214,7 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
         // No texture on toasts: the kit builds their content before the skin is applied.
         toast: Surface { texture: None, shadows: vec![ring(Color::BLACK.alpha(0.7)), drop(4.0, 16.0, 0.65)], ..stone },
         kbd: Surface { ink: p.text_muted, border: Some(Border::all(1.0, bronze.alpha(0.45))), radius: 3.0, ..Default::default() },
+        medal: Medal { ring: [h("#d9c08a"), h("#7d6a44"), h("#2b2414")], ring_on: [h("#fff0b8"), h("#f0b84f"), h("#7a4e10")], outline: h("#020301") },
         emblem: &icons::CREST,
         glyphs: &[],
     };

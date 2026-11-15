@@ -2,7 +2,7 @@
 //! dark leather panels with gold studs, gold serif headings in quest yellow, red lacquered
 //! buttons with a bevel, item-quality status colours. Textures are generated (texture.rs).
 
-use super::{BASE_TYPE, BandDeco, Border, Corners, Overlay, Pal, Skin, Surface, Tex, Theme, Type, h, inset};
+use super::{Medal, BASE_TYPE, BandDeco, Border, Corners, Overlay, Pal, Skin, Surface, Tex, Theme, Type, h, inset};
 use crate::icons;
 use rune::tok::{Family, TextStyle};
 use rune::{Color, Shadow};
@@ -162,6 +162,7 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
         // No texture on toasts: the kit builds their content before the skin is applied.
         toast: Surface { texture: None, shadows: vec![drop(4.0, 16.0, 0.6)], ..leather },
         kbd: Surface { ink: p.text_muted, border: Some(Border::all(1.0, gold.alpha(0.35))), radius: 2.0, ..Default::default() },
+        medal: Medal { ring: [h("#d8c39a"), h("#86683c"), h("#36220f")], ring_on: [h("#fff0b8"), h("#e8b84a"), h("#7a5010")], outline: h("#0d0804") },
         emblem: &icons::CREST,
         glyphs: &[],
     };

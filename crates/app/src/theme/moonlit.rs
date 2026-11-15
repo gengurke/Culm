@@ -1,7 +1,7 @@
 //! Moonlit: a calm navy night sky with one warm gold star. Square
 //! hairline boxes, Inter, a starry header band. The default theme.
 
-use super::{BASE_TYPE, BandDeco, Border, Overlay, Pal, Skin, Surface, Theme, h, ink, inset};
+use super::{Medal, BASE_TYPE, BandDeco, Border, Overlay, Pal, Skin, Surface, Theme, h, ink, inset};
 use crate::icons;
 use rune::{Color, Shadow, oklcha};
 use std::sync::LazyLock;
@@ -94,6 +94,7 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
         segment_on: Surface { fill: p.panel_alt, ink: p.text, border: Some(Border::all(1.0, ink(0.22))), ..Default::default() },
         toast: Surface { fill: p.panel, shadows: vec![Shadow { spread: 1.0, color: p.border, ..Default::default() }], ..Default::default() },
         kbd: Surface { ink: p.text_muted, border: hairline, ..Default::default() },
+        medal: Medal { ring: [h("#d4dcf0"), h("#6c7a9e"), h("#262e48")], ring_on: [h("#fff1c4"), h("#e6ba66"), h("#7a5418")], outline: h("#05080f") },
         emblem: &icons::EMBLEM,
         glyphs: &[],
     };

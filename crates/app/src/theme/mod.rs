@@ -213,10 +213,21 @@ pub struct Skin {
     /// Painted after the kit built the toast: a texture or corners would cover its content.
     pub toast: Surface,
     pub kbd: Surface,
+    /// Round class medallions (Get Addons' class chips).
+    pub medal: Medal,
     /// The brand mark beside the wordmark and on empty states.
     pub emblem: &'static Icon,
     /// Glyphs this theme draws differently: `(default, own)`, looked up by [`glyph`].
     pub glyphs: &'static [(&'static Icon, &'static Icon)],
+}
+
+/// A round metal medallion's ring: `[highlight, body, shade]` along the light from the top left,
+/// gilded (`ring_on`) on the active chip, and the dark outline that sets it off the ground.
+#[derive(Clone, Copy)]
+pub struct Medal {
+    pub ring: [Color; 3],
+    pub ring_on: [Color; 3],
+    pub outline: Color,
 }
 
 /// What draws over the band behind its title.
@@ -441,19 +452,6 @@ pub fn contrast(fg: Color, bg: Color, under: Color) -> f32 {
     let bg = over(bg, under);
     let (a, b) = (over(fg, bg).luminance(), bg.luminance());
     (a.max(b) + 0.05) / (a.min(b) + 0.05)
-}
-
-/// `fg`, darkened or lightened just enough to read at 4.5:1 on `bg`.
-pub fn readable(fg: Color, bg: Color) -> Color {
-    let to = if bg.luminance() > 0.18 {
-        Color::BLACK
-    } else {
-        Color::WHITE
-    };
-    (0..=10)
-        .map(|i| fg.mix(to.alpha(fg.a), i as f32 / 10.0))
-        .find(|c| contrast(*c, bg, bg) >= 4.5)
-        .unwrap_or(to)
 }
 
 /// Starts a view: makes the stored theme current and makes sure the textures it shows exist

@@ -8,7 +8,7 @@ use crate::icons;
 use crate::state::{
     Detail, Fetch, Input, Intent, Menu, Op, Screen, State, Status, dispatch, install_key, single,
 };
-use crate::theme::{self, SurfaceExt, pal, t};
+use crate::theme::{self, Surface, SurfaceExt, pal, t};
 use crate::ui::{self, Kind};
 use addon_core::discover::Entry;
 use addon_core::providers::{curseforge, github};
@@ -25,8 +25,9 @@ fn is_class(c: &Category) -> bool {
     c.id == CLASS || c.parent == Some(CLASS)
 }
 
-/// One toggle chip per Forever class (icon + name); the active one uses the theme's "on" segment
-/// skin. Picking one filters by it, picking it again clears it. None if no class is known.
+/// One toggle chip per Forever class (medallion + name); the active one uses the theme's "on"
+/// segment skin and a gilded ring. Picking one filters by it, picking it again clears it. None if
+/// no class is known.
 fn class_chips(s: &State, list: &[Category], enabled: bool) -> Option<El> {
     let (th, p) = (t(), pal());
     let mut chips = row()
@@ -37,14 +38,14 @@ fn class_chips(s: &State, list: &[Category], enabled: bool) -> Option<El> {
         .flex_wrap()
         .px(theme::PAD)
         .pb(12.0)
-        .gap(6.0)
+        .gap(4.0)
         .center_y()
         .focus_group()
         .child(
             text("CLASS")
                 .font(th.ty.eyebrow)
                 .color(p.text_muted)
-                .pr(6.0),
+                .pr(8.0),
         );
     let mut any = false;
     for c in list
@@ -65,15 +66,19 @@ fn class_chips(s: &State, list: &[Category], enabled: bool) -> Option<El> {
             .label(c.name.clone())
             .checked(on)
             .focusable(enabled)
-            .h(26.0)
-            .pl(8.0)
-            .pr(10.0)
-            .gap(6.0)
+            .h(30.0)
+            .pl(3.0)
+            .pr(11.0)
+            .gap(7.0)
             .center_y()
-            .skin(sk)
+            .skin(&Surface {
+                // A pill around the medallion where the theme rounds chips at all.
+                radius: if sk.radius > 0.0 { 15.0 } else { 0.0 },
+                ..sk.clone()
+            })
             .focus_ring(1.0, 2.0, p.accent_focus);
-        if let Some(g) = icons::class_icon(&c.slug) {
-            chip = chip.child(icon(g, 14.0).color(ink));
+        if let Some(m) = ui::class_medal(&c.slug, 24.0, on) {
+            chip = chip.child(m);
         }
         chip = chip.child(text(c.name.clone()).font(th.ty.small).color(ink));
         chips = chips.child(if enabled {
@@ -96,6 +101,10 @@ const SORTS: [(Sort, &str); 4] = [
     (Sort::Name, "Name"),
     (Sort::TotalDownloads, "Total downloads"),
 ];
+
+fn sort_label(sort: Sort) -> Option<&'static str> {
+    SORTS.iter().find(|(v, _)| *v == sort).map(|(_, l)| *l)
+}
 
 pub fn page(s: &State) -> El {
     let p = pal();
@@ -143,10 +152,22 @@ pub fn page(s: &State) -> El {
             _ => "All categories".to_string(),
         };
         let glyph = &icons::FILTER;
-        let sort = SORTS
-            .iter()
-            .find(|(v, _)| *v == s.sort)
-            .map_or("", |(_, l)| l);
+        let sort = sort_label(s.sort).unwrap_or("");
+        // Resets class, category and sort in one go; only there while one is set. The search text
+        // stays: it is what the user is looking for, not a filter on it.
+        if on && s.filters_set() {
+            toolbar = toolbar.child(
+                ui::button(
+                    "get-addons/clear-filters",
+                    "Clear filters",
+                    Kind::Ghost,
+                    Some(&icons::CLOSE),
+                    true,
+                    |s, tx| dispatch(s, Intent::ClearFilters, tx),
+                )
+                .help("Back to all categories, every class and Popularity"),
+            );
+        }
         toolbar = toolbar
             .child(
                 dropdown(s, Menu::Category, "get-addons/category", &label, glyph, on).max_w(230.0),
@@ -206,19 +227,15 @@ pub fn page(s: &State) -> El {
                 ),
                 (q, None) => (format!("RESULTS FOR “{}”", q.to_uppercase()), &s.results),
             };
+            // The order shows in the heading once it isn't the default ("WARRIOR · LAST UPDATED").
+            let title = match sort_label(filter.sort) {
+                Some(order) if filter.sort != Sort::default() => {
+                    format!("{title}  ·  {}", order.to_uppercase())
+                }
+                _ => title,
+            };
             content = content.child(section(title));
             let cf_only = ready && !filter.is_default() && curseforge_only(&filter);
-            if cf_only {
-                content = content.child(note(
-                    "get-addons/curseforge-only",
-                    &icons::FILTER,
-                    if filter.category.is_some() {
-                        "CurseForge results only: WowUp Hub has no categories."
-                    } else {
-                        "CurseForge results only: type a name to search WowUp Hub too."
-                    },
-                ));
-            }
             if let Fetch::Ready(found) = fetch {
                 for (provider, e) in &found.failed {
                     content = content.child(note(

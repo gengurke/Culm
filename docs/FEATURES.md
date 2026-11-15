@@ -41,6 +41,12 @@ What the addon manager does, one short paragraph per feature. Ids are referenced
   fresh match of the same provider wins, a link to another provider stays with the stored record. Store writes are
   serialized in the app, fsynced, and a scan waits for running installs so it never sees a folder mid-swap.
   (`f2_5_store_roundtrip_and_rescan_keeps_user_choices`)
+- **F2.6 Sort** ✅ — The Addon, Game and Status column headers are buttons (keyboard: Space) that order the list by
+  that column and flip the order when pressed again; a chevron marks the active one. Addon: name A–Z; Game: oldest game
+  version first (dotted numbers compared part by part, none last); Status: what needs the user first (error, update,
+  working, not checked, up to date, unknown, ignored), ties by name. Version is not sortable (authors' own strings;
+  Status covers "outdated"). Applies after the filter text; the order is kept in prefs (`addon_order`, e.g. `status-asc`).
+  (`f2_6_column_headers_sort_the_list`)
 
 ## F3 Updates
 - **F3.1 Check for updates** ✅ — After each scan and on demand, `updates::check_updates` asks each available provider
@@ -91,13 +97,18 @@ What the addon manager does, one short paragraph per feature. Ids are referenced
   e2e `f4_5_clicking_a_result_opens_its_detail_and_esc_closes_it`, `f4_4_install_from_github_url_without_a_key`)
 - **F4.6 Filters** ✅ — A category dropdown (CurseForge's WoW addon tree from `GET /v1/categories?gameId=1`, fetched once
   per run and cached 7 days in the cache dir; subcategories indented, the Class subtree left out), a row of class chips
-  (only Forever's nine classes, picked by CurseForge category id, each with our own line glyph; one at a time, a second
+  (only Forever's nine classes, picked by CurseForge category id, each with its round medallion: a bevelled metal ring
+in the theme's tones, gilded on the active chip, around a disc in the darkened class colour with our own filled class
+emblem, no game art; one at a time, a second
   click clears it, a class and a dropdown category replace each other since `categoryId` takes one) and a
   sort dropdown (Popularity, Last updated, Name, Total downloads) apply to search and browsing: `categoryId`, `sortField`
   (2/3/4/6) and `sortOrder` on `/v1/mods/search`; with no text, category or order the popular list shows. Esc or a click
-  outside closes a dropdown. Filters are CurseForge's: while a category or class is set (or the list is browsed in another
-  order without text) only CurseForge is asked, and a quiet note says so. (`f4_6_categories_are_the_addon_tree`, `f4_6_search_sends_category_and_sort`,
-  e2e `f4_6_category_and_sort_filter_the_search`)
+  outside closes a dropdown. The section heading names a non-default order ("WARRIOR · LAST UPDATED"). While a class,
+  category or order other than Popularity is set, "Clear filters" beside the dropdowns resets all three at once; the
+  search text stays (it is the query, not a filter on it) and Esc only closes menus and the detail panel. Filters are
+  CurseForge's: while a category or class is set (or the list is browsed in another order without text) only CurseForge
+  is asked, silently. (`f4_6_categories_are_the_addon_tree`, `f4_6_search_sends_category_and_sort`,
+  e2e `f4_6_category_and_sort_filter_the_search`, `f4_6_clear_filters_resets_class_category_and_sort`)
 - **F4.7 WowUp Hub provider** ✅ — `providers::Hub` (hub.wowup.io, no key, gameType `forever`, base URL in
   `ProviderConfig::hub_base_url`): search, featured (popular + recent, deduped), batch `get_many` for update checks,
   `wowup.io/addons/<id>` URLs, and folder matching by WowUp's md5 fingerprint (`POST /addons/fingerprint`, exact matches
@@ -165,14 +176,14 @@ What the addon manager does, one short paragraph per feature. Ids are referenced
 (`--snap`, `--script`) use the deterministic `MockBackend` (scenes) unless `ADDONS_BACKEND=core`.
 End-to-end specs in `crates/app/tests/e2e_*.rs` drive the real UI and core against a temp Forever tree, a fake import
 config and a FakeServer (helpers in `tests/common/mod.rs`); `tests/ui_shell.rs` keeps the mock-only UI checks
-(`navigation_switches_screens`, `f2_1_filter_narrows_the_list`, `slash_focuses_the_filter`, `f3_2_failed_update_shows_error`,
+(`navigation_switches_screens`, `f2_1_filter_narrows_the_list`, `f2_6_column_headers_sort_the_list`, `slash_focuses_the_filter`, `f3_2_failed_update_shows_error`,
 `f5_3_open_website`, `f6_1_maintenance_locked_while_game_runs`,
 `late_results_never_land_on_the_wrong_installation_or_restart_updates`: worker results carry their installation id and
 are dropped after a switch).
 
 ## UI shell ✅
 Rune UI in `crates/app` (themes in `src/theme/`, default Moonlit): sidebar nav with update badge and
-installation picker, header band (stars in Moonlit), My Addons (filter, virtual list, detail panel), Get Addons
-(one search-or-link field, category and sort dropdowns, popular list, result detail panel, no-key hint), Maintenance (confirm + result per
+installation picker, header band (stars in Moonlit), My Addons (filter, sortable column headers, virtual list, detail panel), Get Addons
+(one search-or-link field, category and sort dropdowns, class medallion chips, clear filters, popular list, result detail panel, no-key hint), Maintenance (confirm + result per
 card, locked while the game runs), Settings (theme, API key, default channel, installations, WowUp import),
 toasts and onboarding. Every scene has a `<scene>@<theme>` variant (`--snap x.png --scene settings@hearthwood`).

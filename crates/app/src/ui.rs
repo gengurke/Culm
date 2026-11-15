@@ -412,6 +412,89 @@ pub fn emblem(size: f32) -> El {
         .child(icon(t().skin.emblem, size).color(p.accent))
 }
 
+/// A class medallion (classicplus.io-style, all ours): a bevelled metal ring in the theme's
+/// [`Medal`](theme::Medal) tones, gilded when `on`, around a sunk disc in the class colour (darkened,
+/// lit from the centre like a faint glow) bearing the class emblem in light ink. None for a slug
+/// that isn't one of Forever's classes.
+pub fn class_medal(slug: &str, size: f32, on: bool) -> Option<El> {
+    let glyph = icons::class_icon(slug)?;
+    let class = theme::h(icons::class_color(slug)?);
+    let m = t().skin.medal;
+    let [hi, mid, lo] = if on { m.ring_on } else { m.ring };
+    let ring = (size * 0.13).max(2.0);
+    let d = size - 2.0 * ring;
+    let (deep, core, glow) = (
+        class.mix(Color::BLACK, 0.93),
+        class.mix(Color::BLACK, 0.7),
+        // Light classes (Priest, Rogue) are held down so the light emblem still reads.
+        class.mix(
+            Color::BLACK,
+            (1.0 - 0.22 / class.luminance().max(0.01)).max(0.25),
+        ),
+    );
+    // A soft specular sheen on the disc's upper left, under the emblem.
+    let sheen = el()
+        .pin(Some(d * 0.14), Some(d * 0.07), None, None)
+        .size(d * 0.56, d * 0.34)
+        .radius(d * 0.2)
+        .radial_gradient(
+            [0.5, 0.5],
+            [d * 0.28, d * 0.17],
+            [
+                (0.0, Color::WHITE.alpha(0.30)),
+                (1.0, Color::WHITE.alpha(0.0)),
+            ],
+        )
+        .a11y_hidden();
+    let disc = el()
+        .pin(Some(ring), Some(ring), None, None)
+        .size(d, d)
+        .radius(d / 2.0)
+        .center()
+        .fill(deep)
+        .radial_gradient(
+            [0.5, 0.48],
+            d * 0.6,
+            [(0.0, glow), (0.45, core), (1.0, deep)],
+        )
+        // Sunk into the ring: shaded under the top edge, a lit lip at the bottom.
+        .border_gradient(0.75, Color::BLACK.alpha(0.7), class.alpha(0.5))
+        .box_shadow(Shadow {
+            y: 1.2,
+            blur: 2.4,
+            color: Color::BLACK.alpha(0.6),
+            inset: true,
+            ..Shadow::default()
+        })
+        .child(sheen)
+        .child(icon(glyph, d * 0.8).color(Color::WHITE.mix(class, 0.12)));
+    let mut medal = el()
+        .size(size, size)
+        .radius(size / 2.0)
+        .fill(mid)
+        // Light from the top left: highlight, body, shade.
+        .linear_gradient(
+            std::f32::consts::FRAC_PI_4 * 3.0,
+            [(0.0, hi), (0.45, mid), (1.0, lo)],
+        )
+        .border(0.75, m.outline)
+        .box_shadow(Shadow {
+            y: 1.0,
+            blur: 2.0,
+            color: Color::BLACK.alpha(0.45),
+            ..Shadow::default()
+        })
+        .a11y_hidden();
+    if on {
+        medal = medal.box_shadow(Shadow {
+            blur: 6.0,
+            color: m.ring_on[1].alpha(0.55),
+            ..Shadow::default()
+        });
+    }
+    Some(medal.child(disc))
+}
+
 /// A muted line of meta text pieces joined by middle dots.
 pub fn meta(parts: &[&str]) -> El {
     let p = pal();

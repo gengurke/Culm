@@ -178,58 +178,91 @@ pub static STUD: Icon = Icon {
 };
 
 line_icon!(CHEVRON_DOWN, "chevron-down", r#"<path d="m6 9 6 6 6-6"/>"#);
+line_icon!(CHEVRON_UP, "chevron-up", r#"<path d="m6 15 6-6 6 6"/>"#);
 line_icon!(
     FILTER,
     "filter",
     r#"<path d="M3 6h18"/><path d="M7 12h10"/><path d="M10 18h4"/>"#
 );
 
-// Class glyphs for CurseForge's class categories: our own simple line drawings (no game art).
-line_icon!(
+// Class emblems for CurseForge's class categories: our own filled silhouettes (no game art), drawn
+// to read at 12-14 pt inside a class medallion (`ui::class_medal`).
+macro_rules! emblem {
+    ($id:ident, $name:literal, $body:literal) => {
+        pub static $id: Icon = Icon {
+            name: concat!("ra-", $name),
+            view: 24.0,
+            body: concat!(
+                r#"<g fill="currentColor" stroke-linecap="round" stroke-linejoin="round">"#,
+                $body,
+                "</g>"
+            ),
+        };
+    };
+}
+
+// A sword, point up, centred on x = 12: blade, guard, grip, pommel.
+emblem!(
     CLASS_WARRIOR,
     "class-warrior",
-    r#"<path d="M20 3.5 18.5 8 9.5 17l-2.5-2.5 9-9z"/><path d="M5 12.5l6.5 6.5"/><path d="M8 18l-3.5 3.5"/><path d="M14 14h7v2.8c0 2.4-3.5 4.4-3.5 4.4S14 19.2 14 16.8z"/>"#
+    r#"<g transform="rotate(-40 12 12.2)"><path d="M12 .4 13.9 3.2V14.6H10.1V3.2Z"/><path d="M6.6 14.6h10.8v2.3H6.6z"/><path d="M10.9 16.9h2.2v3.8h-2.2z"/><circle cx="12" cy="22" r="1.8"/></g><g transform="rotate(40 12 12.2)"><path d="M12 .4 13.9 3.2V14.6H10.1V3.2Z"/><path d="M6.6 14.6h10.8v2.3H6.6z"/><path d="M10.9 16.9h2.2v3.8h-2.2z"/><circle cx="12" cy="22" r="1.8"/></g>"#
 );
-line_icon!(
+emblem!(
     CLASS_HUNTER,
     "class-hunter",
-    r#"<path d="M5 3a16 16 0 0 1 16 16"/><path d="M5 3l16 16" stroke-width="1"/><path d="M3.5 20.5 17 7"/><path d="M12.5 7H17v4.5"/><path d="M3.5 20.5l.8-3M3.5 20.5l3-.8"/>"#
+    r#"<path d="M5.2 3.2a15.8 15.8 0 0 1 15.6 15.6" fill="none" stroke="currentColor" stroke-width="2.6"/><path d="M5.2 3.2 20.8 18.8" fill="none" stroke="currentColor" stroke-width="0.9"/><path d="M3.6 20.4 14.6 9.4" fill="none" stroke="currentColor" stroke-width="1.9"/><path d="M19.4 4.6 12.4 7 17 11.6Z"/><path d="M6.4 17.6 3.4 16.4 2.6 18.6 4.4 19.6 5.4 21.4 7.6 20.6Z"/>"#
 );
-line_icon!(
+emblem!(
     CLASS_ROGUE,
     "class-rogue",
-    r#"<path d="M20.5 3.5 19 9.5l-6 6-2.5-2.5 6-6z"/><path d="M8.5 11.5l4 4"/><path d="M10.5 15.5 5 21"/><circle cx="4.2" cy="21" r="0.6"/>"#
+    r#"<g transform="rotate(42 12 12)"><path d="M12 .2c2 2.4 3.1 5 3.1 8.4L14 14h-4L8.9 8.6c0-3.4 1.1-6 3.1-8.4z"/><path d="M6.2 14h11.6a1.1 1.1 0 0 1 0 2.2H6.2a1.1 1.1 0 0 1 0-2.2z"/><path d="M10.9 16.2h2.2v4.2h-2.2z"/><circle cx="12" cy="21.8" r="1.9"/></g>"#
 );
-line_icon!(
+emblem!(
     CLASS_PRIEST,
     "class-priest",
-    r#"<path d="M12 2.5v19"/><path d="M6.5 9h11"/><circle cx="12" cy="9" r="3.5"/><path d="M9.5 21.5h5"/>"#
+    r#"<path d="M10.8 1.8h2.4v18.4h-2.4z"/><path d="M4.6 7.8h14.8v2.4H4.6z"/><circle cx="12" cy="9" r="4.8" fill="none" stroke="currentColor" stroke-width="2.1"/><path d="M8.6 20.2h6.8l.8 2.2H7.8z"/>"#
 );
-line_icon!(
+emblem!(
     CLASS_MAGE,
     "class-mage",
-    r#"<path d="M12 21.5c-3.8 0-6-2.6-6-6 0-3.8 2.6-5.6 3.8-9.5 1.9 1.6 3 3.6 3.2 5.6.9-.8 1.4-1.9 1.5-3 2 2 3.5 4.3 3.5 6.9 0 3.4-2.2 6-6 6z"/><path d="M12 21.5c-1.4 0-2.4-1-2.4-2.4 0-1.5 1.3-2.4 2.4-3.9 1.1 1.5 2.4 2.4 2.4 3.9s-1 2.4-2.4 2.4z"/>"#
+    r#"<path transform="translate(12 12.6) scale(1.2) translate(-12 -13.8)" fill-rule="evenodd" d="M12 22.2c-4 0-6.6-2.7-6.6-6.4 0-4.1 2.8-6.1 4.1-10.4 2 1.7 3.3 3.9 3.5 6.1 1-.9 1.5-2.1 1.6-3.3 2.2 2.2 4 4.7 4 7.6 0 3.7-2.6 6.4-6.6 6.4zM12 20.2c-1.4 0-2.4-1-2.4-2.4 0-1.5 1.3-2.4 2.4-3.9 1.1 1.5 2.4 2.4 2.4 3.9s-1 2.4-2.4 2.4z"/>"#
 );
-line_icon!(
+emblem!(
     CLASS_WARLOCK,
     "class-warlock",
-    r#"<path d="M12 2.5c-4.4 0-7.5 3-7.5 7.2 0 2.5 1.2 4.3 3 5.3v4h9v-4c1.8-1 3-2.8 3-5.3 0-4.2-3.1-7.2-7.5-7.2z"/><circle cx="9" cy="10.5" r="1.7"/><circle cx="15" cy="10.5" r="1.7"/><path d="M12 13.5v1.5"/><path d="M10.5 19v2.5M13.5 19v2.5"/>"#
+    r#"<path fill-rule="evenodd" d="M12 2.2c-4.6 0-7.8 3.1-7.8 7.5 0 2.6 1.2 4.5 3.1 5.6v4.4c0 .8.6 1.4 1.3 1.4h6.8c.7 0 1.3-.6 1.3-1.4v-4.4c1.9-1.1 3.1-3 3.1-5.6 0-4.4-3.2-7.5-7.8-7.5zM6.8 10.6a2.2 2.2 0 1 0 4.4 0a2.2 2.2 0 1 0-4.4 0zM12.8 10.6a2.2 2.2 0 1 0 4.4 0a2.2 2.2 0 1 0-4.4 0zM12 13.6l1.1 2.2h-2.2zM10.1 18h1v3.1h-1zM12.9 18h1v3.1h-1z"/>"#
 );
-line_icon!(
+emblem!(
     CLASS_DRUID,
     "class-druid",
-    r#"<path d="M12 12c-3 0-5.5 3-5.5 5.6 0 1.8 1.3 2.6 2.8 2.6 1.1 0 1.8-.6 2.7-.6s1.6.6 2.7.6c1.5 0 2.8-.8 2.8-2.6C17.5 15 15 12 12 12z"/><ellipse cx="5.8" cy="10.2" rx="1.6" ry="2.1"/><ellipse cx="9.4" cy="5.8" rx="1.6" ry="2.2"/><ellipse cx="14.6" cy="5.8" rx="1.6" ry="2.2"/><ellipse cx="18.2" cy="10.2" rx="1.6" ry="2.1"/>"#
+    r#"<path d="M12 11.6c-3.2 0-5.9 3.2-5.9 6 0 1.9 1.4 2.8 3 2.8 1.2 0 1.9-.6 2.9-.6s1.7.6 2.9.6c1.6 0 3-.9 3-2.8 0-2.8-2.7-6-5.9-6z"/><ellipse cx="5.4" cy="10" rx="1.9" ry="2.4" transform="rotate(-20 5.4 10)"/><ellipse cx="9.3" cy="5.4" rx="1.9" ry="2.5" transform="rotate(-8 9.3 5.4)"/><ellipse cx="14.7" cy="5.4" rx="1.9" ry="2.5" transform="rotate(8 14.7 5.4)"/><ellipse cx="18.6" cy="10" rx="1.9" ry="2.4" transform="rotate(20 18.6 10)"/>"#
 );
-line_icon!(
+emblem!(
     CLASS_PALADIN,
     "class-paladin",
-    r#"<rect x="4.5" y="3" width="15" height="6.5" rx="1.2"/><path d="M9.5 3v6.5M14.5 3v6.5"/><path d="M12 9.5V21"/><path d="M10 21h4"/>"#
+    r#"<path fill-rule="evenodd" d="M4.6 3h14.8c.8 0 1.4.6 1.4 1.4v5c0 .8-.6 1.4-1.4 1.4H4.6c-.8 0-1.4-.6-1.4-1.4v-5C3.2 3.6 3.8 3 4.6 3zM12 4.6l1.7 2.3L12 9.2l-1.7-2.3z"/><path d="M10.8 10.8h2.4v9h-2.4z"/><path d="M9.2 19.6h5.6l-.9 2.8h-3.8z"/>"#
 );
-line_icon!(
+emblem!(
     CLASS_SHAMAN,
     "class-shaman",
-    r#"<rect x="8" y="2.5" width="8" height="19" rx="1"/><path d="M8 8.5H3.5l2 3H8M16 8.5h4.5l-2 3H16"/><path d="M10.4 6h.01M13.6 6h.01"/><path d="M8 12.5h8"/><path d="M10.5 16h3"/>"#
+    r#"<path d="M14.2 1.6 5 13.4h6.2L9.4 22.4 19 10.2h-6.2l3.3-8.6z"/>"#
 );
+
+/// The class colour for a CurseForge class category slug, as the game's UI uses it (plain data).
+pub fn class_color(slug: &str) -> Option<&'static str> {
+    Some(match slug {
+        "warrior" => "#C69B6D",
+        "paladin" => "#F48CBA",
+        "hunter" => "#AAD372",
+        "rogue" => "#FFF468",
+        "priest" => "#FFFFFF",
+        "shaman" => "#0070DD",
+        "mage" => "#3FC7EB",
+        "warlock" => "#8788EE",
+        "druid" => "#FF7C0A",
+        _ => return None,
+    })
+}
 
 /// The glyph for a CurseForge class category slug ("warrior"), for the classes Forever has.
 pub fn class_icon(slug: &str) -> Option<&'static Icon> {

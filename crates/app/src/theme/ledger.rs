@@ -3,7 +3,7 @@
 //! gold accents, serif headings in off-white and one deep red action button. Flat, no textures:
 //! the practical daily driver.
 
-use super::{BASE_TYPE, BandDeco, Border, Pal, Skin, Surface, Theme, Type, h, ink, inset};
+use super::{Medal, BASE_TYPE, BandDeco, Border, Pal, Skin, Surface, Theme, Type, h, ink, inset};
 use crate::icons;
 use rune::tok::{Family, TextStyle};
 use rune::{Color, Shadow};
@@ -116,6 +116,7 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
         segment_on: Surface { fill: h("#3a3230"), ink: gold, border: Some(Border::all(1.0, gold.alpha(0.45))), radius: 7.0, ..Default::default() },
         toast: Surface { shadows: vec![drop(4.0, 16.0, 0.6)], ..panel },
         kbd: Surface { ink: p.text_muted, border: Some(Border::all(1.0, ink(0.16))), radius: 4.0, ..Default::default() },
+        medal: Medal { ring: [h("#dadada"), h("#7a7a7a"), h("#2a2a2a")], ring_on: [h("#fff0b8"), h("#ccaa44"), h("#6a5010")], outline: h("#000000") },
         emblem: &icons::EMBLEM,
         glyphs: &[],
     };
