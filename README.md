@@ -65,5 +65,5 @@ This program is free software: you can redistribute it and/or modify it under th
 License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later
 version. It is distributed WITHOUT ANY WARRANTY; see [LICENSE](LICENSE) for the full text.
 
-Not affiliated with or endorsed by Blizzard Entertainment, CurseForge/Overwolf or WowUp. World of Warcraft is a
-trademark of Blizzard Entertainment, Inc.
+World of Warcraft is a trademark of Blizzard Entertainment. Culm is a community project, not affiliated with or
+endorsed by Blizzard.

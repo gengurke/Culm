@@ -158,7 +158,14 @@ pub fn page(s: &State) -> El {
             .key("settings/version")
             .font(t().ty.mono)
             .color(p.text_dim),
-    ));
+    ))
+    .child(
+        text(brand::DISCLAIMER)
+            .key("settings/disclaimer")
+            .font(t().ty.small)
+            .color(p.text_muted)
+            .pt(10.0),
+    );
 
     let mut themes = row()
         .key("settings/theme")
