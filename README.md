@@ -1,11 +1,11 @@
 # Culm
 
 An addon manager for **World of Warcraft: Forever** on Linux, written in Rust on the
-[Rune](https://github.com/anomalyco/rune) GUI framework. The name is not final (`crates/app/src/brand.rs`).
+[Rune](https://github.com/anomalyco/rune) GUI framework.
 
 **Status:** early but usable. Detects Forever clients in Wine/Proton/Faugus/Lutris/Bottles prefixes, imports
 existing addon records, scans and groups `Interface/AddOns`, updates/installs/removes addons from CurseForge,
-GitHub (WowInterface is implemented but disabled: no game-version info for Forever), and has client maintenance (cache, WTF leftovers, WTF backups). What exactly works and
+WowUp Hub, GitHub (WowInterface is implemented but disabled: no game-version info for Forever), and has client maintenance (cache, WTF leftovers, WTF backups). What exactly works and
 how it is tested: [docs/FEATURES.md](docs/FEATURES.md).
 
 ## Build and run
@@ -20,7 +20,8 @@ Without root: a gitignored `.cargo/config.toml` can set `LIBRARY_PATH` to a shim
 `libxkbcommon.so -> /usr/lib64/libxkbcommon.so.0` (see `AGENTS.md`). The first build takes a few minutes (Rune is big).
 
 A desktop entry template is in `packaging/dev.culm.app.desktop`: set `Exec` to your binary and copy it to
-`~/.local/share/applications/` if you want a launcher.
+`~/.local/share/applications/` if you want a launcher; copy `packaging/culm.svg` to
+`~/.local/share/icons/hicolor/scalable/apps/culm.svg` for its icon.
 
 ## CurseForge API key
 
@@ -58,7 +59,7 @@ Test names carry the feature id from `docs/FEATURES.md` (`f3_2_...`). Contributo
 
 ## License
 
-Copyright (C) 2026 the culm contributors.
+Copyright (C) 2026 the Culm contributors.
 
 This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
 License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later

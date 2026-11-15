@@ -153,7 +153,7 @@ pub fn page(s: &State) -> El {
 
     let about = section("About").child(setting_row(
         brand::APP_NAME,
-        "An addon manager for World of Warcraft: Forever. Free software under the MIT licence.",
+        "An addon manager for World of Warcraft: Forever. Free software under the GNU GPL v3 or later.",
         text(format!("v{}", env!("CARGO_PKG_VERSION")))
             .key("settings/version")
             .font(t().ty.mono)

@@ -399,8 +399,17 @@ pub fn addon_tile(name: &str, size: f32, thumb: Option<&rune::Image>, key: Strin
     }
 }
 
-/// The theme's emblem with its soft glow, for empty states and the brand block.
+/// The theme's emblem with its soft glow, for empty states.
 pub fn emblem(size: f32) -> El {
+    glowing(t().skin.emblem, size)
+}
+
+/// The brand mark with the same glow, for the sidebar header.
+pub fn brand_mark(size: f32) -> El {
+    glowing(&icons::EMBLEM, size)
+}
+
+fn glowing(glyph: &'static Icon, size: f32) -> El {
     let p = pal();
     el().size(size * 2.0, size * 2.0)
         .center()
@@ -409,7 +418,7 @@ pub fn emblem(size: f32) -> El {
             size,
             [(0.0, p.accent.alpha(0.35)), (1.0, p.accent.alpha(0.0))],
         )
-        .child(icon(t().skin.emblem, size).color(p.accent))
+        .child(icon(glyph, size).color(p.accent))
 }
 
 /// A class medallion (classicplus.io-style, all ours): a bevelled metal ring in the theme's

@@ -168,6 +168,7 @@ emblem, no game art; one at a time, a second
   4.5:1 and dimmed or status ink at 3:1 on its window and cards. (e2e `f7_3_theme_choice_applies_and_survives_restart`,
   `f7_3_unknown_stored_theme_falls_back_to_moonlit`, `f7_3_every_theme_renders_every_screen`; unit
   `f7_3_every_theme_keeps_text_readable`)
+- **F7.4 Name and folders** ✅ — The app is Culm (`brand.rs`: name, tagline, app id `dev.culm.app`).
 
 ## App wiring ✅
 `crates/app/src/core_backend.rs` implements `backend::Backend` over the core: data/cache dirs from `rune::dirs::AppDirs`

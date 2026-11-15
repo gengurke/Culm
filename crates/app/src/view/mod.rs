@@ -142,12 +142,23 @@ fn sidebar(s: &State) -> El {
         .px(20.0)
         .gap(10.0)
         .center_y()
-        .child(el().size(28.0, 28.0).center().child(ui::emblem(19.0)))
+        .child(el().size(32.0, 32.0).center().child(ui::brand_mark(22.0)))
         .child(
-            text(brand::APP_NAME.to_uppercase())
-                .font(t().ty.wordmark)
-                .color(p.heading)
-                .truncate(),
+            col()
+                .gap(2.0)
+                .min_w(0.0)
+                .child(
+                    text(brand::APP_NAME.to_uppercase())
+                        .font(t().ty.wordmark)
+                        .color(p.heading)
+                        .truncate(),
+                )
+                .child(
+                    text(brand::TAGLINE)
+                        .font(t().ty.eyebrow)
+                        .color(p.text_muted)
+                        .truncate(),
+                ),
         );
     let nav = col()
         .key("nav")

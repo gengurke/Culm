@@ -149,11 +149,11 @@ line_icon!(
     r#"<path d="M21 12a9 9 0 1 1-6.22-8.56"/>"#
 );
 
-/// The brand mark: a four-point star inside a thin ring.
+/// The brand mark: a bamboo culm with two leaves under a crescent moon and a four-point star.
 pub static EMBLEM: Icon = Icon {
     name: "ra-emblem",
     view: 128.0,
-    body: r#"<circle cx="64" cy="64" r="34" fill="none" stroke="currentColor" stroke-width="3.5" stroke-opacity="0.75"/><path d="M64 4 L71.5 56.5 L94 64 L71.5 71.5 L64 124 L56.5 71.5 L34 64 L56.5 56.5Z" fill="currentColor"/>"#,
+    body: r#"<path d="M109.6 39.6 A21 21 0 1 1 87.5 11.1 A18 18 0 1 0 109.6 39.6Z" fill="currentColor"/><g transform="translate(54 16) rotate(-6)" fill="currentColor"><rect x="-7.5" y="0" width="15" height="28" rx="3.5"/><rect x="-7.5" y="32" width="15" height="32" rx="3.5"/><rect x="-7.5" y="68" width="15" height="36" rx="3.5"/><rect x="-10" y="28.3" width="20" height="3.4" rx="1.7"/><rect x="-10" y="64.3" width="20" height="3.4" rx="1.7"/><path d="M8 66 C20 70 32 78 40 90 C28 88 16 80 8 70Z"/><path d="M-8 30 C-20 22 -32 20 -42 24 C-32 32 -20 34 -8 34Z"/></g><path d="M104 61.0 L106.275 71.725 L117.0 74 L106.275 76.275 L104 87.0 L101.725 76.275 L91.0 74 L101.725 71.725Z" fill="currentColor"/>"#,
 };
 
 /// A small filled four-point star (empty states, sparkles).
