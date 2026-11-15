@@ -46,7 +46,8 @@ What the addon manager does, one short paragraph per feature. Ids are referenced
   once for all managed (linked, not ignored) addons and marks "Update available"; a failing provider (or GitHub repo) is
   reported without stopping the rest, providers without a key are skipped. A managed addon no check has answered for
   (no `latest`, e.g. CurseForge without a key) shows a muted "Not checked", never "Up to date", and without a key the header says
-  "CurseForge updates not checked — add a CurseForge key" (the imported last known releases are all it has). (`f3_1_never_checked_addons_say_not_checked`, `f3_1_get_many_reports_latest_file_per_channel`,
+  "CurseForge updates not checked — add a CurseForge key" (the imported last known releases are all it has). A CurseForge display name that is a zip name shows without `.zip`.
+  (`f3_1_never_checked_addons_say_not_checked`, `f3_1_get_many_reports_latest_file_per_channel`,
   `f3_1_check_updates_batches_per_provider_and_isolates_failures`, `f3_1_check_updates_without_key_skips_curseforge_quietly`,
   e2e `f3_1_check_shows_update_available`)
 - **F3.2 Update / Update all** ✅ — Downloads the release zip (progress in the row), validates it (no `..`/absolute paths/symlinks,

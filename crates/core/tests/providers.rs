@@ -124,7 +124,7 @@ fn f3_1_get_many_reports_latest_file_per_channel() {
             cf_file(11, "1.1", 1, &["A"], 100),
         ],
     );
-    let b = cf_mod(2, "Bee", &["Bee", "Bee_Options"], 20, "2.0");
+    let b = cf_mod(2, "Bee", &["Bee", "Bee_Options"], 20, "Bee-2.0.zip");
     s.json("POST", "/v1/mods", &cf_envelope(json!([a, b])));
 
     let addons = curseforge(&s)
@@ -142,6 +142,8 @@ fn f3_1_get_many_reports_latest_file_per_channel() {
         addons[1].latest_for(Channel::Stable).unwrap().folders,
         ["Bee", "Bee_Options"]
     );
+    // A zip name uploaded as the display name shows as a version.
+    assert_eq!(addons[1].latest_for(Channel::Stable).unwrap().version, "Bee-2.0");
 }
 
 #[test]
