@@ -1,0 +1,348 @@
+{
+ "data": {
+  "isCacheBuilt": true,
+  "exactMatches": [
+   {
+    "id": 61284,
+    "file": {
+     "id": 5200001,
+     "gameId": 1,
+     "modId": 61284,
+     "isAvailable": true,
+     "displayName": "Details.Forever.20260920",
+     "fileName": "Details.Forever.20260920.zip",
+     "releaseType": 1,
+     "fileStatus": 4,
+     "hashes": [
+      {
+       "value": "abc",
+       "algo": 1
+      }
+     ],
+     "fileDate": "2026-09-20T10:00:00Z",
+     "fileLength": 4567890,
+     "downloadCount": 1200,
+     "downloadUrl": "https://edge.forgecdn.net/files/5200/1/Details.Forever.20260920.zip",
+     "gameVersions": [
+      "1.60.1"
+     ],
+     "sortableGameVersions": [
+      {
+       "gameVersionName": "1.60.1",
+       "gameVersionPadded": "",
+       "gameVersion": "1.60.1",
+       "gameVersionReleaseDate": "2026-09-01T00:00:00Z",
+       "gameVersionTypeId": 88568
+      }
+     ],
+     "dependencies": [
+      {
+       "modId": 1001,
+       "relationType": 1
+      },
+      {
+       "modId": 1002,
+       "relationType": 2
+      },
+      {
+       "modId": 1003,
+       "relationType": 3
+      },
+      {
+       "modId": 1004,
+       "relationType": 4
+      }
+     ],
+     "exposeAsAlternative": null,
+     "parentProjectFileId": null,
+     "alternateFileId": null,
+     "isServerPack": false,
+     "fileFingerprint": 36400007,
+     "modules": [
+      {
+       "name": "Details",
+       "fingerprint": 3001111111
+      },
+      {
+       "name": "Details_DataStorage",
+       "fingerprint": 3002222222
+      }
+     ]
+    },
+    "latestFiles": [
+     {
+      "id": 5200001,
+      "gameId": 1,
+      "modId": 61284,
+      "isAvailable": true,
+      "displayName": "Details.Forever.20260920",
+      "fileName": "Details.Forever.20260920.zip",
+      "releaseType": 1,
+      "fileStatus": 4,
+      "hashes": [
+       {
+        "value": "abc",
+        "algo": 1
+       }
+      ],
+      "fileDate": "2026-09-20T10:00:00Z",
+      "fileLength": 4567890,
+      "downloadCount": 1200,
+      "downloadUrl": "https://edge.forgecdn.net/files/5200/1/Details.Forever.20260920.zip",
+      "gameVersions": [
+       "1.60.1"
+      ],
+      "sortableGameVersions": [
+       {
+        "gameVersionName": "1.60.1",
+        "gameVersionPadded": "",
+        "gameVersion": "1.60.1",
+        "gameVersionReleaseDate": "2026-09-01T00:00:00Z",
+        "gameVersionTypeId": 88568
+       }
+      ],
+      "dependencies": [
+       {
+        "modId": 1001,
+        "relationType": 1
+       },
+       {
+        "modId": 1002,
+        "relationType": 2
+       },
+       {
+        "modId": 1003,
+        "relationType": 3
+       },
+       {
+        "modId": 1004,
+        "relationType": 4
+       }
+      ],
+      "exposeAsAlternative": null,
+      "parentProjectFileId": null,
+      "alternateFileId": null,
+      "isServerPack": false,
+      "fileFingerprint": 36400007,
+      "modules": [
+       {
+        "name": "Details",
+        "fingerprint": 3001111111
+       },
+       {
+        "name": "Details_DataStorage",
+        "fingerprint": 3002222222
+       }
+      ]
+     },
+     {
+      "id": 5200002,
+      "gameId": 1,
+      "modId": 61284,
+      "isAvailable": true,
+      "displayName": "Details.Forever.20261010.alpha",
+      "fileName": "Details.Forever.20261010.alpha.zip",
+      "releaseType": 3,
+      "fileStatus": 4,
+      "hashes": [
+       {
+        "value": "abc",
+        "algo": 1
+       }
+      ],
+      "fileDate": "2026-10-10T10:00:00Z",
+      "fileLength": 4567890,
+      "downloadCount": 1200,
+      "downloadUrl": "https://edge.forgecdn.net/files/5200/2/Details.Forever.20261010.alpha.zip",
+      "gameVersions": [
+       "1.60.1"
+      ],
+      "sortableGameVersions": [
+       {
+        "gameVersionName": "1.60.1",
+        "gameVersionPadded": "",
+        "gameVersion": "1.60.1",
+        "gameVersionReleaseDate": "2026-09-01T00:00:00Z",
+        "gameVersionTypeId": 88568
+       }
+      ],
+      "dependencies": [],
+      "exposeAsAlternative": null,
+      "parentProjectFileId": null,
+      "alternateFileId": null,
+      "isServerPack": false,
+      "fileFingerprint": 36400014,
+      "modules": [
+       {
+        "name": "Details",
+        "fingerprint": 3001111111
+       },
+       {
+        "name": "Details_DataStorage",
+        "fingerprint": 3002222222
+       }
+      ]
+     },
+     {
+      "id": 5200003,
+      "gameId": 1,
+      "modId": 61284,
+      "isAvailable": true,
+      "displayName": "Details.Retail.20261011",
+      "fileName": "Details.Retail.20261011.zip",
+      "releaseType": 1,
+      "fileStatus": 4,
+      "hashes": [
+       {
+        "value": "abc",
+        "algo": 1
+       }
+      ],
+      "fileDate": "2026-10-11T10:00:00Z",
+      "fileLength": 4567890,
+      "downloadCount": 1200,
+      "downloadUrl": "https://edge.forgecdn.net/files/5200/3/Details.Retail.20261011.zip",
+      "gameVersions": [
+       "11.2.5"
+      ],
+      "sortableGameVersions": [
+       {
+        "gameVersionName": "11.2.5",
+        "gameVersionPadded": "",
+        "gameVersion": "11.2.5",
+        "gameVersionReleaseDate": "2026-09-01T00:00:00Z",
+        "gameVersionTypeId": 517
+       }
+      ],
+      "dependencies": [],
+      "exposeAsAlternative": null,
+      "parentProjectFileId": null,
+      "alternateFileId": null,
+      "isServerPack": false,
+      "fileFingerprint": 36400021,
+      "modules": [
+       {
+        "name": "Details",
+        "fingerprint": 3001111111
+       },
+       {
+        "name": "Details_DataStorage",
+        "fingerprint": 3002222222
+       }
+      ]
+     },
+     {
+      "id": 5200004,
+      "gameId": 1,
+      "modId": 61284,
+      "isAvailable": true,
+      "displayName": "Details.Forever.20261012.nolib",
+      "fileName": "Details.Forever.20261012.nolib.zip",
+      "releaseType": 1,
+      "fileStatus": 4,
+      "hashes": [
+       {
+        "value": "abc",
+        "algo": 1
+       }
+      ],
+      "fileDate": "2026-10-12T10:00:00Z",
+      "fileLength": 4567890,
+      "downloadCount": 1200,
+      "downloadUrl": "https://edge.forgecdn.net/files/5200/4/Details.Forever.20261012.nolib.zip",
+      "gameVersions": [
+       "1.60.1"
+      ],
+      "sortableGameVersions": [
+       {
+        "gameVersionName": "1.60.1",
+        "gameVersionPadded": "",
+        "gameVersion": "1.60.1",
+        "gameVersionReleaseDate": "2026-09-01T00:00:00Z",
+        "gameVersionTypeId": 88568
+       }
+      ],
+      "dependencies": [],
+      "exposeAsAlternative": true,
+      "parentProjectFileId": null,
+      "alternateFileId": null,
+      "isServerPack": false,
+      "fileFingerprint": 36400028,
+      "modules": [
+       {
+        "name": "Details",
+        "fingerprint": 3001111111
+       },
+       {
+        "name": "Details_DataStorage",
+        "fingerprint": 3002222222
+       }
+      ]
+     },
+     {
+      "id": 5200005,
+      "gameId": 1,
+      "modId": 61284,
+      "isAvailable": true,
+      "displayName": "Details Forever 20261001 beta",
+      "fileName": "Details-Forever-20261001-beta.zip",
+      "releaseType": 2,
+      "fileStatus": 4,
+      "hashes": [
+       {
+        "value": "abc",
+        "algo": 1
+       }
+      ],
+      "fileDate": "2026-10-01T10:00:00Z",
+      "fileLength": 4567890,
+      "downloadCount": 1200,
+      "downloadUrl": null,
+      "gameVersions": [
+       "1.60.1"
+      ],
+      "sortableGameVersions": [
+       {
+        "gameVersionName": "1.60.1",
+        "gameVersionPadded": "",
+        "gameVersion": "1.60.1",
+        "gameVersionReleaseDate": "2026-09-01T00:00:00Z",
+        "gameVersionTypeId": 88568
+       }
+      ],
+      "dependencies": [],
+      "exposeAsAlternative": null,
+      "parentProjectFileId": null,
+      "alternateFileId": null,
+      "isServerPack": false,
+      "fileFingerprint": 36400035,
+      "modules": [
+       {
+        "name": "Details",
+        "fingerprint": 3001111111
+       },
+       {
+        "name": "Details_DataStorage",
+        "fingerprint": 3002222222
+       }
+      ]
+     }
+    ]
+   }
+  ],
+  "exactFingerprints": [
+   3001111111,
+   3002222222
+  ],
+  "partialMatches": [],
+  "partialMatchFingerprints": {},
+  "installedFingerprints": [
+   3001111111,
+   3002222222,
+   999
+  ],
+  "unmatchedFingerprints": [
+   999
+  ]
+ }
+}

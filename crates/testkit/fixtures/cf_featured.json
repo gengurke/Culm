@@ -1,0 +1,1039 @@
+{
+ "data": {
+  "featured": [
+   {
+    "id": 61284,
+    "gameId": 1,
+    "name": "Details! Damage Meter",
+    "slug": "details",
+    "links": {
+     "websiteUrl": "https://www.curseforge.com/wow/addons/details",
+     "wikiUrl": "",
+     "issuesUrl": "",
+     "sourceUrl": ""
+    },
+    "summary": "Computes damage and healing and offer features to analyze this data.",
+    "status": 4,
+    "downloadCount": 512345678.0,
+    "isFeatured": false,
+    "primaryCategoryId": 1013,
+    "categories": [
+     {
+      "id": 1013,
+      "gameId": 1,
+      "name": "Combat",
+      "slug": "combat"
+     }
+    ],
+    "classId": 1,
+    "authors": [
+     {
+      "id": 100,
+      "name": "Terciob",
+      "url": "https://www.curseforge.com/members/terciob"
+     },
+     {
+      "id": 101,
+      "name": "_forgeuser98765",
+      "url": ""
+     }
+    ],
+    "logo": {
+     "id": 1,
+     "modId": 61284,
+     "title": "logo",
+     "description": "",
+     "thumbnailUrl": "https://media.forgecdn.net/avatars/thumbnails/1/1/256/256/details.png",
+     "url": "https://media.forgecdn.net/avatars/1/1/details.png"
+    },
+    "screenshots": [],
+    "mainFileId": 5200002,
+    "latestFiles": [
+     {
+      "id": 5200001,
+      "gameId": 1,
+      "modId": 61284,
+      "isAvailable": true,
+      "displayName": "Details.Forever.20260920",
+      "fileName": "Details.Forever.20260920.zip",
+      "releaseType": 1,
+      "fileStatus": 4,
+      "hashes": [
+       {
+        "value": "abc",
+        "algo": 1
+       }
+      ],
+      "fileDate": "2026-09-20T10:00:00Z",
+      "fileLength": 4567890,
+      "downloadCount": 1200,
+      "downloadUrl": "https://edge.forgecdn.net/files/5200/1/Details.Forever.20260920.zip",
+      "gameVersions": [
+       "1.60.1"
+      ],
+      "sortableGameVersions": [
+       {
+        "gameVersionName": "1.60.1",
+        "gameVersionPadded": "",
+        "gameVersion": "1.60.1",
+        "gameVersionReleaseDate": "2026-09-01T00:00:00Z",
+        "gameVersionTypeId": 88568
+       }
+      ],
+      "dependencies": [
+       {
+        "modId": 1001,
+        "relationType": 1
+       },
+       {
+        "modId": 1002,
+        "relationType": 2
+       },
+       {
+        "modId": 1003,
+        "relationType": 3
+       },
+       {
+        "modId": 1004,
+        "relationType": 4
+       }
+      ],
+      "exposeAsAlternative": null,
+      "parentProjectFileId": null,
+      "alternateFileId": null,
+      "isServerPack": false,
+      "fileFingerprint": 36400007,
+      "modules": [
+       {
+        "name": "Details",
+        "fingerprint": 3001111111
+       },
+       {
+        "name": "Details_DataStorage",
+        "fingerprint": 3002222222
+       }
+      ]
+     },
+     {
+      "id": 5200002,
+      "gameId": 1,
+      "modId": 61284,
+      "isAvailable": true,
+      "displayName": "Details.Forever.20261010.alpha",
+      "fileName": "Details.Forever.20261010.alpha.zip",
+      "releaseType": 3,
+      "fileStatus": 4,
+      "hashes": [
+       {
+        "value": "abc",
+        "algo": 1
+       }
+      ],
+      "fileDate": "2026-10-10T10:00:00Z",
+      "fileLength": 4567890,
+      "downloadCount": 1200,
+      "downloadUrl": "https://edge.forgecdn.net/files/5200/2/Details.Forever.20261010.alpha.zip",
+      "gameVersions": [
+       "1.60.1"
+      ],
+      "sortableGameVersions": [
+       {
+        "gameVersionName": "1.60.1",
+        "gameVersionPadded": "",
+        "gameVersion": "1.60.1",
+        "gameVersionReleaseDate": "2026-09-01T00:00:00Z",
+        "gameVersionTypeId": 88568
+       }
+      ],
+      "dependencies": [],
+      "exposeAsAlternative": null,
+      "parentProjectFileId": null,
+      "alternateFileId": null,
+      "isServerPack": false,
+      "fileFingerprint": 36400014,
+      "modules": [
+       {
+        "name": "Details",
+        "fingerprint": 3001111111
+       },
+       {
+        "name": "Details_DataStorage",
+        "fingerprint": 3002222222
+       }
+      ]
+     },
+     {
+      "id": 5200003,
+      "gameId": 1,
+      "modId": 61284,
+      "isAvailable": true,
+      "displayName": "Details.Retail.20261011",
+      "fileName": "Details.Retail.20261011.zip",
+      "releaseType": 1,
+      "fileStatus": 4,
+      "hashes": [
+       {
+        "value": "abc",
+        "algo": 1
+       }
+      ],
+      "fileDate": "2026-10-11T10:00:00Z",
+      "fileLength": 4567890,
+      "downloadCount": 1200,
+      "downloadUrl": "https://edge.forgecdn.net/files/5200/3/Details.Retail.20261011.zip",
+      "gameVersions": [
+       "11.2.5"
+      ],
+      "sortableGameVersions": [
+       {
+        "gameVersionName": "11.2.5",
+        "gameVersionPadded": "",
+        "gameVersion": "11.2.5",
+        "gameVersionReleaseDate": "2026-09-01T00:00:00Z",
+        "gameVersionTypeId": 517
+       }
+      ],
+      "dependencies": [],
+      "exposeAsAlternative": null,
+      "parentProjectFileId": null,
+      "alternateFileId": null,
+      "isServerPack": false,
+      "fileFingerprint": 36400021,
+      "modules": [
+       {
+        "name": "Details",
+        "fingerprint": 3001111111
+       },
+       {
+        "name": "Details_DataStorage",
+        "fingerprint": 3002222222
+       }
+      ]
+     },
+     {
+      "id": 5200004,
+      "gameId": 1,
+      "modId": 61284,
+      "isAvailable": true,
+      "displayName": "Details.Forever.20261012.nolib",
+      "fileName": "Details.Forever.20261012.nolib.zip",
+      "releaseType": 1,
+      "fileStatus": 4,
+      "hashes": [
+       {
+        "value": "abc",
+        "algo": 1
+       }
+      ],
+      "fileDate": "2026-10-12T10:00:00Z",
+      "fileLength": 4567890,
+      "downloadCount": 1200,
+      "downloadUrl": "https://edge.forgecdn.net/files/5200/4/Details.Forever.20261012.nolib.zip",
+      "gameVersions": [
+       "1.60.1"
+      ],
+      "sortableGameVersions": [
+       {
+        "gameVersionName": "1.60.1",
+        "gameVersionPadded": "",
+        "gameVersion": "1.60.1",
+        "gameVersionReleaseDate": "2026-09-01T00:00:00Z",
+        "gameVersionTypeId": 88568
+       }
+      ],
+      "dependencies": [],
+      "exposeAsAlternative": true,
+      "parentProjectFileId": null,
+      "alternateFileId": null,
+      "isServerPack": false,
+      "fileFingerprint": 36400028,
+      "modules": [
+       {
+        "name": "Details",
+        "fingerprint": 3001111111
+       },
+       {
+        "name": "Details_DataStorage",
+        "fingerprint": 3002222222
+       }
+      ]
+     },
+     {
+      "id": 5200005,
+      "gameId": 1,
+      "modId": 61284,
+      "isAvailable": true,
+      "displayName": "Details Forever 20261001 beta",
+      "fileName": "Details-Forever-20261001-beta.zip",
+      "releaseType": 2,
+      "fileStatus": 4,
+      "hashes": [
+       {
+        "value": "abc",
+        "algo": 1
+       }
+      ],
+      "fileDate": "2026-10-01T10:00:00Z",
+      "fileLength": 4567890,
+      "downloadCount": 1200,
+      "downloadUrl": null,
+      "gameVersions": [
+       "1.60.1"
+      ],
+      "sortableGameVersions": [
+       {
+        "gameVersionName": "1.60.1",
+        "gameVersionPadded": "",
+        "gameVersion": "1.60.1",
+        "gameVersionReleaseDate": "2026-09-01T00:00:00Z",
+        "gameVersionTypeId": 88568
+       }
+      ],
+      "dependencies": [],
+      "exposeAsAlternative": null,
+      "parentProjectFileId": null,
+      "alternateFileId": null,
+      "isServerPack": false,
+      "fileFingerprint": 36400035,
+      "modules": [
+       {
+        "name": "Details",
+        "fingerprint": 3001111111
+       },
+       {
+        "name": "Details_DataStorage",
+        "fingerprint": 3002222222
+       }
+      ]
+     }
+    ],
+    "latestFilesIndexes": [],
+    "dateCreated": "2014-08-01T00:00:00Z",
+    "dateModified": "2026-10-12T10:00:00Z",
+    "dateReleased": "2026-10-12T10:00:00Z",
+    "allowModDistribution": true,
+    "gamePopularityRank": 3,
+    "isAvailable": true,
+    "thumbsUpCount": 10
+   }
+  ],
+  "popular": [
+   {
+    "id": 61284,
+    "gameId": 1,
+    "name": "Details! Damage Meter",
+    "slug": "details",
+    "links": {
+     "websiteUrl": "https://www.curseforge.com/wow/addons/details",
+     "wikiUrl": "",
+     "issuesUrl": "",
+     "sourceUrl": ""
+    },
+    "summary": "Computes damage and healing and offer features to analyze this data.",
+    "status": 4,
+    "downloadCount": 512345678.0,
+    "isFeatured": false,
+    "primaryCategoryId": 1013,
+    "categories": [
+     {
+      "id": 1013,
+      "gameId": 1,
+      "name": "Combat",
+      "slug": "combat"
+     }
+    ],
+    "classId": 1,
+    "authors": [
+     {
+      "id": 100,
+      "name": "Terciob",
+      "url": "https://www.curseforge.com/members/terciob"
+     },
+     {
+      "id": 101,
+      "name": "_forgeuser98765",
+      "url": ""
+     }
+    ],
+    "logo": {
+     "id": 1,
+     "modId": 61284,
+     "title": "logo",
+     "description": "",
+     "thumbnailUrl": "https://media.forgecdn.net/avatars/thumbnails/1/1/256/256/details.png",
+     "url": "https://media.forgecdn.net/avatars/1/1/details.png"
+    },
+    "screenshots": [],
+    "mainFileId": 5200002,
+    "latestFiles": [
+     {
+      "id": 5200001,
+      "gameId": 1,
+      "modId": 61284,
+      "isAvailable": true,
+      "displayName": "Details.Forever.20260920",
+      "fileName": "Details.Forever.20260920.zip",
+      "releaseType": 1,
+      "fileStatus": 4,
+      "hashes": [
+       {
+        "value": "abc",
+        "algo": 1
+       }
+      ],
+      "fileDate": "2026-09-20T10:00:00Z",
+      "fileLength": 4567890,
+      "downloadCount": 1200,
+      "downloadUrl": "https://edge.forgecdn.net/files/5200/1/Details.Forever.20260920.zip",
+      "gameVersions": [
+       "1.60.1"
+      ],
+      "sortableGameVersions": [
+       {
+        "gameVersionName": "1.60.1",
+        "gameVersionPadded": "",
+        "gameVersion": "1.60.1",
+        "gameVersionReleaseDate": "2026-09-01T00:00:00Z",
+        "gameVersionTypeId": 88568
+       }
+      ],
+      "dependencies": [
+       {
+        "modId": 1001,
+        "relationType": 1
+       },
+       {
+        "modId": 1002,
+        "relationType": 2
+       },
+       {
+        "modId": 1003,
+        "relationType": 3
+       },
+       {
+        "modId": 1004,
+        "relationType": 4
+       }
+      ],
+      "exposeAsAlternative": null,
+      "parentProjectFileId": null,
+      "alternateFileId": null,
+      "isServerPack": false,
+      "fileFingerprint": 36400007,
+      "modules": [
+       {
+        "name": "Details",
+        "fingerprint": 3001111111
+       },
+       {
+        "name": "Details_DataStorage",
+        "fingerprint": 3002222222
+       }
+      ]
+     },
+     {
+      "id": 5200002,
+      "gameId": 1,
+      "modId": 61284,
+      "isAvailable": true,
+      "displayName": "Details.Forever.20261010.alpha",
+      "fileName": "Details.Forever.20261010.alpha.zip",
+      "releaseType": 3,
+      "fileStatus": 4,
+      "hashes": [
+       {
+        "value": "abc",
+        "algo": 1
+       }
+      ],
+      "fileDate": "2026-10-10T10:00:00Z",
+      "fileLength": 4567890,
+      "downloadCount": 1200,
+      "downloadUrl": "https://edge.forgecdn.net/files/5200/2/Details.Forever.20261010.alpha.zip",
+      "gameVersions": [
+       "1.60.1"
+      ],
+      "sortableGameVersions": [
+       {
+        "gameVersionName": "1.60.1",
+        "gameVersionPadded": "",
+        "gameVersion": "1.60.1",
+        "gameVersionReleaseDate": "2026-09-01T00:00:00Z",
+        "gameVersionTypeId": 88568
+       }
+      ],
+      "dependencies": [],
+      "exposeAsAlternative": null,
+      "parentProjectFileId": null,
+      "alternateFileId": null,
+      "isServerPack": false,
+      "fileFingerprint": 36400014,
+      "modules": [
+       {
+        "name": "Details",
+        "fingerprint": 3001111111
+       },
+       {
+        "name": "Details_DataStorage",
+        "fingerprint": 3002222222
+       }
+      ]
+     },
+     {
+      "id": 5200003,
+      "gameId": 1,
+      "modId": 61284,
+      "isAvailable": true,
+      "displayName": "Details.Retail.20261011",
+      "fileName": "Details.Retail.20261011.zip",
+      "releaseType": 1,
+      "fileStatus": 4,
+      "hashes": [
+       {
+        "value": "abc",
+        "algo": 1
+       }
+      ],
+      "fileDate": "2026-10-11T10:00:00Z",
+      "fileLength": 4567890,
+      "downloadCount": 1200,
+      "downloadUrl": "https://edge.forgecdn.net/files/5200/3/Details.Retail.20261011.zip",
+      "gameVersions": [
+       "11.2.5"
+      ],
+      "sortableGameVersions": [
+       {
+        "gameVersionName": "11.2.5",
+        "gameVersionPadded": "",
+        "gameVersion": "11.2.5",
+        "gameVersionReleaseDate": "2026-09-01T00:00:00Z",
+        "gameVersionTypeId": 517
+       }
+      ],
+      "dependencies": [],
+      "exposeAsAlternative": null,
+      "parentProjectFileId": null,
+      "alternateFileId": null,
+      "isServerPack": false,
+      "fileFingerprint": 36400021,
+      "modules": [
+       {
+        "name": "Details",
+        "fingerprint": 3001111111
+       },
+       {
+        "name": "Details_DataStorage",
+        "fingerprint": 3002222222
+       }
+      ]
+     },
+     {
+      "id": 5200004,
+      "gameId": 1,
+      "modId": 61284,
+      "isAvailable": true,
+      "displayName": "Details.Forever.20261012.nolib",
+      "fileName": "Details.Forever.20261012.nolib.zip",
+      "releaseType": 1,
+      "fileStatus": 4,
+      "hashes": [
+       {
+        "value": "abc",
+        "algo": 1
+       }
+      ],
+      "fileDate": "2026-10-12T10:00:00Z",
+      "fileLength": 4567890,
+      "downloadCount": 1200,
+      "downloadUrl": "https://edge.forgecdn.net/files/5200/4/Details.Forever.20261012.nolib.zip",
+      "gameVersions": [
+       "1.60.1"
+      ],
+      "sortableGameVersions": [
+       {
+        "gameVersionName": "1.60.1",
+        "gameVersionPadded": "",
+        "gameVersion": "1.60.1",
+        "gameVersionReleaseDate": "2026-09-01T00:00:00Z",
+        "gameVersionTypeId": 88568
+       }
+      ],
+      "dependencies": [],
+      "exposeAsAlternative": true,
+      "parentProjectFileId": null,
+      "alternateFileId": null,
+      "isServerPack": false,
+      "fileFingerprint": 36400028,
+      "modules": [
+       {
+        "name": "Details",
+        "fingerprint": 3001111111
+       },
+       {
+        "name": "Details_DataStorage",
+        "fingerprint": 3002222222
+       }
+      ]
+     },
+     {
+      "id": 5200005,
+      "gameId": 1,
+      "modId": 61284,
+      "isAvailable": true,
+      "displayName": "Details Forever 20261001 beta",
+      "fileName": "Details-Forever-20261001-beta.zip",
+      "releaseType": 2,
+      "fileStatus": 4,
+      "hashes": [
+       {
+        "value": "abc",
+        "algo": 1
+       }
+      ],
+      "fileDate": "2026-10-01T10:00:00Z",
+      "fileLength": 4567890,
+      "downloadCount": 1200,
+      "downloadUrl": null,
+      "gameVersions": [
+       "1.60.1"
+      ],
+      "sortableGameVersions": [
+       {
+        "gameVersionName": "1.60.1",
+        "gameVersionPadded": "",
+        "gameVersion": "1.60.1",
+        "gameVersionReleaseDate": "2026-09-01T00:00:00Z",
+        "gameVersionTypeId": 88568
+       }
+      ],
+      "dependencies": [],
+      "exposeAsAlternative": null,
+      "parentProjectFileId": null,
+      "alternateFileId": null,
+      "isServerPack": false,
+      "fileFingerprint": 36400035,
+      "modules": [
+       {
+        "name": "Details",
+        "fingerprint": 3001111111
+       },
+       {
+        "name": "Details_DataStorage",
+        "fingerprint": 3002222222
+       }
+      ]
+     }
+    ],
+    "latestFilesIndexes": [],
+    "dateCreated": "2014-08-01T00:00:00Z",
+    "dateModified": "2026-10-12T10:00:00Z",
+    "dateReleased": "2026-10-12T10:00:00Z",
+    "allowModDistribution": true,
+    "gamePopularityRank": 3,
+    "isAvailable": true,
+    "thumbsUpCount": 10
+   },
+   {
+    "id": 334372,
+    "gameId": 1,
+    "name": "Questie",
+    "slug": "questie",
+    "links": {
+     "websiteUrl": "https://www.curseforge.com/wow/addons/questie"
+    },
+    "summary": "Computes damage and healing and offer features to analyze this data.",
+    "status": 4,
+    "downloadCount": 334372.0,
+    "isFeatured": false,
+    "primaryCategoryId": 1013,
+    "categories": [
+     {
+      "id": 1013,
+      "gameId": 1,
+      "name": "Combat",
+      "slug": "combat"
+     }
+    ],
+    "classId": 1,
+    "authors": [
+     {
+      "id": 100,
+      "name": "Terciob",
+      "url": "https://www.curseforge.com/members/terciob"
+     },
+     {
+      "id": 101,
+      "name": "_forgeuser98765",
+      "url": ""
+     }
+    ],
+    "logo": {
+     "id": 1,
+     "modId": 61284,
+     "title": "logo",
+     "description": "",
+     "thumbnailUrl": "https://media.forgecdn.net/avatars/thumbnails/1/1/256/256/details.png",
+     "url": "https://media.forgecdn.net/avatars/1/1/details.png"
+    },
+    "screenshots": [],
+    "mainFileId": 5200002,
+    "latestFiles": [
+     {
+      "id": 5400001,
+      "gameId": 1,
+      "modId": 61284,
+      "isAvailable": true,
+      "displayName": "v12.9.0",
+      "fileName": "v12.9.0.zip",
+      "releaseType": 1,
+      "fileStatus": 4,
+      "hashes": [
+       {
+        "value": "abc",
+        "algo": 1
+       }
+      ],
+      "fileDate": "2026-10-05T00:00:00Z",
+      "fileLength": 4567890,
+      "downloadCount": 1200,
+      "downloadUrl": "https://edge.forgecdn.net/files/5400/1/v12.9.0.zip",
+      "gameVersions": [
+       "1.60.1"
+      ],
+      "sortableGameVersions": [
+       {
+        "gameVersionName": "1.60.1",
+        "gameVersionPadded": "",
+        "gameVersion": "1.60.1",
+        "gameVersionReleaseDate": "2026-09-01T00:00:00Z",
+        "gameVersionTypeId": 88568
+       }
+      ],
+      "dependencies": [],
+      "exposeAsAlternative": null,
+      "parentProjectFileId": null,
+      "alternateFileId": null,
+      "isServerPack": false,
+      "fileFingerprint": 37800007,
+      "modules": [
+       {
+        "name": "Questie",
+        "fingerprint": 3100000001
+       }
+      ]
+     }
+    ],
+    "latestFilesIndexes": [],
+    "dateCreated": "2014-08-01T00:00:00Z",
+    "dateModified": "2026-10-12T10:00:00Z",
+    "dateReleased": "2026-10-12T10:00:00Z",
+    "allowModDistribution": true,
+    "gamePopularityRank": 3,
+    "isAvailable": true,
+    "thumbsUpCount": 10
+   }
+  ],
+  "recentlyUpdated": [
+   {
+    "id": 334372,
+    "gameId": 1,
+    "name": "Questie",
+    "slug": "questie",
+    "links": {
+     "websiteUrl": "https://www.curseforge.com/wow/addons/questie"
+    },
+    "summary": "Computes damage and healing and offer features to analyze this data.",
+    "status": 4,
+    "downloadCount": 334372.0,
+    "isFeatured": false,
+    "primaryCategoryId": 1013,
+    "categories": [
+     {
+      "id": 1013,
+      "gameId": 1,
+      "name": "Combat",
+      "slug": "combat"
+     }
+    ],
+    "classId": 1,
+    "authors": [
+     {
+      "id": 100,
+      "name": "Terciob",
+      "url": "https://www.curseforge.com/members/terciob"
+     },
+     {
+      "id": 101,
+      "name": "_forgeuser98765",
+      "url": ""
+     }
+    ],
+    "logo": {
+     "id": 1,
+     "modId": 61284,
+     "title": "logo",
+     "description": "",
+     "thumbnailUrl": "https://media.forgecdn.net/avatars/thumbnails/1/1/256/256/details.png",
+     "url": "https://media.forgecdn.net/avatars/1/1/details.png"
+    },
+    "screenshots": [],
+    "mainFileId": 5200002,
+    "latestFiles": [
+     {
+      "id": 5400001,
+      "gameId": 1,
+      "modId": 61284,
+      "isAvailable": true,
+      "displayName": "v12.9.0",
+      "fileName": "v12.9.0.zip",
+      "releaseType": 1,
+      "fileStatus": 4,
+      "hashes": [
+       {
+        "value": "abc",
+        "algo": 1
+       }
+      ],
+      "fileDate": "2026-10-05T00:00:00Z",
+      "fileLength": 4567890,
+      "downloadCount": 1200,
+      "downloadUrl": "https://edge.forgecdn.net/files/5400/1/v12.9.0.zip",
+      "gameVersions": [
+       "1.60.1"
+      ],
+      "sortableGameVersions": [
+       {
+        "gameVersionName": "1.60.1",
+        "gameVersionPadded": "",
+        "gameVersion": "1.60.1",
+        "gameVersionReleaseDate": "2026-09-01T00:00:00Z",
+        "gameVersionTypeId": 88568
+       }
+      ],
+      "dependencies": [],
+      "exposeAsAlternative": null,
+      "parentProjectFileId": null,
+      "alternateFileId": null,
+      "isServerPack": false,
+      "fileFingerprint": 37800007,
+      "modules": [
+       {
+        "name": "Questie",
+        "fingerprint": 3100000001
+       }
+      ]
+     }
+    ],
+    "latestFilesIndexes": [],
+    "dateCreated": "2014-08-01T00:00:00Z",
+    "dateModified": "2026-10-12T10:00:00Z",
+    "dateReleased": "2026-10-12T10:00:00Z",
+    "allowModDistribution": true,
+    "gamePopularityRank": 3,
+    "isAvailable": true,
+    "thumbsUpCount": 10
+   },
+   {
+    "id": 1592,
+    "gameId": 1,
+    "name": "Bagnon",
+    "slug": "bagnon",
+    "links": {
+     "websiteUrl": "https://www.curseforge.com/wow/addons/bagnon"
+    },
+    "summary": "Computes damage and healing and offer features to analyze this data.",
+    "status": 4,
+    "downloadCount": 1592.0,
+    "isFeatured": false,
+    "primaryCategoryId": 1013,
+    "categories": [
+     {
+      "id": 1013,
+      "gameId": 1,
+      "name": "Combat",
+      "slug": "combat"
+     }
+    ],
+    "classId": 1,
+    "authors": [
+     {
+      "id": 100,
+      "name": "Terciob",
+      "url": "https://www.curseforge.com/members/terciob"
+     },
+     {
+      "id": 101,
+      "name": "_forgeuser98765",
+      "url": ""
+     }
+    ],
+    "logo": {
+     "id": 1,
+     "modId": 61284,
+     "title": "logo",
+     "description": "",
+     "thumbnailUrl": "https://media.forgecdn.net/avatars/thumbnails/1/1/256/256/details.png",
+     "url": "https://media.forgecdn.net/avatars/1/1/details.png"
+    },
+    "screenshots": [],
+    "mainFileId": 5200002,
+    "latestFiles": [
+     {
+      "id": 5400002,
+      "gameId": 1,
+      "modId": 61284,
+      "isAvailable": true,
+      "displayName": "10.2.1",
+      "fileName": "10.2.1.zip",
+      "releaseType": 1,
+      "fileStatus": 4,
+      "hashes": [
+       {
+        "value": "abc",
+        "algo": 1
+       }
+      ],
+      "fileDate": "2026-10-05T00:00:00Z",
+      "fileLength": 4567890,
+      "downloadCount": 1200,
+      "downloadUrl": "https://edge.forgecdn.net/files/5400/2/10.2.1.zip",
+      "gameVersions": [
+       "1.60.1"
+      ],
+      "sortableGameVersions": [
+       {
+        "gameVersionName": "1.60.1",
+        "gameVersionPadded": "",
+        "gameVersion": "1.60.1",
+        "gameVersionReleaseDate": "2026-09-01T00:00:00Z",
+        "gameVersionTypeId": 88568
+       }
+      ],
+      "dependencies": [],
+      "exposeAsAlternative": null,
+      "parentProjectFileId": null,
+      "alternateFileId": null,
+      "isServerPack": false,
+      "fileFingerprint": 37800014,
+      "modules": [
+       {
+        "name": "Bagnon",
+        "fingerprint": 3100000002
+       }
+      ]
+     }
+    ],
+    "latestFilesIndexes": [],
+    "dateCreated": "2014-08-01T00:00:00Z",
+    "dateModified": "2026-10-12T10:00:00Z",
+    "dateReleased": "2026-10-12T10:00:00Z",
+    "allowModDistribution": true,
+    "gamePopularityRank": 3,
+    "isAvailable": true,
+    "thumbsUpCount": 10
+   },
+   {
+    "id": 70000,
+    "gameId": 1,
+    "name": "Retail Only",
+    "slug": "retail-only",
+    "links": {
+     "websiteUrl": "https://www.curseforge.com/wow/addons/details",
+     "wikiUrl": "",
+     "issuesUrl": "",
+     "sourceUrl": ""
+    },
+    "summary": "Computes damage and healing and offer features to analyze this data.",
+    "status": 4,
+    "downloadCount": 512345678.0,
+    "isFeatured": false,
+    "primaryCategoryId": 1013,
+    "categories": [
+     {
+      "id": 1013,
+      "gameId": 1,
+      "name": "Combat",
+      "slug": "combat"
+     }
+    ],
+    "classId": 1,
+    "authors": [
+     {
+      "id": 100,
+      "name": "Terciob",
+      "url": "https://www.curseforge.com/members/terciob"
+     },
+     {
+      "id": 101,
+      "name": "_forgeuser98765",
+      "url": ""
+     }
+    ],
+    "logo": {
+     "id": 1,
+     "modId": 61284,
+     "title": "logo",
+     "description": "",
+     "thumbnailUrl": "https://media.forgecdn.net/avatars/thumbnails/1/1/256/256/details.png",
+     "url": "https://media.forgecdn.net/avatars/1/1/details.png"
+    },
+    "screenshots": [],
+    "mainFileId": 5200002,
+    "latestFiles": [
+     {
+      "id": 5300001,
+      "gameId": 1,
+      "modId": 61284,
+      "isAvailable": true,
+      "displayName": "RetailOnly-1.0",
+      "fileName": "RetailOnly-1.0.zip",
+      "releaseType": 1,
+      "fileStatus": 4,
+      "hashes": [
+       {
+        "value": "abc",
+        "algo": 1
+       }
+      ],
+      "fileDate": "2026-10-01T00:00:00Z",
+      "fileLength": 4567890,
+      "downloadCount": 1200,
+      "downloadUrl": "https://edge.forgecdn.net/files/5300/1/RetailOnly-1.0.zip",
+      "gameVersions": [
+       "11.2.5"
+      ],
+      "sortableGameVersions": [
+       {
+        "gameVersionName": "11.2.5",
+        "gameVersionPadded": "",
+        "gameVersion": "11.2.5",
+        "gameVersionReleaseDate": "2026-09-01T00:00:00Z",
+        "gameVersionTypeId": 517
+       }
+      ],
+      "dependencies": [],
+      "exposeAsAlternative": null,
+      "parentProjectFileId": null,
+      "alternateFileId": null,
+      "isServerPack": false,
+      "fileFingerprint": 37100007,
+      "modules": [
+       {
+        "name": "RetailOnly",
+        "fingerprint": 4000000001
+       }
+      ]
+     }
+    ],
+    "latestFilesIndexes": [],
+    "dateCreated": "2014-08-01T00:00:00Z",
+    "dateModified": "2026-10-12T10:00:00Z",
+    "dateReleased": "2026-10-12T10:00:00Z",
+    "allowModDistribution": true,
+    "gamePopularityRank": 3,
+    "isAvailable": true,
+    "thumbsUpCount": 10
+   }
+  ]
+ }
+}

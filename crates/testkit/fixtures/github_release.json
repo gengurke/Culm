@@ -1,0 +1,32 @@
+{
+ "releases": [
+  {
+   "filename": "Questie-v12.9.0-nolib.zip",
+   "nolib": true,
+   "metadata": [
+    {
+     "flavor": "forever",
+     "interface": 16001
+    }
+   ]
+  },
+  {
+   "filename": "Questie-v12.9.0.zip",
+   "nolib": false,
+   "metadata": [
+    {
+     "flavor": "classic",
+     "interface": 11508
+    },
+    {
+     "flavor": "mists",
+     "interface": 50503
+    },
+    {
+     "flavor": "forever",
+     "interface": 16001
+    }
+   ]
+  }
+ ]
+}

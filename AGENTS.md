@@ -10,6 +10,7 @@ Addon manager for **World of Warcraft: Forever**, written in Rust on the
 crates/core   addon-core: UI-free, blocking Rust. WoW installs, TOC, fingerprints, providers,
               install/update/remove, maintenance, persistence. No Rune dependency.
 crates/app    addon-app: Rune UI (state, views, theme, background workers). Thin over core.
+crates/testkit addon-testkit (dev-dependency only): FakeServer (local HTTP), provider JSON builders + fixtures, make_zip.
 docs/FEATURES.md   what the software does (keep it current!)
 docs/research/     background research (Rune guide)
 ```
