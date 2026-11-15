@@ -1,0 +1,171 @@
+//! Maintenance: clear cache, clean leftovers, back up WTF. Each card confirms first and shows a
+//! result line; all are locked while the game runs (F6).
+
+use super::{band, subtitle};
+use crate::icons;
+use crate::state::{Intent, MaintCard, MaintPhase, State, dispatch};
+use crate::theme::{self, pal};
+use crate::ui::{self, Kind};
+use rune::{El, Icon, ScrollSpec, col, el, icon, row, text};
+
+pub fn page(s: &State) -> El {
+    let p = pal();
+    let mut content = col().key("maintenance").w_full().max_w(820.0).gap(16.0).px(theme::PAD).py(24.0);
+    if s.game_running {
+        content = content.child(
+            ui::edge(
+                row()
+                    .key("maintenance/game-running")
+                    .w_full()
+                    .gap(12.0)
+                    .padding(14.0)
+                    .center_y()
+                    .fill(p.warning_soft)
+                    .border_sides([0.0, 0.0, 0.0, 2.0], p.warning),
+                p.warning.alpha(0.3),
+            )
+            .child(icon(&icons::ALERT, 16.0).color(p.warning))
+            .child(text("World of Warcraft is running. Close the game to clean or back up its folders.").font(theme::BODY).color(p.text)),
+        );
+    }
+    let scope = ui::segmented(
+        "maint/cache/scope",
+        &[(false, "Whole cache"), (true, "Only WDB")],
+        s.cache_wdb_only,
+        !s.game_running,
+        |s: &mut State, v, _| s.cache_wdb_only = v,
+    );
+    content = content
+        .child(card(
+            s,
+            MaintCard::Cache,
+            &icons::BROOM,
+            "Clear cache",
+            "Deletes the client's Cache folder. Fixes stale item and quest data; the game rebuilds it on the next login.",
+            "Clear cache",
+            Some(scope),
+        ))
+        .child(card(
+            s,
+            MaintCard::Leftovers,
+            &icons::TRASH,
+            "Clean leftover files",
+            "Removes .lua.bak and .old files the game leaves in WTF after crashes and patches.",
+            "Clean up",
+            None,
+        ))
+        .child(card(
+            s,
+            MaintCard::Wtf,
+            &icons::ARCHIVE,
+            "Back up settings (WTF)",
+            "Zips your WTF folder — key bindings, macros and all addon SavedVariables — into the app's data folder.",
+            "Back up now",
+            Some(backups(s)),
+        ));
+    col()
+        .w_full()
+        .h_full()
+        .child(band("Maintenance", subtitle("Keep the client folder tidy. Nothing here touches your addons."), vec![]))
+        .child(col().key("maintenance/scroll").grow(1.0).min_h(0.0).w_full().scroll(ScrollSpec { stick_bottom: false }).child(content))
+}
+
+fn card(s: &State, which: MaintCard, glyph: &'static Icon, title: &str, body: &str, action: &str, extra: Option<El>) -> El {
+    let p = pal();
+    let key = match which {
+        MaintCard::Cache => "maint/cache",
+        MaintCard::Leftovers => "maint/leftovers",
+        MaintCard::Wtf => "maint/wtf",
+    };
+    let phase = s.maint.get(&which).cloned().unwrap_or(MaintPhase::Idle);
+    let enabled = !s.game_running && !matches!(phase, MaintPhase::Running | MaintPhase::Confirm);
+    let head = row()
+        .w_full()
+        .gap(16.0)
+        .items_start()
+        .child(el().size(36.0, 36.0).center().fill(p.panel_alt).border(1.0, p.border).child(icon(glyph, 18.0).color(p.text_dim)))
+        .child(
+            col()
+                .grow(1.0)
+                .min_w(0.0)
+                .gap(4.0)
+                .child(text(title.to_string()).font(theme::HEADING).color(p.text))
+                .child(text(body.to_string()).font(theme::NOTE).color(p.text_dim).wrap()),
+        )
+        .child(ui::button(format!("{key}/run"), action, Kind::Secondary, None, enabled, move |s, tx| dispatch(s, Intent::Maintain(which), tx)));
+    let mut c = ui::card(key).w_full().child(head);
+    if let Some(e) = extra {
+        c = c.child(row().pl(52.0).child(e));
+    }
+    let foot = match &phase {
+        MaintPhase::Idle => None,
+        MaintPhase::Confirm => Some(
+            row()
+                .key(format!("{key}/confirm-row"))
+                .w_full()
+                .gap(10.0)
+                .padding(12.0)
+                .center_y()
+                .fill(p.danger_soft)
+                .border(1.0, p.danger_line)
+                .child(text(confirm_text(s, which)).font(theme::NOTE).color(p.text).grow(1.0).min_w(0.0).wrap())
+                .child(ui::button(format!("{key}/confirm"), "Confirm", Kind::Danger, None, true, move |s, tx| dispatch(s, Intent::ConfirmMaintain(which), tx)))
+                .child(ui::button(format!("{key}/cancel"), "Cancel", Kind::Ghost, None, true, move |s, _| {
+                    s.maint.remove(&which);
+                })),
+        ),
+        MaintPhase::Running => Some(row().gap(8.0).center_y().child(ui::spinner(14.0, p.accent)).child(text("Working…").font(theme::SMALL).color(p.text_dim))),
+        MaintPhase::Done(line) => Some(
+            row()
+                .key(format!("{key}/result"))
+                .gap(8.0)
+                .center_y()
+                .child(icon(&icons::CHECK, 14.0).color(p.success))
+                .child(text(line.clone()).font(theme::SMALL).color(p.success)),
+        ),
+        MaintPhase::Failed(e) => Some(
+            row()
+                .key(format!("{key}/result"))
+                .gap(8.0)
+                .center_y()
+                .child(icon(&icons::ALERT, 14.0).color(p.danger))
+                .child(text(e.clone()).font(theme::SMALL).color(p.danger)),
+        ),
+    };
+    if let Some(f) = foot {
+        c = c.child(row().w_full().pl(52.0).child(f));
+    }
+    if s.game_running { c.opacity(0.6) } else { c }
+}
+
+fn confirm_text(s: &State, which: MaintCard) -> String {
+    match which {
+        MaintCard::Cache if s.cache_wdb_only => "Delete Cache/WDB? The game re-downloads item and quest data.".into(),
+        MaintCard::Cache => "Delete the whole Cache folder?".into(),
+        MaintCard::Leftovers => "Delete all .bak and .old files under WTF?".into(),
+        MaintCard::Wtf => "Create a zip of the WTF folder now?".into(),
+    }
+}
+
+fn backups(s: &State) -> El {
+    let p = pal();
+    let mut list = col().key("maint/wtf/backups").w_full().min_w(420.0);
+    if s.backups.is_empty() {
+        return list.child(text("No backups yet.").font(theme::SMALL).color(p.text_muted));
+    }
+    for b in &s.backups {
+        list = list.child(
+            row()
+                .w_full()
+                .py(6.0)
+                .gap(12.0)
+                .center_y()
+                .border_sides([0.0, 0.0, 1.0, 0.0], p.divider)
+                .child(icon(&icons::ARCHIVE, 13.0).color(p.text_muted))
+                .child(text(b.name.clone()).font(theme::MONO).color(p.text_dim).grow(1.0).min_w(0.0).truncate())
+                .child(text(b.created_at.replace('T', " ").trim_end_matches('Z').trim_end_matches(":00").to_string()).font(theme::SMALL).color(p.text_muted))
+                .child(text(ui::bytes(b.size_bytes)).font(theme::NUMBER).color(p.text_muted).w(64.0).align(rune::Align::End)),
+        );
+    }
+    list
+}
