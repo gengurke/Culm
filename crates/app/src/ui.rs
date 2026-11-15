@@ -160,7 +160,7 @@ pub fn tag(label: &str, mark: Mark) -> El {
                 corners: None,
                 ..th.skin.tile.clone()
             })
-            .child(icon(&icons::STUD, 9.0).color(fg))
+            .child(icon(mark.glyph(), 12.0).color(fg))
             .child(
                 text(label)
                     .font(th.ty.eyebrow.size_of(10.0).tracking(0.9))
