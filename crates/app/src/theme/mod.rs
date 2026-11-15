@@ -37,6 +37,7 @@ macro_rules! themes {
 themes! {
     Moonlit => moonlit,
     Hearthwood => hearthwood,
+    Emberglow => emberglow,
 }
 
 impl Default for ThemeId {
