@@ -4,7 +4,7 @@
 use crate::backend::{Backend, Backup, Maintenance, Settings};
 use crate::worker::{self, Msg};
 use addon_core::{Addon, Channel, IgnoreReason, Installation, RemoteAddon};
-use rune::{FileDialogOptions, Latest, TextEdit, Tx, Waker};
+use rune::{FileDialogOptions, Image, ImageCache, Latest, TextEdit, Tx, Waker};
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -198,6 +198,10 @@ pub struct State {
 
     pub toasts: Vec<Toast>,
     next_toast: u64,
+    /// Decodes thumbnails; None until `setup` (and in headless binary runs, which stay offline).
+    pub images: Option<ImageCache>,
+    /// Thumbnail per URL: requested (None) or loaded.
+    pub thumbs: HashMap<String, Option<Image>>,
     /// Seconds on the window clock as of the last poll.
     pub clock: f64,
     pub(crate) msgs: (Sender<Msg>, Receiver<Msg>),
@@ -233,6 +237,8 @@ impl State {
             api_key_revealed: false,
             toasts: vec![],
             next_toast: 1,
+            images: None,
+            thumbs: HashMap::new(),
             clock: 0.0,
             msgs: channel(),
             waker: Arc::new(|| {}),
@@ -287,6 +293,7 @@ impl State {
         let mut list: Vec<AddonUi> = addons.into_iter().map(|addon| AddonUi { addon, op: None }).collect();
         list.sort_by_key(|a| a.addon.name.to_lowercase());
         self.addons = list;
+        self.load_thumbs(self.addons.iter().filter_map(|a| a.addon.thumbnail_url.clone()).collect());
         if self.selected.as_ref().is_some_and(|id| self.addon(id).is_none()) {
             self.selected = None;
         }
@@ -299,27 +306,33 @@ impl State {
                 self.settings = settings;
                 self.api_key.replace_text(self.settings.curseforge_key.clone().unwrap_or_default());
                 self.installations = installations;
-                self.current = self.installations.first().map(|i| i.id.clone());
+                let saved = self.settings.installation.as_ref().filter(|id| self.installations.iter().any(|i| &i.id == *id));
+                self.current = saved.or(self.installations.first().map(|i| &i.id)).cloned();
                 self.job = Job::Idle;
                 if self.current.is_some() {
                     self.start_scan();
                 }
             }
-            Msg::Scanned(Ok(addons)) => {
+            Msg::Scanned(Ok((addons, warnings))) => {
                 self.set_addons(addons);
+                self.warn(warnings);
                 self.start_check();
             }
             Msg::Scanned(Err(e)) => {
                 self.job = Job::Idle;
                 self.toast(Tone::Danger, "Scan failed", e);
             }
-            Msg::Checked(Ok(addons)) => {
+            Msg::Checked(Ok((addons, warnings))) => {
                 self.job = Job::Idle;
                 for fresh in addons {
                     if let Some(a) = self.addon_mut(&fresh.id) {
-                        a.addon.latest = fresh.latest;
+                        let a = &mut a.addon;
+                        (a.latest, a.name, a.author, a.summary) = (fresh.latest, fresh.name, fresh.author, fresh.summary);
+                        (a.url, a.thumbnail_url) = (fresh.url, fresh.thumbnail_url);
                     }
                 }
+                self.load_thumbs(self.addons.iter().filter_map(|a| a.addon.thumbnail_url.clone()).collect());
+                self.warn(warnings);
                 if let n @ 1.. = self.update_count() {
                     self.toast(Tone::Info, format!("{n} update{} available", if n == 1 { "" } else { "s" }), "");
                 }
@@ -361,7 +374,8 @@ impl State {
                 match result {
                     Ok(addon) => {
                         self.toast(Tone::Success, format!("Installed {}", addon.name), addon.installed_version.clone().unwrap_or_default());
-                        self.addons.retain(|a| a.addon.id != addon.id);
+                        // The record now owns its folders (same rule as the store's upsert).
+                        self.addons.retain(|a| a.addon.id != addon.id && !a.addon.folders.iter().any(|f| addon.folders.contains(f)));
                         self.addons.push(AddonUi { addon, op: None });
                         self.addons.sort_by_key(|a| a.addon.name.to_lowercase());
                     }
@@ -386,9 +400,16 @@ impl State {
             },
             Msg::Featured(r) => {
                 self.featured = match r {
-                    Ok(list) => Fetch::Ready(list),
+                    Ok(list) => {
+                        self.load_thumbs(list.iter().filter_map(|r| r.thumbnail_url.clone()).collect());
+                        Fetch::Ready(list)
+                    }
                     Err(e) => Fetch::Failed(e),
                 }
+            }
+            Msg::Thumbnail { url, bytes } => {
+                let image = bytes.and_then(|b| Some(self.images.as_ref()?.load(b)));
+                self.thumbs.insert(url, image);
             }
             Msg::GameRunning(running) => self.game_running = running,
             Msg::Maintained { card, result } => {
@@ -402,6 +423,8 @@ impl State {
             Msg::InstallationAdded(Ok(inst)) => {
                 self.toast(Tone::Success, "Installation added", inst.root.display().to_string());
                 self.current = Some(inst.id.clone());
+                self.settings.installation = Some(inst.id.clone());
+                self.save_settings();
                 self.installations.retain(|i| i.id != inst.id);
                 self.installations.push(inst);
                 self.addons.clear();
@@ -415,6 +438,34 @@ impl State {
             Msg::Imported(Err(e)) => self.toast(Tone::Danger, "WowUp import failed", e),
             Msg::Failed { title, error } => self.toast(Tone::Danger, title, error),
         }
+    }
+
+    fn warn(&mut self, warnings: Vec<String>) {
+        if !warnings.is_empty() {
+            self.toast(Tone::Danger, "Some sources could not be reached", warnings.join("\n"));
+        }
+    }
+
+    /// Fetches thumbnails not requested yet (each URL once per run).
+    fn load_thumbs(&mut self, urls: Vec<String>) {
+        if self.images.is_none() {
+            return;
+        }
+        for url in urls {
+            if self.thumbs.contains_key(&url) {
+                continue;
+            }
+            self.thumbs.insert(url.clone(), None);
+            worker::spawn(self, "thumbnail", move |b, post| {
+                let bytes = b.thumbnail(&url).ok();
+                post.send(Msg::Thumbnail { url, bytes });
+            });
+        }
+    }
+
+    /// The loaded thumbnail for `url`, if any.
+    pub fn thumb(&self, url: Option<&str>) -> Option<&Image> {
+        self.thumbs.get(url?)?.as_ref()
     }
 
     fn start_scan(&mut self) {
@@ -486,7 +537,10 @@ impl State {
             return false;
         }
         self.results = match result {
-            Ok(list) => Fetch::Ready(list),
+            Ok(list) => {
+                self.load_thumbs(list.iter().filter_map(|r| r.thumbnail_url.clone()).collect());
+                Fetch::Ready(list)
+            }
             Err(e) => Fetch::Failed(e),
         };
         true
@@ -512,7 +566,9 @@ pub fn dispatch(s: &mut State, intent: Intent, tx: &mut Tx) {
         Intent::SelectInstallation(id) => {
             s.inst_menu = false;
             if s.current.as_deref() != Some(&id) {
-                s.current = Some(id);
+                s.current = Some(id.clone());
+                s.settings.installation = Some(id);
+                s.save_settings();
                 s.addons.clear();
                 s.selected = None;
                 s.start_scan();
@@ -661,6 +717,10 @@ pub fn dispatch(s: &mut State, intent: Intent, tx: &mut Tx) {
             s.featured = Fetch::Idle;
             if s.curseforge_ready() {
                 s.toast(Tone::Success, "CurseForge key saved", "Search and updates from CurseForge are on");
+                // Rescan: fingerprints can now match CurseForge, then updates get checked.
+                if s.job == Job::Idle {
+                    s.start_scan();
+                }
             } else {
                 s.toast(Tone::Info, "CurseForge key removed", "CurseForge search is off");
             }
@@ -707,5 +767,9 @@ pub fn poll(s: &mut State, clock: f64, tx: &mut Tx) -> bool {
 
 pub fn setup(s: &mut State, waker: Waker) {
     s.search.set_waker(waker.clone());
+    // Headless runs (snapshots, scripts) stay offline and deterministic: no thumbnails.
+    if rune::tooling::headless_run().is_none() {
+        s.images = Some(ImageCache::new(waker.clone()));
+    }
     s.waker = waker;
 }

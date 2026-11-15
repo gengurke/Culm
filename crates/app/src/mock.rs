@@ -1,7 +1,7 @@
 //! Canned World of Warcraft: Forever data behind [`Backend`], for snapshots, tests and running the
 //! UI before the core is wired. Names and versions come from a real Forever install.
 
-use crate::backend::{Backend, Backup, Maintenance, Settings};
+use crate::backend::{Backend, Backup, Maintenance, Settings, Warned};
 use addon_core::{Addon, Channel, Flavor, IgnoreReason, Installation, RemoteAddon, RemoteFile};
 use anyhow::{Result, anyhow, bail};
 use std::path::{Path, PathBuf};
@@ -94,7 +94,7 @@ impl MockBackend {
     pub fn with_delay(delay: Duration) -> MockBackend {
         MockBackend {
             delay,
-            settings: Mutex::new(Settings { curseforge_key: Some("mock-key".into()), default_channel: Channel::Stable }),
+            settings: Mutex::new(Settings { curseforge_key: Some("mock-key".into()), ..Settings::default() }),
             installed: Mutex::new(installed_addons()),
             backups: Mutex::new(vec![
                 Backup { name: "WTF-2026-11-12_2114.zip".into(), created_at: "2026-11-12T21:14:00Z".into(), size_bytes: 18_404_311 },
@@ -261,14 +261,14 @@ impl Backend for MockBackend {
         Ok(inst)
     }
 
-    fn scan(&self, _inst: &Installation) -> Result<Vec<Addon>> {
+    fn scan(&self, _inst: &Installation) -> Result<Warned<Vec<Addon>>> {
         self.wait();
-        Ok(self.installed.lock().unwrap().clone())
+        Ok((self.installed.lock().unwrap().clone(), vec![]))
     }
 
-    fn check_updates(&self, _inst: &Installation, addons: &[Addon]) -> Result<Vec<Addon>> {
+    fn check_updates(&self, _inst: &Installation, addons: &[Addon]) -> Result<Warned<Vec<Addon>>> {
         self.wait();
-        Ok(with_latest(addons))
+        Ok((with_latest(addons), vec![]))
     }
 
     fn update(&self, _inst: &Installation, addon: &Addon, _reinstall: bool, progress: &dyn Fn(f32)) -> Result<Addon> {
@@ -369,5 +369,9 @@ impl Backend for MockBackend {
 
     fn open_folder(&self, _path: &Path) -> Result<()> {
         Ok(())
+    }
+
+    fn thumbnail(&self, _url: &str) -> Result<Vec<u8>> {
+        bail!("no thumbnails in the mock")
     }
 }

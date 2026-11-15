@@ -2,7 +2,7 @@
 
 use super::{band, subtitle};
 use crate::icons;
-use crate::state::{AddonUi, Intent, Job, Op, State, Status, dispatch};
+use crate::state::{AddonUi, Intent, Job, Op, Screen, State, Status, dispatch};
 use crate::theme::{self, StyleExt, pal};
 use crate::ui::{self, Kind};
 use addon_core::{Channel, IgnoreReason};
@@ -70,6 +70,15 @@ fn toolbar(s: &State) -> El {
                 .w(300.0),
         )
         .child(el().grow(1.0));
+    // Without a key, CurseForge addons keep the imported latest versions: say why.
+    if !s.curseforge_ready() && s.addons.iter().any(|a| a.addon.provider.as_deref() == Some("CurseForge")) {
+        bar = bar.child(
+            ui::button("my-addons/no-key", "Add a CurseForge key for update checks", Kind::Ghost, Some(&icons::KEY), true, |s, tx| {
+                dispatch(s, Intent::Navigate(Screen::Settings), tx)
+            })
+            .help("CurseForge addons are only checked for updates with your own API key (Settings)."),
+        );
+    }
     if let Some(label) = status {
         bar = bar.child(row().key("my-addons/job").gap(8.0).center_y().pr(8.0).child(ui::spinner(14.0, p.accent)).child(text(label).font(theme::SMALL).color(p.text_dim)));
     }
@@ -169,7 +178,7 @@ fn addon_row(s: &State, a: &AddonUi) -> El {
                 s.selected = if s.selected.as_deref() == Some(&id) { None } else { Some(id.clone()) };
             }
         })
-        .child(ui::initials_tile(&addon.name, 36.0))
+        .child(ui::addon_tile(&addon.name, 36.0, s.thumb(addon.thumbnail_url.as_deref()), format!("addon/{id}/thumb")))
         .child(
             col()
                 .grow(1.0)
@@ -363,7 +372,7 @@ fn detail(s: &State, a: &AddonUi) -> El {
                 .w_full()
                 .gap(14.0)
                 .items_start()
-                .child(ui::initials_tile(&addon.name, 48.0))
+                .child(ui::addon_tile(&addon.name, 48.0, s.thumb(addon.thumbnail_url.as_deref()), format!("detail/{id}/thumb")))
                 .child(
                     col()
                         .grow(1.0)

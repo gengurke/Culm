@@ -128,6 +128,7 @@ fn result_card(s: &State, remote: &RemoteAddon) -> El {
             }
         }
     };
+    let thumb = ui::addon_tile(&remote.name, 40.0, s.thumb(remote.thumbnail_url.as_deref()), format!("{key}/thumb"));
     col()
         .key(key)
         .fill(p.panel)
@@ -139,7 +140,7 @@ fn result_card(s: &State, remote: &RemoteAddon) -> El {
             row()
                 .w_full()
                 .gap(12.0)
-                .child(ui::initials_tile(&remote.name, 40.0))
+                .child(thumb)
                 .child(
                     col()
                         .grow(1.0)

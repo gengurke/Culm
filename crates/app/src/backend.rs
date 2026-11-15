@@ -11,7 +11,12 @@ use std::path::Path;
 pub struct Settings {
     pub curseforge_key: Option<String>,
     pub default_channel: Channel,
+    /// Id of the installation shown last.
+    pub installation: Option<String>,
 }
+
+/// A result plus non-fatal problems to show (e.g. one provider offline).
+pub type Warned<T> = (T, Vec<String>);
 
 /// A housekeeping job on the selected installation (F6).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -40,9 +45,10 @@ pub trait Backend: Send + Sync {
     fn installations(&self) -> Result<Vec<Installation>>;
     /// Validate and store a folder the user picked (any of WoW root, `_forever_`, `Wow.exe` dir).
     fn add_installation(&self, path: &Path) -> Result<Installation>;
-    fn scan(&self, inst: &Installation) -> Result<Vec<Addon>>;
+    /// Scan + provider matching, merged with the stored list (first scan: WowUp records too).
+    fn scan(&self, inst: &Installation) -> Result<Warned<Vec<Addon>>>;
     /// Returns `addons` with `latest` refreshed.
-    fn check_updates(&self, inst: &Installation, addons: &[Addon]) -> Result<Vec<Addon>>;
+    fn check_updates(&self, inst: &Installation, addons: &[Addon]) -> Result<Warned<Vec<Addon>>>;
     /// Install (or re-download, `reinstall`) the latest file for the addon's channel.
     fn update(&self, inst: &Installation, addon: &Addon, reinstall: bool, progress: &dyn Fn(f32)) -> Result<Addon>;
     fn install(&self, inst: &Installation, remote: &RemoteAddon, channel: Channel, progress: &dyn Fn(f32)) -> Result<Addon>;
@@ -61,4 +67,6 @@ pub trait Backend: Send + Sync {
     fn import_wowup(&self, inst: &Installation) -> Result<usize>;
     /// Show a folder in the system file manager.
     fn open_folder(&self, path: &Path) -> Result<()>;
+    /// Image bytes of an addon thumbnail (cached on disk).
+    fn thumbnail(&self, url: &str) -> Result<Vec<u8>>;
 }

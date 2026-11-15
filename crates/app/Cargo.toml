@@ -19,3 +19,8 @@ addon-core = { path = "../core" }
 rune = { workspace = true, features = ["native-file-dialog"] }
 rune-kit.workspace = true
 anyhow.workspace = true
+
+[dev-dependencies]
+addon-testkit = { path = "../testkit" }
+serde_json.workspace = true
+tempfile = "3.27.0"

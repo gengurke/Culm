@@ -247,6 +247,16 @@ pub fn initials_tile(name: &str, size: f32) -> El {
         .child(text(letters).font(theme::CAPTION.size_of(size * 0.36)).color(p.text_dim))
 }
 
+/// The addon's thumbnail over its initials tile: the initials show while the image decodes or
+/// if it fails (a pending or failed image paints nothing). `key` names the image layer.
+pub fn addon_tile(name: &str, size: f32, thumb: Option<&rune::Image>, key: String) -> El {
+    let tile = initials_tile(name, size);
+    match thumb {
+        Some(img) => tile.child(el().key(key).role("img").pin(Some(0.0), Some(0.0), Some(0.0), Some(0.0)).pixels_fit(img.pixels(), rune::SurfaceFit::Fill)),
+        None => tile,
+    }
+}
+
 /// The gold star with its soft glow, for empty states and the brand block.
 pub fn emblem(size: f32) -> El {
     let p = pal();

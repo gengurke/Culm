@@ -2,6 +2,7 @@
 
 pub mod backend;
 mod brand;
+pub mod core_backend;
 pub mod icons;
 pub mod mock;
 pub mod state;
@@ -19,8 +20,15 @@ use rune::{AppSpec, Env, Key, KeyEvent, Runtime, Tx};
 use state::{AddonUi, Fetch, MaintCard, MaintPhase, Tone};
 use std::sync::Arc;
 
+/// The real backend, except in headless binary runs (`--snap`, `--script`), which show the
+/// deterministic mock data unless `ADDONS_BACKEND=core` asks for the real one.
 pub fn init() -> State {
-    State::new(Arc::new(MockBackend::new()))
+    let headless = rune::tooling::headless_run().is_some();
+    if headless && std::env::var("ADDONS_BACKEND").as_deref() != Ok("core") {
+        return State::new(Arc::new(MockBackend::new()));
+    }
+    let config = core_backend::Config::from_env().expect("no home folder to keep the app's data in");
+    State::new(Arc::new(core_backend::CoreBackend::new(config)))
 }
 
 /// The window, with named scenes for `--snap --scene <name>`.
