@@ -203,3 +203,38 @@ fn f6_3_wtf_backup_is_zipped_into_the_app_data() {
     let id = &app.state().installation().unwrap().id;
     assert!(world.tmp.path().join("data/wtf-backups").join(id).join(&name).is_file());
 }
+
+#[test]
+fn f3_1_never_checked_addons_say_not_checked() {
+    let world = World::new().with_wowup();
+    // WowUp never saw a newer release for Ace: no `latest` until a check answers.
+    let records = world.wowup_dirs[0].join("addons.json");
+    let mut v: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(&records).unwrap()).unwrap();
+    for k in ["latestVersion", "externalLatestReleaseId"] {
+        v["wowup-ace"].as_object_mut().unwrap().remove(k);
+    }
+    write(&records, v.to_string());
+    let mut app = world.app();
+    app.wait_idle();
+    assert_eq!(app.status("Ace"), Status::NotChecked);
+    assert!(app.shows_in(&app.row("Ace", ""), "Not checked"));
+    assert!(!app.shows("Up to date") && !app.shows("everything up to date"));
+    assert!(app.shows("1 not checked — add a CurseForge key"));
+}
+
+#[test]
+fn f5_1_remove_keeps_folders_another_addon_lists() {
+    use addon_app::backend::Backend;
+    let world = World::new().with_key("test-key");
+    let backend = addon_app::core_backend::CoreBackend::new(world.config());
+    let inst = backend.installations().unwrap().remove(0);
+    let (addons, _) = backend.scan(&inst).unwrap();
+    // A stale UI copy claims Homebrew too (it belongs to its own record).
+    let mut ace = addons.iter().find(|a| a.name == "Ace").unwrap().clone();
+    ace.folders.push("Homebrew".into());
+    backend.remove(&inst, &ace).unwrap();
+    assert!(!world.exists("Interface/AddOns/Ace"));
+    assert!(world.exists("Interface/AddOns/Homebrew"), "only the stored record's own folders go");
+    let (after, _) = backend.scan(&inst).unwrap();
+    assert!(after.iter().any(|a| a.name == "Homebrew") && !after.iter().any(|a| a.name == "Ace"));
+}

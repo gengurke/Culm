@@ -11,22 +11,23 @@ use std::sync::mpsc::Sender;
 #[derive(Debug)]
 pub enum Msg {
     Booted { settings: Settings, installations: Vec<Installation> },
-    Scanned(Result<Warned<Vec<Addon>>, String>),
-    Checked(Result<Warned<Vec<Addon>>, String>),
+    /// Results tagged `inst` (an installation id) are dropped if the user switched installations meanwhile.
+    Scanned { inst: String, result: Result<Warned<Vec<Addon>>, String> },
+    Checked { inst: String, result: Result<Warned<Vec<Addon>>, String> },
     /// Download progress 0..=1 of an addon id (update) or external id (install).
     Progress { id: String, done: f32 },
     Updated { id: String, result: Result<Addon, String> },
     /// `external_id` is empty for install-from-URL.
-    Installed { external_id: String, result: Result<Addon, String> },
+    Installed { inst: String, external_id: String, result: Result<Addon, String> },
     Removed { id: String, result: Result<(), String> },
     Featured(Result<Vec<RemoteAddon>, String>),
     /// Thumbnail bytes for a URL (None: failed, the initials tile stays).
     Thumbnail { url: String, bytes: Option<Vec<u8>> },
-    GameRunning(bool),
-    Maintained { card: MaintCard, result: Result<String, String> },
-    Backups(Vec<Backup>),
+    GameRunning { inst: String, running: bool },
+    Maintained { inst: String, card: MaintCard, result: Result<String, String> },
+    Backups { inst: String, list: Vec<Backup> },
     InstallationAdded(Result<Installation, String>),
-    Imported(Result<usize, String>),
+    Imported { inst: String, result: Result<usize, String> },
     Failed { title: String, error: String },
 }
 

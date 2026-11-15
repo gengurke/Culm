@@ -17,14 +17,16 @@ const ACTION_W: f32 = 92.0;
 pub fn page(s: &State) -> El {
     let n = s.update_count();
     let installed = s.addons.len();
+    let unchecked = s.not_checked_count();
+    let state = match (n, unchecked) {
+        (1.., _) => format!("{n} update{} available", if n == 1 { "" } else { "s" }),
+        (0, 1..) if !s.curseforge_ready() => format!("{unchecked} not checked — add a CurseForge key"),
+        (0, 1..) => format!("{unchecked} not checked"),
+        (0, 0) => "everything up to date".to_string(),
+    };
     let sub = match s.installation() {
         Some(i) if installed == 0 && s.job != Job::Idle => format!("Reading {}…", i.label),
-        Some(i) => format!(
-            "{installed} addons  ·  {}  ·  {} {}",
-            if n == 0 { "everything up to date".to_string() } else { format!("{n} update{} available", if n == 1 { "" } else { "s" }) },
-            i.label,
-            i.version.as_deref().unwrap_or("")
-        ),
+        Some(i) => format!("{installed} addons  ·  {state}  ·  {} {}", i.label, i.version.as_deref().unwrap_or("")),
         None => String::new(),
     };
     let update_all = ui::button(
@@ -220,6 +222,8 @@ pub(crate) fn status_badge(a: &AddonUi) -> El {
     let p = pal();
     match a.status() {
         Status::UpToDate => ui::badge("Up to date", p.success, p.success_soft, true),
+        Status::NotChecked => ui::badge("Not checked", p.text_muted, p.chip, false)
+            .help("No update check has answered for this addon yet (CurseForge needs your API key)."),
         Status::UpdateAvailable => ui::badge("Update available", p.warning, p.warning_soft, false),
         Status::Ignored if a.addon.ignored == Some(IgnoreReason::GitRepo) => ui::badge("Git checkout", p.text_dim, p.chip, false),
         Status::Ignored => ui::badge("Ignored", p.text_dim, p.chip, false),

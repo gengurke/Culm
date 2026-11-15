@@ -170,3 +170,36 @@ fn f2_4_wowup_link_is_not_taken_over_by_another_providers_toc_match() {
     assert_eq!(e.folders, ["EnhanceQoL", "EnhanceQoLBags"]);
     assert_eq!(e.installed_version.as_deref(), Some("13.21.3-forever"));
 }
+
+#[test]
+fn f2_4_zip_file_name_versions_show_the_toc_version() {
+    let w = fake_wow();
+    w.add_folder("Tint", "Tint.toc", &simple_toc("Tint", "0.7.3"), &[]);
+    w.add_folder("NoVer", "NoVer.toc", "## Title: NoVer\n", &[]);
+    let wowup = w.tmp.path().join("WowUpCf");
+    let client = w.inst.root.display().to_string();
+    let prefs = serde_json::json!({
+        "wow_installations": [{"id": "fev", "location": format!("{client}/Wow.exe")}]
+    });
+    let rec = |id: &str, folder: &str, version: &str| {
+        serde_json::json!({
+            "id": id, "name": folder, "providerName": "Curse", "externalId": id,
+            "installedFolderList": [folder], "installationId": "fev",
+            "installedVersion": version, "installedExternalReleaseId": "9",
+            "latestVersion": version, "externalLatestReleaseId": "9"
+        })
+    };
+    let addons = serde_json::json!({
+        "t": rec("t", "Tint", "ForeverQuestTint-0.7.3.zip"),
+        "n": rec("n", "NoVer", "NoVer-1.2.ZIP"),
+    });
+    write(&wowup.join("preferences.json"), prefs.to_string());
+    write(&wowup.join("addons.json"), addons.to_string());
+    let imported = wowup_import::import_wowup(&wowup, &w.inst).unwrap();
+    let v = |i: usize| {
+        let a = &imported[i];
+        (a.installed_version.clone().unwrap(), a.latest.as_ref().unwrap().version.clone(), a.update_available())
+    };
+    assert_eq!(v(0), ("NoVer-1.2".into(), "NoVer-1.2".into(), false));
+    assert_eq!(v(1), ("0.7.3".into(), "0.7.3".into(), false));
+}

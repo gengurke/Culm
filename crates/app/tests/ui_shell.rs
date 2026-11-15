@@ -119,3 +119,23 @@ fn f6_1_maintenance_locked_while_game_runs() {
     tap(&mut rt, "maint/cache/run");
     assert_eq!(rt.state.maint.get(&MaintCard::Cache), None, "disabled button does nothing");
 }
+
+#[test]
+fn late_results_never_land_on_the_wrong_installation_or_restart_updates() {
+    use addon_app::worker::Msg;
+    let mut s = fresh();
+    loaded(&mut s);
+    let current = s.current.clone().unwrap();
+    let before: Vec<String> = s.addons.iter().map(|a| a.addon.name.clone()).collect();
+
+    // The scan of an installation the user switched away from answers late: dropped.
+    s.apply(Msg::Scanned { inst: "other-installation".into(), result: Ok((vec![], vec![])) });
+    assert_eq!(s.addons.iter().map(|a| a.addon.name.clone()).collect::<Vec<_>>(), before);
+
+    // A rescan of the current installation keeps showing a running update, so it can't start twice.
+    let id = s.addons[0].addon.id.clone();
+    s.addons[0].op = Some(Op::Downloading(0.5));
+    let list = s.addons.iter().map(|a| a.addon.clone()).collect();
+    s.apply(Msg::Scanned { inst: current, result: Ok((list, vec![])) });
+    assert_eq!(s.addon(&id).unwrap().op, Some(Op::Downloading(0.5)));
+}

@@ -13,7 +13,7 @@ use anyhow::{Context, Result, bail};
 use rune::prefs::Prefs;
 use std::hash::{DefaultHasher, Hash, Hasher};
 use std::path::{Path, PathBuf};
-use std::sync::Mutex;
+use std::sync::{Mutex, RwLock};
 
 /// Where the backend reads and writes. Tests build one over temp dirs and a fake server.
 pub struct Config {
@@ -67,6 +67,9 @@ pub struct CoreBackend {
     prefs: Mutex<Prefs>,
     /// Serializes load-modify-save of the stored lists (workers run concurrently).
     store: Mutex<()>,
+    /// AddOns folder changes (install, update, remove) share it; a scan takes it alone, so it never
+    /// sees a folder mid-swap (which would drop that addon's link as "folder gone").
+    disk: RwLock<()>,
 }
 
 const KEY: &str = "curseforge_key";
@@ -83,6 +86,7 @@ impl CoreBackend {
             endpoints: c.providers,
             prefs: Mutex::new(c.prefs),
             store: Mutex::new(()),
+            disk: RwLock::new(()),
         }
     }
 
@@ -134,6 +138,10 @@ impl CoreBackend {
 
     fn save_record(&self, inst: &Installation, addon: &Addon) -> Result<()> {
         self.edit(inst, |list| store::upsert_addon(list, addon.clone()))
+    }
+
+    fn disk_shared(&self) -> std::sync::RwLockReadGuard<'_, ()> {
+        self.disk.read().unwrap_or_else(|e| e.into_inner())
     }
 }
 
@@ -187,6 +195,7 @@ impl Backend for CoreBackend {
     }
 
     fn scan(&self, inst: &Installation) -> Result<Warned<Vec<Addon>>> {
+        let _disk = self.disk.write().unwrap_or_else(|e| e.into_inner());
         let fresh = scan::scan_installation(inst, &self.providers())?;
         let mut warnings = fresh.errors;
         let addons = self.edit(inst, |stored| {
@@ -220,22 +229,38 @@ impl Backend for CoreBackend {
         Ok((list, warnings))
     }
 
-    /// Update and reinstall both install `addon.latest` (fresh from the update check).
+    /// Update and reinstall both install `addon.latest` (fresh from the update check). Only the
+    /// stored folders no other record lists are replaced; channel / ignore changes made while it
+    /// downloaded are kept.
     fn update(&self, inst: &Installation, addon: &Addon, _reinstall: bool, progress: &dyn Fn(f32)) -> Result<Addon> {
-        let a = install::update_addon(inst, addon, &|url| self.download(url, progress))?;
-        self.save_record(inst, &a)?;
+        let _disk = self.disk_shared();
+        let folders = self.edit(inst, |list| store::owned_folders(list, addon))?;
+        let mut a = install::update_addon(inst, &Addon { folders, ..addon.clone() }, &|url| self.download(url, progress))?;
+        self.edit(inst, |list| {
+            if let Some(s) = list.iter().find(|s| s.id == a.id) {
+                (a.channel, a.ignored, a.auto_update) = (s.channel, s.ignored, s.auto_update);
+            }
+            store::upsert_addon(list, a.clone());
+        })?;
         Ok(a)
     }
 
     fn install(&self, inst: &Installation, remote: &RemoteAddon, channel: Channel, progress: &dyn Fn(f32)) -> Result<Addon> {
+        let _disk = self.disk_shared();
         let a = install::install_remote(inst, remote, channel, &|url| self.download(url, progress))?;
         self.save_record(inst, &a)?;
         Ok(a)
     }
 
+    /// Deletes the stored record's folders, except any another record also lists.
     fn remove(&self, inst: &Installation, addon: &Addon) -> Result<()> {
-        install::remove_addon(inst, addon)?;
-        self.edit(inst, |list| list.retain(|a| a.id != addon.id))
+        let _disk = self.disk_shared();
+        self.edit(inst, |list| {
+            let folders = store::owned_folders(list, addon);
+            install::remove_addon(inst, &Addon { folders, ..addon.clone() })?;
+            list.retain(|a| a.id != addon.id);
+            anyhow::Ok(())
+        })?
     }
 
     fn save_addon(&self, inst: &Installation, addon: &Addon) -> Result<()> {

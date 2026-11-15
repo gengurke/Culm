@@ -54,6 +54,8 @@ pub struct AddonUi {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Status {
     UpToDate,
+    /// Managed, but no update check produced a latest release (e.g. CurseForge without a key).
+    NotChecked,
     UpdateAvailable,
     Working,
     Ignored,
@@ -69,6 +71,7 @@ impl AddonUi {
             (None, Some(IgnoreReason::Unknown)) => Status::Unknown,
             (None, Some(_)) => Status::Ignored,
             (None, None) if self.addon.update_available() => Status::UpdateAvailable,
+            (None, None) if self.addon.latest.is_none() => Status::NotChecked,
             (None, None) => Status::UpToDate,
         }
     }
@@ -261,6 +264,10 @@ impl State {
         self.addons.iter().filter(|a| a.status() == Status::UpdateAvailable).count()
     }
 
+    pub fn not_checked_count(&self) -> usize {
+        self.addons.iter().filter(|a| a.status() == Status::NotChecked).count()
+    }
+
     pub fn curseforge_ready(&self) -> bool {
         self.settings.curseforge_key.as_deref().is_some_and(|k| !k.trim().is_empty())
     }
@@ -289,8 +296,11 @@ impl State {
         self.toasts.retain(|t| t.id != id);
     }
 
+    /// Replaces the list (a scan result). Addons with an update or remove still running keep
+    /// showing it, so they can't be started twice.
     fn set_addons(&mut self, addons: Vec<Addon>) {
-        let mut list: Vec<AddonUi> = addons.into_iter().map(|addon| AddonUi { addon, op: None }).collect();
+        let busy = |id: &str| self.addon(id).and_then(|a| a.op.clone()).filter(Op::busy);
+        let mut list: Vec<AddonUi> = addons.into_iter().map(|addon| AddonUi { op: busy(&addon.id), addon }).collect();
         list.sort_by_key(|a| a.addon.name.to_lowercase());
         self.addons = list;
         self.load_thumbs(self.addons.iter().filter_map(|a| a.addon.thumbnail_url.clone()).collect());
@@ -299,9 +309,28 @@ impl State {
         }
     }
 
-    /// Lands one worker result. Returns whether anything visible changed.
+    /// Whether a result tagged with installation `inst` still belongs to the screen.
+    fn is_current(&self, inst: &str) -> bool {
+        self.current.as_deref() == Some(inst)
+    }
+
+    /// Lands one worker result.
     pub fn apply(&mut self, msg: Msg) {
         match msg {
+            // A late answer about the installation the user switched away from.
+            Msg::Scanned { ref inst, .. }
+            | Msg::Checked { ref inst, .. }
+            | Msg::GameRunning { ref inst, .. }
+            | Msg::Maintained { ref inst, .. }
+            | Msg::Backups { ref inst, .. }
+            | Msg::Imported { ref inst, .. }
+                if !self.is_current(inst) => {}
+            Msg::Installed { ref inst, ref external_id, .. } if !self.is_current(inst) => {
+                if external_id.is_empty() {
+                    self.url_busy = false;
+                }
+                self.installing.remove(external_id);
+            }
             Msg::Booted { settings, installations } => {
                 self.settings = settings;
                 self.api_key.replace_text(self.settings.curseforge_key.clone().unwrap_or_default());
@@ -313,16 +342,16 @@ impl State {
                     self.start_scan();
                 }
             }
-            Msg::Scanned(Ok((addons, warnings))) => {
+            Msg::Scanned { result: Ok((addons, warnings)), .. } => {
                 self.set_addons(addons);
                 self.warn(warnings);
                 self.start_check();
             }
-            Msg::Scanned(Err(e)) => {
+            Msg::Scanned { result: Err(e), .. } => {
                 self.job = Job::Idle;
                 self.toast(Tone::Danger, "Scan failed", e);
             }
-            Msg::Checked(Ok((addons, warnings))) => {
+            Msg::Checked { result: Ok((addons, warnings)), .. } => {
                 self.job = Job::Idle;
                 for fresh in addons {
                     if let Some(a) = self.addon_mut(&fresh.id) {
@@ -337,7 +366,7 @@ impl State {
                     self.toast(Tone::Info, format!("{n} update{} available", if n == 1 { "" } else { "s" }), "");
                 }
             }
-            Msg::Checked(Err(e)) => {
+            Msg::Checked { result: Err(e), .. } => {
                 self.job = Job::Idle;
                 self.toast(Tone::Danger, "Update check failed", e);
             }
@@ -353,8 +382,8 @@ impl State {
                 Ok(addon) => {
                     let name = addon.name.clone();
                     let version = addon.installed_version.clone().unwrap_or_default();
-                    if let Some(a) = self.addon_mut(&id) {
-                        *a = AddonUi { addon, op: None };
+                    if self.addon(&id).is_some() {
+                        self.upsert(addon);
                     }
                     self.toast(Tone::Success, format!("Updated {name}"), version);
                 }
@@ -366,7 +395,7 @@ impl State {
                     self.toast(Tone::Danger, format!("Could not update {name}"), e);
                 }
             },
-            Msg::Installed { external_id, result } => {
+            Msg::Installed { external_id, result, .. } => {
                 if external_id.is_empty() {
                     self.url_busy = false;
                 }
@@ -374,10 +403,7 @@ impl State {
                 match result {
                     Ok(addon) => {
                         self.toast(Tone::Success, format!("Installed {}", addon.name), addon.installed_version.clone().unwrap_or_default());
-                        // The record now owns its folders (same rule as the store's upsert).
-                        self.addons.retain(|a| a.addon.id != addon.id && !a.addon.folders.iter().any(|f| addon.folders.contains(f)));
-                        self.addons.push(AddonUi { addon, op: None });
-                        self.addons.sort_by_key(|a| a.addon.name.to_lowercase());
+                        self.upsert(addon);
                     }
                     Err(e) => self.toast(Tone::Danger, "Install failed", e),
                 }
@@ -411,15 +437,15 @@ impl State {
                 let image = bytes.and_then(|b| Some(self.images.as_ref()?.load(b)));
                 self.thumbs.insert(url, image);
             }
-            Msg::GameRunning(running) => self.game_running = running,
-            Msg::Maintained { card, result } => {
+            Msg::GameRunning { running, .. } => self.game_running = running,
+            Msg::Maintained { card, result, .. } => {
                 let phase = match result {
                     Ok(line) => MaintPhase::Done(line),
                     Err(e) => MaintPhase::Failed(e),
                 };
                 self.maint.insert(card, phase);
             }
-            Msg::Backups(list) => self.backups = list,
+            Msg::Backups { list, .. } => self.backups = list,
             Msg::InstallationAdded(Ok(inst)) => {
                 self.toast(Tone::Success, "Installation added", inst.root.display().to_string());
                 self.current = Some(inst.id.clone());
@@ -431,18 +457,31 @@ impl State {
                 self.start_scan();
             }
             Msg::InstallationAdded(Err(e)) => self.toast(Tone::Danger, "Not a Forever installation", e),
-            Msg::Imported(Ok(n)) => {
+            Msg::Imported { result: Ok(n), .. } => {
                 self.toast(Tone::Success, "Imported from WowUp", format!("{n} addon records"));
                 self.start_scan();
             }
-            Msg::Imported(Err(e)) => self.toast(Tone::Danger, "WowUp import failed", e),
+            Msg::Imported { result: Err(e), .. } => self.toast(Tone::Danger, "WowUp import failed", e),
             Msg::Failed { title, error } => self.toast(Tone::Danger, title, error),
         }
     }
 
+    /// Lands an installed or updated record: it owns its folders now (the store's upsert rule).
+    fn upsert(&mut self, addon: Addon) {
+        self.addons.retain(|a| a.addon.id != addon.id);
+        for a in &mut self.addons {
+            a.addon.folders.retain(|f| !addon.folders.contains(f));
+        }
+        self.addons.retain(|a| !a.addon.folders.is_empty());
+        self.addons.push(AddonUi { addon, op: None });
+        self.addons.sort_by_key(|a| a.addon.name.to_lowercase());
+    }
+
     fn warn(&mut self, warnings: Vec<String>) {
-        if !warnings.is_empty() {
-            self.toast(Tone::Danger, "Some sources could not be reached", warnings.join("\n"));
+        let body = warnings.join("\n");
+        // Offline, the scan and the update check that follows report the same failure: say it once.
+        if !warnings.is_empty() && !self.toasts.iter().any(|t| t.body == body) {
+            self.toast(Tone::Danger, "Some sources could not be reached", body);
         }
     }
 
@@ -471,14 +510,14 @@ impl State {
     fn start_scan(&mut self) {
         let Some(inst) = self.installation().cloned() else { return };
         self.job = Job::Scanning;
-        worker::spawn(self, "scan", move |b, post| post.send(Msg::Scanned(b.scan(&inst).map_err(err))));
+        worker::spawn(self, "scan", move |b, post| post.send(Msg::Scanned { result: b.scan(&inst).map_err(err), inst: inst.id }));
     }
 
     fn start_check(&mut self) {
         let Some(inst) = self.installation().cloned() else { return };
         self.job = Job::CheckingUpdates;
         let addons: Vec<Addon> = self.addons.iter().map(|a| a.addon.clone()).collect();
-        worker::spawn(self, "check", move |b, post| post.send(Msg::Checked(b.check_updates(&inst, &addons).map_err(err))));
+        worker::spawn(self, "check", move |b, post| post.send(Msg::Checked { result: b.check_updates(&inst, &addons).map_err(err), inst: inst.id }));
     }
 
     fn start_update(&mut self, id: &str, reinstall: bool) {
@@ -506,8 +545,8 @@ impl State {
     fn refresh_maintenance(&mut self) {
         let Some(inst) = self.installation().cloned() else { return };
         worker::spawn(self, "maintenance-info", move |b, post| {
-            post.send(Msg::GameRunning(b.game_running(&inst)));
-            post.send(Msg::Backups(b.backups(&inst).unwrap_or_default()));
+            post.send(Msg::GameRunning { running: b.game_running(&inst), inst: inst.id.clone() });
+            post.send(Msg::Backups { list: b.backups(&inst).unwrap_or_default(), inst: inst.id });
         });
     }
 
@@ -571,7 +610,13 @@ pub fn dispatch(s: &mut State, intent: Intent, tx: &mut Tx) {
                 s.save_settings();
                 s.addons.clear();
                 s.selected = None;
+                s.confirm_remove = None;
+                s.maint.clear();
+                s.backups.clear();
                 s.start_scan();
+                if s.screen == Screen::Maintenance {
+                    s.refresh_maintenance();
+                }
             }
         }
         Intent::AddInstallation => {
@@ -588,7 +633,7 @@ pub fn dispatch(s: &mut State, intent: Intent, tx: &mut Tx) {
         }
         Intent::ImportWowUp => {
             let Some(inst) = s.installation().cloned() else { return };
-            worker::spawn(s, "wowup-import", move |b, post| post.send(Msg::Imported(b.import_wowup(&inst).map_err(err))));
+            worker::spawn(s, "wowup-import", move |b, post| post.send(Msg::Imported { result: b.import_wowup(&inst).map_err(err), inst: inst.id }));
         }
         Intent::Rescan => {
             if s.job == Job::Idle {
@@ -644,6 +689,9 @@ pub fn dispatch(s: &mut State, intent: Intent, tx: &mut Tx) {
         Intent::ConfirmRemove(id) => {
             s.confirm_remove = None;
             let (Some(inst), Some(a)) = (s.installation().cloned(), s.addon_mut(&id)) else { return };
+            if a.op.as_ref().is_some_and(Op::busy) {
+                return;
+            }
             a.op = Some(Op::Removing);
             let addon = a.addon.clone();
             worker::spawn(s, "remove", move |b, post| post.send(Msg::Removed { id, result: b.remove(&inst, &addon).map_err(err) }));
@@ -672,7 +720,7 @@ pub fn dispatch(s: &mut State, intent: Intent, tx: &mut Tx) {
             worker::spawn(s, "install", move |b, post| {
                 let external_id = remote.external_id.clone();
                 let result = b.install(&inst, &remote, channel, &|done| post.send(Msg::Progress { id: external_id.clone(), done }));
-                post.send(Msg::Installed { external_id, result: result.map_err(err) });
+                post.send(Msg::Installed { inst: inst.id, external_id, result: result.map_err(err) });
             });
         }
         Intent::InstallFromUrl => {
@@ -685,7 +733,7 @@ pub fn dispatch(s: &mut State, intent: Intent, tx: &mut Tx) {
             let channel = s.settings.default_channel;
             worker::spawn(s, "install-url", move |b, post| {
                 let result = b.resolve_url(&url).and_then(|r| b.install(&inst, &r, channel, &|_| {}));
-                post.send(Msg::Installed { external_id: String::new(), result: result.map_err(err) });
+                post.send(Msg::Installed { inst: inst.id, external_id: String::new(), result: result.map_err(err) });
             });
             s.url.replace_text("");
         }
@@ -704,9 +752,9 @@ pub fn dispatch(s: &mut State, intent: Intent, tx: &mut Tx) {
             let job = card.job(s.cache_wdb_only);
             worker::spawn(s, "maintenance", move |b, post| {
                 let result = b.maintenance(&inst, job).map_err(err);
-                post.send(Msg::Maintained { card, result });
+                post.send(Msg::Maintained { inst: inst.id.clone(), card, result });
                 if card == MaintCard::Wtf {
-                    post.send(Msg::Backups(b.backups(&inst).unwrap_or_default()));
+                    post.send(Msg::Backups { list: b.backups(&inst).unwrap_or_default(), inst: inst.id });
                 }
             });
         }

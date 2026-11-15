@@ -64,8 +64,33 @@ pub fn import_wowup(wowup_dir: &Path, inst: &Installation) -> Result<Vec<Addon>>
         .filter_map(map_record)
         .filter(|a| !a.folders.is_empty() && a.folders.iter().all(|f| addons_dir.join(f).is_dir()))
         .collect();
+    for a in &mut out {
+        clean_file_name_version(a, &addons_dir);
+    }
     crate::store::resolve_overlaps(&mut out);
     Ok(out)
+}
+
+/// WowUp sometimes stores the zip name as the version ("ForeverQuestTint-0.7.3.zip"): show the
+/// main folder's TOC `## Version` instead (else the name without `.zip`), also for the latest
+/// release when it is the installed one.
+fn clean_file_name_version(a: &mut Addon, addons_dir: &Path) {
+    let is_file = |v: &str| v.to_ascii_lowercase().ends_with(".zip");
+    let strip = |v: &str| v[..v.len() - 4].to_string();
+    if let Some(v) = a.installed_version.clone().filter(|v| is_file(v)) {
+        let main = a.folders.iter().min_by(|x, y| x.len().cmp(&y.len()).then(x.cmp(y)));
+        let toc = main
+            .and_then(|m| crate::toc::read_folder_toc(&addons_dir.join(m)).ok().flatten())
+            .and_then(|t| t.version);
+        a.installed_version = Some(toc.unwrap_or_else(|| strip(&v)));
+    }
+    if let Some(latest) = a.latest.as_mut().filter(|l| is_file(&l.version)) {
+        latest.version = if a.installed_file_id.as_ref() == Some(&latest.id) {
+            a.installed_version.clone().unwrap_or_default()
+        } else {
+            strip(&latest.version)
+        };
+    }
 }
 
 fn map_record(r: &Value) -> Option<Addon> {
