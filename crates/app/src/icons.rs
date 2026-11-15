@@ -155,27 +155,6 @@ pub static CREST: Icon = Icon {
     body: r#"<path d="M64 8 L114 24 C114 70 98 102 64 120 C30 102 14 70 14 24 Z" fill="currentColor" fill-opacity="0.16" stroke="currentColor" stroke-width="7" stroke-linejoin="round"/><path d="M64 30 L73 58 L100 64 L73 70 L64 98 L55 70 L28 64 L55 58Z" fill="currentColor"/>"#,
 };
 
-/// A dead, gnarled tree in silhouette (Nightwatch's treeline).
-pub static DEAD_TREE: Icon = Icon {
-    name: "ra-dead-tree",
-    view: 128.0,
-    body: r#"<path d="M58 128 C60 106 58 88 53 74 C45 64 31 60 18 51 L21 47 C33 55 45 58 51 63 C49 51 41 41 30 35 L33 31 C44 38 52 48 55 59 C57 45 55 30 48 15 L52 13 C61 29 63 45 62 59 C67 48 77 40 91 35 L93 39 C79 45 71 54 67 64 C75 58 89 55 104 45 L107 49 C93 60 79 65 69 73 C65 88 67 106 72 128 Z" fill="currentColor"/><path d="M30 35 L21 23 M48 15 L45 4 M52 13 L60 5 M91 35 L101 26 M104 45 L118 43 M18 51 L6 49 M21 47 L14 38" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/>"#,
-};
-
-/// A stretch of leaning picket fence in silhouette.
-pub static FENCE: Icon = Icon {
-    name: "ra-fence",
-    view: 128.0,
-    body: r#"<g fill="currentColor"><path d="M4 128 V84 L8 76 L12 84 V128Z"/><path d="M30 128 V86 L35 78 L39 87 V128Z" transform="rotate(4 35 128)"/><path d="M58 128 V82 L62 74 L66 82 V128Z"/><path d="M86 128 V88 L90 80 L94 88 V128Z" transform="rotate(-6 90 128)"/><path d="M112 128 V85 L116 77 L120 85 V128Z"/><path d="M0 96 L124 99 V103 L0 100Z"/><path d="M0 114 L124 112 V116 L0 118Z"/></g>"#,
-};
-
-/// A headstone and a leaning grave cross in silhouette.
-pub static GRAVES: Icon = Icon {
-    name: "ra-graves",
-    view: 128.0,
-    body: r#"<path d="M18 128 V92 C18 80 26 74 36 74 C46 74 54 80 54 92 V128Z" fill="currentColor"/><path d="M84 128 V96 H70 V88 H84 V74 H92 V88 H106 V96 H92 V128Z" fill="currentColor" transform="rotate(-8 88 128)"/>"#,
-};
-
 /// A bevelled gold stud for frame corners.
 pub static STUD: Icon = Icon {
     name: "ra-stud",

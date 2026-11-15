@@ -15,18 +15,15 @@ pub enum Tex {
     Leather,
     /// Dark cracked flagstone with mottled moss.
     Moss,
-    /// Soft wisps of cold mist (light only, no shade).
-    Mist,
 }
 
 impl Tex {
-    pub const ALL: [Tex; 6] = [
+    pub const ALL: [Tex; 5] = [
         Tex::Wood,
         Tex::Parchment,
         Tex::Stone,
         Tex::Leather,
         Tex::Moss,
-        Tex::Mist,
     ];
 
     /// Pixel size; it tiles at one point per pixel.
@@ -49,18 +46,12 @@ impl Tex {
                     Tex::Stone => stone(x, y),
                     Tex::Leather => leather(x, y),
                     Tex::Moss => moss(x, y),
-                    Tex::Mist => mist(x, y),
                 }
                 .clamp(-1.0, 1.0);
-                let light = if self == Tex::Mist {
-                    [196, 212, 236]
-                } else {
-                    [255, 236, 200]
-                };
                 let (rgb, a) = if v < 0.0 {
                     ([12, 6, 2], -v)
                 } else {
-                    (light, v)
+                    ([255, 236, 200], v)
                 };
                 out.extend_from_slice(&[rgb[0], rgb[1], rgb[2], (a * 255.0) as u8]);
             }
@@ -230,16 +221,6 @@ fn moss(x: u32, y: u32) -> f32 {
         0.0
     };
     v + grit
-}
-
-/// Cold mist banks stretched sideways, curling, thinning to nothing between.
-fn mist(x: u32, y: u32) -> f32 {
-    let (fx, fy) = (x as f32, y as f32);
-    // Banks stretched sideways, warped so they curl, thinning to nothing between.
-    let warp = fbm(fx / 128.0, fy / 64.0, 4, 8, 3, 31);
-    let bank = fbm(fx / 256.0 + warp * 0.6, fy / 128.0, 2, 4, 4, 32);
-    let v = ((bank - 0.42) * 2.6).clamp(0.0, 1.0);
-    v * v * (3.0 - 2.0 * v)
 }
 
 #[cfg(test)]
