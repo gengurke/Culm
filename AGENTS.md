@@ -58,6 +58,14 @@ Build needs `libxkbcommon-devel wayland-devel` (Fedora). Without root, a gitigno
 - Headless binary runs (`--snap`, `--script`) use `MockBackend`; `ADDONS_BACKEND=core` forces the real one
   (with `RUNE_DIRS_ROOT=$(mktemp -d)` and the `ADDONS_*_URL` endpoints pointed at a closed port it stays offline).
 
+## Data-safety rules (learned here)
+
+- Worker results about an installation carry its id (`Msg::Scanned { inst, .. }`); `State::apply` drops stale ones.
+- `CoreBackend`: store edits go through `edit` (one lock); installs/updates/removes share the `disk` RwLock, a scan
+  takes it alone. Remove/update only touch `store::owned_folders` (stored record minus folders others list).
+- Without a key, TOC-id matches (WowInterface) must never take over a stored link of another provider (`merge_rescan`).
+- Smoke-check the real install read-only: `RUNE_DIRS_ROOT=$(mktemp -d) timeout 8 target/debug/culm`.
+
 ## Code rules
 
 - Smallest change that fully solves the task. Reuse before writing; std before a crate; no speculative
