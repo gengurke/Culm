@@ -33,3 +33,7 @@ debug = false
 [profile.release]
 codegen-units = 16
 incremental = true
+
+# Fingerprinting/zip in debug builds is ~6x slower than release; keep the core snappy in dev.
+[profile.dev.package.addon-core]
+opt-level = 1
