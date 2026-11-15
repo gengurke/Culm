@@ -109,13 +109,13 @@ pub fn page(s: &State) -> El {
         text(format!("v{}", env!("CARGO_PKG_VERSION"))).key("settings/version").font(t().ty.mono).color(p.text_dim),
     ));
 
-    let mut themes = row().key("settings/theme").role("radiogroup").w_full().pt(14.0).gap(14.0).flex_wrap().focus_group();
+    let mut themes = row().key("settings/theme").role("radiogroup").w_full().pt(14.0).gap(12.0).flex_wrap().focus_group();
     for id in ThemeId::ALL {
         themes = themes.child(theme_card(s, *id));
     }
     let appearance = section("Appearance").child(themes);
 
-    let content = col().key("settings").w_full().max_w(880.0).px(theme::PAD).pb(40.0).child(appearance).child(curseforge).child(defaults).child(installs).child(about);
+    let content = col().key("settings").w_full().max_w(880.0).px(theme::PAD).pb(40.0).child(curseforge).child(defaults).child(appearance).child(installs).child(about);
     col()
         .w_full()
         .h_full()
@@ -130,10 +130,10 @@ fn theme_card(s: &State, id: ThemeId) -> El {
     let sk = &th.skin;
     let preview = row()
         .w_full()
-        .h(96.0)
+        .h(80.0)
         .clip_rounded(0.0)
         .skin(&sk.window)
-        .child(col().w(48.0).h_full().pt(10.0).items_center().skin(&sk.sidebar).child(icon(sk.emblem, 18.0).color(th.pal.accent)))
+        .child(col().w(36.0).h_full().pt(10.0).items_center().skin(&sk.sidebar).child(icon(sk.emblem, 18.0).color(th.pal.accent)))
         .child(
             col()
                 .grow(1.0)
@@ -147,8 +147,8 @@ fn theme_card(s: &State, id: ThemeId) -> El {
                         .px(10.0)
                         .gap(6.0)
                         .center_y()
-                        .child(el().w(52.0).h(18.0).skin(&sk.primary))
-                        .child(el().w(40.0).h(18.0).skin(&sk.secondary))
+                        .child(el().w(40.0).h(16.0).skin(&sk.primary))
+                        .child(el().w(30.0).h(16.0).skin(&sk.secondary))
                         .child(el().w(10.0).h(10.0).radius(5.0).fill(th.pal.success)),
                 ),
         );
@@ -158,7 +158,7 @@ fn theme_card(s: &State, id: ThemeId) -> El {
         .label(th.name)
         .checked(on)
         .focusable(true)
-        .w(260.0)
+        .w(186.0)
         .padding(8.0)
         .gap(10.0)
         .border(if on { 2.0 } else { 1.0 }, if on { p.accent } else { p.border })
