@@ -51,3 +51,18 @@ What the addon manager does, one short paragraph per feature. Ids are referenced
 ## F7 Settings
 - **F7.1 CurseForge API key** 📋 — Stored in prefs; without a key, CurseForge features are disabled with a hint.
 - **F7.2 Defaults** 📋 — Default channel for new addons.
+
+## UI shell 🚧
+Rune UI in `crates/app` (Moonlit look): sidebar nav with update badge and
+installation picker, starry header band, My Addons (filter, virtual list, detail panel), Get Addons
+(debounced search, popular list, install from URL, no-key hint), Maintenance (confirm + result per
+card, locked while the game runs), Settings (API key, default channel, installations, WowUp import),
+toasts and onboarding. It runs on `MockBackend` until the core is wired behind `backend::Backend`.
+Runtime tests in `crates/app/tests/ui_shell.rs` drive the UI side of these features:
+F1.2 `f1_2_no_installation_shows_onboarding` · F2.1 `f2_1_boot_scans_and_checks_updates`,
+`f2_1_filter_narrows_the_list` · F3.2 `f3_2_update_button_updates_addon`, `f3_2_failed_update_shows_error`,
+`f3_2_update_all_updates_everything_available` · F3.4 `f3_4_ignore_from_detail_panel` ·
+F4.1/F4.3 `f4_1_search_shows_results_and_f4_3_install_marks_installed` · F4.2 `f4_2_popular_list_loads` ·
+F5.1 `f5_1_remove_needs_confirm` · F5.3 `f5_3_open_website` · F6.1 `f6_1_clear_cache_confirm_flow`,
+`f6_1_maintenance_locked_while_game_runs` · F6.3 `f6_3_wtf_backup_lists_new_backup` ·
+F7.1 `f7_1_without_key_get_addons_points_to_settings` · plus `navigation_switches_screens`, `slash_focuses_the_filter`.
