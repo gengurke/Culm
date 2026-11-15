@@ -10,6 +10,7 @@ pub mod providers;
 pub mod scan;
 pub mod store;
 pub mod toc;
+pub mod updates;
 mod util;
 pub mod wow;
 pub mod wowup_import;

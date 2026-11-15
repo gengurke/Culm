@@ -81,3 +81,47 @@ fn f2_4_imports_wowup_records() {
         ]
     );
 }
+
+#[test]
+fn f2_4_overlapping_wowup_records_get_one_owner_per_folder() {
+    let w = fake_wow();
+    for f in ["Questie", "QuestieTrace"] {
+        w.add_folder(f, &format!("{f}.toc"), &simple_toc(f, "1"), &[]);
+    }
+    let wowup = w.tmp.path().join("WowUpCf");
+    let client = w.inst.root.display().to_string();
+    let prefs = serde_json::json!({
+        "wow_installations": [{"id": "fev", "location": format!("{client}/Wow.exe")}]
+    });
+    let rec = |id: &str, name: &str, folders: &[&str]| {
+        serde_json::json!({
+            "id": id, "name": name, "providerName": "Curse", "externalId": id,
+            "installedFolderList": folders, "installationId": "fev"
+        })
+    };
+    // WowUp lists QuestieTrace under Questie and as its own addon.
+    let addons = serde_json::json!({
+        "q": rec("q", "Questie", &["Questie", "QuestieTrace"]),
+        "t": rec("t", "QuestieTrace", &["QuestieTrace"]),
+    });
+    write(&wowup.join("preferences.json"), prefs.to_string());
+    write(&wowup.join("addons.json"), addons.to_string());
+
+    let imported = wowup_import::import_wowup(&wowup, &w.inst).unwrap();
+    let folders: Vec<(&str, Vec<String>)> = imported
+        .iter()
+        .map(|a| (a.name.as_str(), a.folders.clone()))
+        .collect();
+    assert_eq!(
+        folders,
+        [
+            ("Questie", vec!["Questie".to_string()]),
+            ("QuestieTrace", vec!["QuestieTrace".to_string()])
+        ]
+    );
+    // Stays that way through a rescan merge, and removing Questie won't delete QuestieTrace.
+    let fresh = scan::scan_installation(&w.inst, &[]).unwrap().addons;
+    let merged = store::merge_rescan(&imported, fresh);
+    assert_eq!(merged.len(), 2);
+    assert_eq!(merged[0].folders, ["Questie"]);
+}

@@ -43,7 +43,12 @@ pub(crate) fn new_id() -> String {
 
 /// Current time as RFC 3339 UTC, e.g. "2026-11-15T10:20:30Z".
 pub(crate) fn now_rfc3339() -> String {
-    let secs = SystemTime::now()
+    rfc3339(SystemTime::now())
+}
+
+/// `t` as RFC 3339 UTC (whole seconds).
+pub(crate) fn rfc3339(t: SystemTime) -> String {
+    let secs = t
         .duration_since(UNIX_EPOCH)
         .map(|d| d.as_secs() as i64)
         .unwrap_or(0);

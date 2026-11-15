@@ -64,7 +64,7 @@ pub fn import_wowup(wowup_dir: &Path, inst: &Installation) -> Result<Vec<Addon>>
         .filter_map(map_record)
         .filter(|a| !a.folders.is_empty() && a.folders.iter().all(|f| addons_dir.join(f).is_dir()))
         .collect();
-    out.sort_by_key(|a| a.name.to_lowercase());
+    crate::store::resolve_overlaps(&mut out);
     Ok(out)
 }
 

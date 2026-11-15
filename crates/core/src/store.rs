@@ -75,7 +75,7 @@ pub fn merge_rescan(previous: &[Addon], fresh: Vec<Addon>) -> Vec<Addon> {
         out.push(a);
     }
 
-    // Only fresh matches displace old links; overlaps among old records (imports have some) stay.
+    // Only fresh matches displace old links; overlaps among old records are resolved at the end.
     let kept: Vec<Addon> = previous
         .iter()
         .filter(|p| p.provider.is_some())
@@ -106,8 +106,27 @@ pub fn merge_rescan(previous: &[Addon], fresh: Vec<Addon>) -> Vec<Addon> {
         }
         out.push(a);
     }
-    out.sort_by_key(|a| a.name.to_lowercase());
+    resolve_overlaps(&mut out);
     out
+}
+
+/// Makes every folder belong to exactly one addon. A folder claimed by several records stays
+/// with the record that lists the fewest folders (its most specific owner: an import may list
+/// `QuestieTrace` under Questie *and* as its own addon) and is dropped from the bigger ones;
+/// ties keep the first record. Records left without folders are dropped. Sorted by name.
+pub fn resolve_overlaps(addons: &mut Vec<Addon>) {
+    addons.sort_by_key(|a| a.name.to_lowercase());
+    let owners: Vec<Vec<String>> = addons.iter().map(|a| a.folders.clone()).collect();
+    for (i, a) in addons.iter_mut().enumerate() {
+        a.folders.retain(|f| {
+            !owners.iter().enumerate().any(|(j, other)| {
+                j != i
+                    && other.contains(f)
+                    && (other.len() < owners[i].len() || (other.len() == owners[i].len() && j < i))
+            })
+        });
+    }
+    addons.retain(|a| !a.folders.is_empty());
 }
 
 fn carry_user_choices(prev: &Addon, a: &mut Addon) {

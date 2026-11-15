@@ -88,8 +88,24 @@ impl Provider for GitHub {
         Ok(vec![])
     }
 
+    /// One request pair per repo: a failing repo (renamed, deleted, rate limit) is skipped so
+    /// the others still get checked; only a batch where every repo fails is an error.
     fn get_many(&self, _flavor: Flavor, external_ids: &[String]) -> Result<Vec<RemoteAddon>> {
-        external_ids.iter().map(|id| self.fetch(id)).collect()
+        let mut out = Vec::new();
+        let mut errors = Vec::new();
+        for id in external_ids {
+            match self.fetch(id) {
+                Ok(a) => out.push(a),
+                Err(e) => errors.push(format!("{id}: {e:#}")),
+            }
+        }
+        if out.is_empty() && !errors.is_empty() {
+            bail!("{}", errors.join("; "));
+        }
+        for e in &errors {
+            eprintln!("GitHub update check skipped {e}");
+        }
+        Ok(out)
     }
 
     fn from_url(&self, _flavor: Flavor, url: &str) -> Result<Option<RemoteAddon>> {

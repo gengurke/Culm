@@ -21,6 +21,21 @@ pub struct WtfBackup {
     pub created: Option<SystemTime>,
 }
 
+impl WtfBackup {
+    /// File name, e.g. `WTF-20261115-102030.zip`.
+    pub fn name(&self) -> String {
+        self.path
+            .file_name()
+            .map(|n| n.to_string_lossy().into_owned())
+            .unwrap_or_default()
+    }
+
+    /// Creation (modification) time as RFC 3339 UTC.
+    pub fn created_rfc3339(&self) -> Option<String> {
+        self.created.map(crate::util::rfc3339)
+    }
+}
+
 fn refuse_if_running(inst: &Installation) -> Result<()> {
     if is_game_running(inst) {
         bail!("World of Warcraft is running - close the game first");
