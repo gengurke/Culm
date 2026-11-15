@@ -6,12 +6,16 @@ edition.workspace = true
 license.workspace = true
 
 # The product name is not final: change it here and in src/brand.rs only.
+[lib]
+path = "src/lib.rs"
+
 [[bin]]
 name = "culm"
 path = "src/main.rs"
 
 [dependencies]
 addon-core = { path = "../core" }
-rune.workspace = true
+# native-file-dialog: folder picker for "Add installation" (XDG portal on Linux).
+rune = { workspace = true, features = ["native-file-dialog"] }
 rune-kit.workspace = true
 anyhow.workspace = true
