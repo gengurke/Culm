@@ -1,7 +1,10 @@
 //! Canned World of Warcraft: Forever data behind [`Backend`], for snapshots, tests and running the
 //! UI before the core is wired. Names and versions come from a real Forever install.
 
-use crate::backend::{Backend, Backup, Maintenance, Settings, Warned};
+use crate::backend::{
+    Backend, Backup, Found, Maintenance, Settings, Warned, curseforge_only, sort_entries,
+};
+use addon_core::discover::group;
 use addon_core::{
     Addon, Category, Channel, Flavor, IgnoreReason, Installation, RemoteAddon, RemoteFile,
     SearchFilter, Sort,
@@ -645,6 +648,75 @@ const REMOTE_ONLY: &[Row] = &[
     ),
 ];
 
+/// WowUp Hub entries: id, repo name, owner, `owner/repo`, latest tag, downloads, summary. Questie
+/// Details and Deadly Boss Mods are on CurseForge too (same repo), the others only on the Hub.
+const HUB: &[(u64, &str, &str, &str, &str, u64, &str)] = &[
+    (
+        1201,
+        "Questie",
+        "Questie",
+        "Questie/Questie",
+        "v12.9.2",
+        1_204_551,
+        "The ultimate quest helper, built from the GitHub releases.",
+    ),
+    (
+        1388,
+        "Details-Damage-Meter",
+        "Tercioo",
+        "Tercioo/Details-Damage-Meter",
+        "20261113.15433",
+        640_118,
+        "Damage, healing and threat meter with plugins.",
+    ),
+    (
+        1544,
+        "DeadlyBossMods",
+        "DeadlyBossMods",
+        "DeadlyBossMods/DeadlyBossMods",
+        "11.0.43",
+        2_118_004,
+        "Boss timers and warnings, packaged from the GitHub releases.",
+    ),
+    (
+        2210,
+        "pfQuest",
+        "shagu",
+        "shagu/pfQuest",
+        "7.0.1",
+        902_114,
+        "Quest helper with a database of every NPC, object and item.",
+    ),
+    (
+        2214,
+        "ShaguTweaks",
+        "shagu",
+        "shagu/ShaguTweaks",
+        "1.4.0",
+        351_090,
+        "Small quality-of-life tweaks for the default interface.",
+    ),
+    (
+        2302,
+        "QuestTint",
+        "moonlit",
+        "moonlit/QuestTint",
+        "0.9.3",
+        12_408,
+        "Colors quest titles in the log by difficulty.",
+    ),
+];
+
+/// The GitHub repo a catalog addon names as its source (CurseForge `links.sourceUrl`).
+fn source_repo(name: &str) -> Option<&'static str> {
+    match name {
+        "Questie" => Some("Questie/Questie"),
+        "Details! Damage Meter" => Some("Tercioo/Details-Damage-Meter"),
+        "Deadly Boss Mods" => Some("DeadlyBossMods/DeadlyBossMods"),
+        _ => None,
+    }
+}
+
 /// A slice of CurseForge's WoW category tree (ids as on CurseForge).
 const CATEGORIES: &[(u32, &str, &str, Option<u32>)] = &[
     (1018, "Action Bars", "action-bars", None),
@@ -832,7 +904,7 @@ fn remote(row: &Row) -> RemoteAddon {
         thumbnail_url: None,
         download_count: downloads,
         files: vec![f],
-        source_url: None,
+        source_url: source_repo(name).map(|r| format!("https://github.com/{r}")),
         categories: categories_of(name),
         updated_at: Some(format!("2026-11-{:02}T10:00:00Z", 1 + downloads % 14)),
     }
@@ -927,6 +999,66 @@ pub fn catalog() -> Vec<RemoteAddon> {
         .filter(|r| r.6 > 0)
         .map(remote)
         .collect()
+}
+
+/// The WowUp Hub's entries.
+pub fn hub_catalog() -> Vec<RemoteAddon> {
+    HUB.iter()
+        .map(|&(id, name, owner, repo, tag, downloads, summary)| {
+            let mut f = file(&format!("hub-{id}-{tag}"), tag, Channel::Stable);
+            f.folders = vec![name.replace('-', "_")];
+            RemoteAddon {
+                provider: "WowUpHub".into(),
+                external_id: id.to_string(),
+                name: name.into(),
+                author: owner.into(),
+                summary: summary.into(),
+                url: Some(format!("https://wowup.io/addons/{id}")),
+                thumbnail_url: None,
+                download_count: downloads,
+                files: vec![f],
+                source_url: Some(format!("https://github.com/{repo}")),
+                categories: vec![],
+                updated_at: Some(format!("2026-11-{:02}T08:00:00Z", 1 + downloads % 14)),
+            }
+        })
+        .collect()
+}
+
+/// What the real backend finds for `filter`: CurseForge (with a key) and the Hub, grouped per
+/// addon; a category or browsing without text is CurseForge's alone.
+pub fn found(filter: &SearchFilter, curseforge: bool) -> Found {
+    let cf = if curseforge { search(filter) } else { vec![] };
+    if curseforge_only(filter) {
+        return Found {
+            entries: group(vec![cf]),
+            failed: vec![],
+        };
+    }
+    let q = filter.text.trim().to_lowercase();
+    let hub = hub_catalog()
+        .into_iter()
+        .filter(|r| r.name.to_lowercase().contains(&q) || r.summary.to_lowercase().contains(&q))
+        .collect();
+    let mut entries = group(vec![cf, hub]);
+    sort_entries(&mut entries, filter.sort);
+    Found {
+        entries,
+        failed: vec![],
+    }
+}
+
+/// The landing list: CurseForge's most downloaded (with a key) and the Hub's, grouped.
+pub fn featured(curseforge: bool) -> Found {
+    let mut cf = if curseforge { catalog() } else { vec![] };
+    cf.sort_by_key(|r| std::cmp::Reverse(r.download_count));
+    cf.truncate(12);
+    let mut hub = hub_catalog();
+    hub.sort_by_key(|r| std::cmp::Reverse(r.download_count));
+    Found {
+        entries: group(vec![cf, hub]),
+        failed: vec![],
+    }
 }
 
 /// The catalog filtered and ordered like CurseForge would (a parent category includes its children).
@@ -1070,17 +1202,14 @@ impl Backend for MockBackend {
         Ok(())
     }
 
-    fn search(&self, filter: &SearchFilter) -> Result<Vec<RemoteAddon>> {
+    fn search(&self, filter: &SearchFilter) -> Result<Found> {
         self.wait();
-        Ok(search(filter))
+        Ok(found(filter, self.load_settings().curseforge_key.is_some()))
     }
 
-    fn featured(&self) -> Result<Vec<RemoteAddon>> {
+    fn featured(&self) -> Result<Found> {
         self.wait();
-        let mut all = catalog();
-        all.sort_by_key(|r| std::cmp::Reverse(r.download_count));
-        all.truncate(18);
-        Ok(all)
+        Ok(featured(self.load_settings().curseforge_key.is_some()))
     }
 
     fn categories(&self) -> Result<Vec<Category>> {
@@ -1102,7 +1231,8 @@ impl Backend for MockBackend {
             .unwrap_or_default();
         catalog()
             .into_iter()
-            .find(|r| r.external_id == slug(tail))
+            .chain(hub_catalog())
+            .find(|r| r.external_id == slug(tail) || r.external_id == tail)
             .ok_or_else(|| anyhow!("Not a known CurseForge or GitHub addon URL"))
     }
 

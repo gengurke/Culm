@@ -173,40 +173,54 @@ const SCENES: &[Scene] = &[
     ("get-addons", |s| {
         loaded(s);
         s.screen = Screen::GetAddons;
-        let mut featured = mock::catalog();
-        featured.sort_by_key(|r| std::cmp::Reverse(r.download_count));
-        featured.truncate(12);
         s.installing
-            .insert("deadlybossmods".into(), Op::Downloading(0.6));
-        s.featured = Fetch::Ready(featured);
+            .insert("CurseForge:deadlybossmods".into(), Op::Downloading(0.6));
+        s.featured = Fetch::Ready(mock::featured(true));
         s.categories = Fetch::Ready(mock::categories());
     }),
     ("get-addons-search", |s| {
         loaded(s);
         s.screen = Screen::GetAddons;
-        s.query.replace_text("bag");
-        s.results = Fetch::Ready(
-            mock::catalog()
-                .into_iter()
-                .filter(|r| r.name.to_lowercase().contains("bag"))
-                .collect(),
-        );
+        s.categories = Fetch::Ready(mock::categories());
+        s.query.replace_text("quest");
+        s.results = Fetch::Ready(mock::found(&s.search_filter(), true));
     }),
+    // A result on CurseForge and WowUp Hub, the Hub picked to install from.
     ("get-addons-detail", |s| {
         loaded(s);
         s.screen = Screen::GetAddons;
         s.categories = Fetch::Ready(mock::categories());
-        s.query.replace_text("bag");
-        let results: Vec<_> = mock::catalog()
-            .into_iter()
-            .filter(|r| r.name.to_lowercase().contains("bag"))
-            .collect();
-        let pick = results.iter().find(|r| r.name == "Bagnon").cloned();
-        s.results = Fetch::Ready(results);
-        s.detail = pick.map(|addon| state::Detail {
-            description: Fetch::Ready(Some(mock::description(&addon))),
-            addon,
+        s.query.replace_text("boss");
+        let found = mock::found(&s.search_filter(), true);
+        let pick = found.entries.iter().find(|e| e.sources.len() > 1).cloned();
+        s.results = Fetch::Ready(found);
+        s.detail = pick.map(|entry| {
+            let description = Fetch::Ready(Some(mock::description(&entry.sources[1])));
+            state::Detail {
+                entry,
+                source: 1,
+                description,
+            }
         });
+    }),
+    // WowUp Hub is down: CurseForge's results and a quiet note.
+    ("get-addons-partial", |s| {
+        loaded(s);
+        s.screen = Screen::GetAddons;
+        s.categories = Fetch::Ready(mock::categories());
+        s.query.replace_text("quest");
+        let mut found = mock::found(&s.search_filter(), true);
+        found
+            .entries
+            .retain(|e| e.preferred().provider == "CurseForge");
+        for e in &mut found.entries {
+            e.sources.truncate(1);
+        }
+        found.failed = vec![(
+            "WowUpHub".into(),
+            "hub.wowup.io answered 503 Service Unavailable".into(),
+        )];
+        s.results = Fetch::Ready(found);
     }),
     ("get-addons-category", |s| {
         loaded(s);
@@ -214,14 +228,14 @@ const SCENES: &[Scene] = &[
         s.categories = Fetch::Ready(mock::categories());
         s.category = Some(1028); // Warrior
         s.sort = addon_core::Sort::LastUpdated;
-        s.results = Fetch::Ready(mock::search(&s.search_filter()));
+        s.results = Fetch::Ready(mock::found(&s.search_filter(), true));
     }),
     ("get-addons-menu", |s| {
         loaded(s);
         s.screen = Screen::GetAddons;
         s.categories = Fetch::Ready(mock::categories());
         s.category = Some(1009); // Bags & Inventory
-        s.results = Fetch::Ready(mock::search(&s.search_filter()));
+        s.results = Fetch::Ready(mock::found(&s.search_filter(), true));
         s.menu = Some(state::Menu::Category);
     }),
     ("get-addons-link", |s| {
@@ -235,11 +249,13 @@ const SCENES: &[Scene] = &[
                 .unwrap_or_else(|| mock::catalog().remove(0)),
         );
     }),
+    // No key: WowUp Hub answers alone.
     ("get-addons-no-key", |s| {
         loaded(s);
         s.screen = Screen::GetAddons;
         s.settings.curseforge_key = None;
         s.api_key.replace_text("");
+        s.featured = Fetch::Ready(mock::featured(false));
     }),
     ("maintenance", |s| {
         loaded(s);

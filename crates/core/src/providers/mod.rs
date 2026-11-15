@@ -46,6 +46,9 @@ pub fn all(config: &ProviderConfig) -> Vec<Box<dyn Provider>> {
             api_key: config.curseforge_api_key.clone(),
             base_url: config.curseforge_base_url.clone(),
         }),
+        Box::new(Hub {
+            base_url: config.hub_base_url.clone(),
+        }),
         // shortcut: WowInterface is left out because its files carry no game-version info, so
         // for Forever it could offer a retail build. Re-add once it can be filtered per flavor.
         Box::new(GitHub {
@@ -55,12 +58,15 @@ pub fn all(config: &ProviderConfig) -> Vec<Box<dyn Provider>> {
     ]
 }
 
-/// The provider an install link names (a CurseForge addon page, a GitHub repo URL or bare
-/// `owner/repo`), or None for anything else (search text).
+/// The provider an install link names (a CurseForge addon page, a WowUp Hub page
+/// `wowup.io/addons/<id>`, a GitHub repo URL or bare `owner/repo`), or None for anything else
+/// (search text).
 pub fn link_source(input: &str) -> Option<&'static str> {
     let input = input.trim();
     if curseforge::parse_url(input).is_some() {
         Some(curseforge::NAME)
+    } else if hub::parse_url(input).is_some() {
+        Some(hub::NAME)
     } else if github::parse_url(input).is_some() {
         Some(github::NAME)
     } else {

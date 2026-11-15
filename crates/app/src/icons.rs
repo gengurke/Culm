@@ -51,6 +51,11 @@ line_icon!(
     "download",
     r#"<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/>"#
 );
+line_icon!(
+    LAYERS,
+    "layers",
+    r#"<path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/>"#
+);
 line_icon!(CHECK, "check", r#"<path d="M20 6 9 17l-5-5"/>"#);
 line_icon!(
     FOLDER,

@@ -1,9 +1,10 @@
 //! The window's one `State`, its explicit phases, every user intent ([`dispatch`]) and every
 //! worker result ([`State::apply`]). Views only read this; handlers call `dispatch`.
 
-use crate::backend::{Backend, Backup, Maintenance, Settings};
+use crate::backend::{Backend, Backup, Found, Maintenance, Settings};
 use crate::theme::ThemeId;
 use crate::worker::{self, Msg};
+use addon_core::discover::{Entry, source_ids};
 use addon_core::providers::link_source;
 use addon_core::{
     Addon, Category, Channel, IgnoreReason, Installation, RemoteAddon, SearchFilter, Sort,
@@ -136,7 +137,7 @@ pub enum Fetch<T> {
 }
 
 /// An answer from the search worker: the filter it answers and the hits.
-pub type SearchAnswer = (SearchFilter, Result<Vec<RemoteAddon>, String>);
+pub type SearchAnswer = (SearchFilter, Result<Found, String>);
 /// An answer from the link worker: the link it answers and the addon it names.
 pub type LinkAnswer = (String, Result<RemoteAddon, String>);
 
@@ -156,18 +157,43 @@ pub enum Menu {
     Sort,
 }
 
-/// The remote addon shown in the Get Addons detail panel (F4.5).
-// shortcut: one source per addon; when several sources list the same addon this becomes a list.
+/// The result shown in the Get Addons detail panel (F4.5): every source that has it, and the one
+/// picked to install from (F4.8).
 #[derive(Debug, Clone, PartialEq)]
 pub struct Detail {
-    pub addon: RemoteAddon,
-    /// The provider's long description, fetched when the panel opens (Ready(None): it has none).
+    pub entry: Entry,
+    /// Index into `entry.sources`; starts at the preferred one (0).
+    pub source: usize,
+    /// The picked source's long description, fetched when it is picked (Ready(None): it has none).
     pub description: Fetch<Option<String>>,
+}
+
+impl Detail {
+    /// The picked source.
+    pub fn addon(&self) -> &RemoteAddon {
+        self.entry
+            .sources
+            .get(self.source)
+            .unwrap_or_else(|| self.entry.preferred())
+    }
+}
+
+/// A single result (a resolved link) as an entry of its own.
+pub fn single(addon: RemoteAddon) -> Entry {
+    Entry {
+        ids: source_ids(&addon),
+        sources: vec![addon],
+    }
 }
 
 /// `(provider, external_id)`: a remote addon's identity across lists.
 pub fn remote_key(r: &RemoteAddon) -> (String, String) {
     (r.provider.clone(), r.external_id.clone())
+}
+
+/// Key of a result being installed (`installing`): ids are only unique per provider.
+pub fn install_key(r: &RemoteAddon) -> String {
+    format!("{}:{}", r.provider, r.external_id)
 }
 
 /// Everything the user can ask for. Views call [`dispatch`] with these; the integration step
@@ -198,10 +224,12 @@ pub enum Intent {
     SetCategory(Option<u32>),
     SetSort(Sort),
     /// Opens (or, for the open one, closes) the detail panel of a result.
-    ShowRemote(RemoteAddon),
+    ShowRemote(Entry),
+    /// Picks the detail panel's source to install from (index into its sources).
+    PickSource(usize),
     CloseRemote,
     OpenUrl(String),
-    Install(RemoteAddon),
+    Install(Box<RemoteAddon>),
     Maintain(MaintCard),
     ConfirmMaintain(MaintCard),
     SaveApiKey,
@@ -227,8 +255,8 @@ pub struct State {
     // Get Addons
     /// The one field: search text or an install link (F4.1, F4.4).
     pub query: TextEdit,
-    pub results: Fetch<Vec<RemoteAddon>>,
-    pub featured: Fetch<Vec<RemoteAddon>>,
+    pub results: Fetch<Found>,
+    pub featured: Fetch<Found>,
     /// The addon the link in `query` names.
     pub link: Fetch<RemoteAddon>,
     pub categories: Fetch<Vec<Category>>,
@@ -236,7 +264,7 @@ pub struct State {
     pub sort: Sort,
     pub menu: Option<Menu>,
     pub detail: Option<Detail>,
-    /// Install progress of search results, by external id.
+    /// Install progress of search results, by [`install_key`].
     pub installing: HashMap<String, Op>,
     pub search: Latest<SearchAnswer>,
     pub resolve: Latest<LinkAnswer>,
@@ -363,11 +391,31 @@ impl State {
         self.installed(remote).is_some()
     }
 
-    /// The installed addon a remote one is.
+    /// The installed addon a remote one is: same provider and id, else the one that already has
+    /// all of the folders its latest file installs (the same addon from another source, which an
+    /// install would replace).
     pub fn installed(&self, remote: &RemoteAddon) -> Option<&AddonUi> {
-        self.addons
-            .iter()
-            .find(|a| a.addon.external_id.as_deref() == Some(remote.external_id.as_str()))
+        let same = self.addons.iter().find(|a| {
+            a.addon.provider.as_deref() == Some(remote.provider.as_str())
+                && a.addon.external_id.as_deref() == Some(remote.external_id.as_str())
+        });
+        let folders = remote
+            .files
+            .first()
+            .map_or(&[][..], |f| f.folders.as_slice());
+        same.or_else(|| {
+            (!folders.is_empty()).then_some(())?;
+            self.addons.iter().find(|a| {
+                folders
+                    .iter()
+                    .all(|f| a.addon.folders.iter().any(|g| g.eq_ignore_ascii_case(f)))
+            })
+        })
+    }
+
+    /// The installed addon a result is, from whichever of its sources.
+    pub fn installed_entry(&self, entry: &Entry) -> Option<&AddonUi> {
+        entry.sources.iter().find_map(|r| self.installed(r))
     }
 
     /// What the Get Addons field holds.
@@ -380,15 +428,17 @@ impl State {
         }
     }
 
-    /// The search the field and filters ask for (a link searches nothing).
+    /// The search the field and filters ask for (a link searches nothing). The filters are
+    /// CurseForge's: without a key only the text counts.
     pub fn search_filter(&self) -> SearchFilter {
+        let ready = self.curseforge_ready();
         SearchFilter {
             text: match self.input() {
                 Input::Search(t) => t.to_string(),
                 _ => String::new(),
             },
-            category: self.category,
-            sort: self.sort,
+            category: self.category.filter(|_| ready),
+            sort: if ready { self.sort } else { Sort::default() },
         }
     }
 
@@ -464,11 +514,9 @@ impl State {
             | Msg::Imported { ref inst, .. }
                 if !self.is_current(inst) => {}
             Msg::Installed {
-                ref inst,
-                ref external_id,
-                ..
+                ref inst, ref key, ..
             } if !self.is_current(inst) => {
-                self.installing.remove(external_id);
+                self.installing.remove(key);
             }
             Msg::Booted {
                 settings,
@@ -565,12 +613,8 @@ impl State {
                     self.toast(Tone::Danger, format!("Could not update {name}"), e);
                 }
             },
-            Msg::Installed {
-                external_id,
-                result,
-                ..
-            } => {
-                self.installing.remove(&external_id);
+            Msg::Installed { key, result, .. } => {
+                self.installing.remove(&key);
                 match result {
                     Ok(addon) => {
                         self.toast(
@@ -604,13 +648,9 @@ impl State {
             },
             Msg::Featured(r) => {
                 self.featured = match r {
-                    Ok(list) => {
-                        self.load_thumbs(
-                            list.iter()
-                                .filter_map(|r| r.thumbnail_url.clone())
-                                .collect(),
-                        );
-                        Fetch::Ready(list)
+                    Ok(found) => {
+                        self.load_thumbs(thumbs(&found));
+                        Fetch::Ready(found)
                     }
                     Err(e) => Fetch::Failed(e),
                 }
@@ -625,7 +665,7 @@ impl State {
                 if let Some(d) = self
                     .detail
                     .as_mut()
-                    .filter(|d| remote_key(&d.addon) == addon)
+                    .filter(|d| remote_key(d.addon()) == addon)
                 {
                     d.description = match result {
                         Ok(text) => Fetch::Ready(text),
@@ -771,12 +811,9 @@ impl State {
         });
     }
 
-    /// The popular list and the category list, once per key.
+    /// The popular list (every source) and, with a key, the category list; once per key.
     fn load_featured(&mut self) {
-        if !self.curseforge_ready() {
-            return;
-        }
-        if !matches!(self.categories, Fetch::Loading | Fetch::Ready(_)) {
+        if self.curseforge_ready() && !matches!(self.categories, Fetch::Loading | Fetch::Ready(_)) {
             self.categories = Fetch::Loading;
             worker::spawn(self, "categories", |b, post| {
                 post.send(Msg::Categories(b.categories().map_err(err)))
@@ -812,7 +849,7 @@ impl State {
             }
         }
         let filter = self.search_filter();
-        if filter.is_default() || !self.curseforge_ready() {
+        if filter.is_default() {
             self.search.cancel();
             self.results = Fetch::Idle;
             self.load_featured();
@@ -826,20 +863,42 @@ impl State {
         });
     }
 
-    fn show_remote(&mut self, addon: RemoteAddon) {
-        let key = remote_key(&addon);
+    fn show_remote(&mut self, entry: Entry) {
         if self
             .detail
             .as_ref()
-            .is_some_and(|d| remote_key(&d.addon) == key)
+            .is_some_and(|d| d.entry.ids == entry.ids)
         {
             self.detail = None;
             return;
         }
+        self.load_thumbs(
+            entry
+                .sources
+                .iter()
+                .filter_map(|r| r.thumbnail_url.clone())
+                .collect(),
+        );
         self.detail = Some(Detail {
-            addon: addon.clone(),
-            description: Fetch::Loading,
+            entry,
+            source: 0,
+            description: Fetch::Idle,
         });
+        self.pick_source(0);
+    }
+
+    /// Picks the detail panel's source and fetches its description.
+    fn pick_source(&mut self, index: usize) {
+        let Some(d) = self.detail.as_mut() else {
+            return;
+        };
+        if index >= d.entry.sources.len() || (index == d.source && d.description != Fetch::Idle) {
+            return;
+        }
+        d.source = index;
+        d.description = Fetch::Loading;
+        let addon = d.addon().clone();
+        let key = remote_key(&addon);
         worker::spawn(self, "description", move |b, post| {
             post.send(Msg::Description {
                 result: b.description(&addon).map_err(err),
@@ -918,18 +977,23 @@ impl State {
             return false;
         }
         self.results = match result {
-            Ok(list) => {
-                self.load_thumbs(
-                    list.iter()
-                        .filter_map(|r| r.thumbnail_url.clone())
-                        .collect(),
-                );
-                Fetch::Ready(list)
+            Ok(found) => {
+                self.load_thumbs(thumbs(&found));
+                Fetch::Ready(found)
             }
             Err(e) => Fetch::Failed(e),
         };
         true
     }
+}
+
+/// The thumbnails a result list shows (the preferred source's).
+fn thumbs(found: &Found) -> Vec<String> {
+    found
+        .entries
+        .iter()
+        .filter_map(|e| e.preferred().thumbnail_url.clone())
+        .collect()
 }
 
 pub(crate) fn err(e: anyhow::Error) -> String {
@@ -944,6 +1008,8 @@ pub fn dispatch(s: &mut State, intent: Intent, tx: &mut Tx) {
             s.inst_menu = false;
             s.menu = None;
             match screen {
+                // Results from before a key change are gone: search again.
+                Screen::GetAddons if s.results == Fetch::Idle => s.start_search(),
                 Screen::GetAddons => s.load_featured(),
                 Screen::Maintenance => s.refresh_maintenance(),
                 _ => {}
@@ -1077,7 +1143,9 @@ pub fn dispatch(s: &mut State, intent: Intent, tx: &mut Tx) {
         }
         Intent::Search => s.start_search(),
         Intent::Submit => match (&s.link, s.input()) {
-            (Fetch::Ready(r), Input::Link(..)) => dispatch(s, Intent::Install(r.clone()), tx),
+            (Fetch::Ready(r), Input::Link(..)) => {
+                dispatch(s, Intent::Install(Box::new(r.clone())), tx)
+            }
             _ => s.start_search(),
         },
         Intent::SetCategory(category) => {
@@ -1090,10 +1158,11 @@ pub fn dispatch(s: &mut State, intent: Intent, tx: &mut Tx) {
             s.sort = sort;
             s.start_search();
         }
-        Intent::ShowRemote(remote) => {
+        Intent::ShowRemote(entry) => {
             s.menu = None;
-            s.show_remote(remote);
+            s.show_remote(entry);
         }
+        Intent::PickSource(index) => s.pick_source(index),
         Intent::CloseRemote => s.detail = None,
         Intent::OpenUrl(url) => {
             if url.starts_with("https://") || url.starts_with("http://") {
@@ -1104,23 +1173,22 @@ pub fn dispatch(s: &mut State, intent: Intent, tx: &mut Tx) {
             let Some(inst) = s.installation().cloned() else {
                 return;
             };
-            if s.installing.contains_key(&remote.external_id) || s.is_installed(&remote) {
+            let key = install_key(&remote);
+            if s.installing.contains_key(&key) || s.is_installed(&remote) {
                 return;
             }
-            s.installing
-                .insert(remote.external_id.clone(), Op::Downloading(0.0));
+            s.installing.insert(key.clone(), Op::Downloading(0.0));
             let channel = s.settings.default_channel;
             worker::spawn(s, "install", move |b, post| {
-                let external_id = remote.external_id.clone();
                 let result = b.install(&inst, &remote, channel, &|done| {
                     post.send(Msg::Progress {
-                        id: external_id.clone(),
+                        id: key.clone(),
                         done,
                     })
                 });
                 post.send(Msg::Installed {
                     inst: inst.id,
-                    external_id,
+                    key,
                     result: result.map_err(err),
                 });
             });
@@ -1163,6 +1231,7 @@ pub fn dispatch(s: &mut State, intent: Intent, tx: &mut Tx) {
             s.settings.curseforge_key = (!key.is_empty()).then_some(key);
             s.save_settings();
             s.featured = Fetch::Idle;
+            s.results = Fetch::Idle;
             s.categories = Fetch::Idle;
             if s.curseforge_ready() {
                 s.toast(
