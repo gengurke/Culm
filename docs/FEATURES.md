@@ -79,12 +79,16 @@ What the addon manager does, one short paragraph per feature. Ids are referenced
   `f4_4_github_plain_zip_fallback_skips_other_flavors`, e2e `f4_4_install_from_github_url_without_a_key`).
 - **F4.5 Detail** ✅ — Clicking a result opens a side panel (like My Addons' detail): thumbnail, name, author, summary,
   downloads, last updated, latest Forever file (version, date, channel, game version), categories, source, website link and
-  Install / progress / Installed ("Show in My Addons") / Update. CurseForge's long description (`GET /v1/mods/{id}/description`,
-  HTML) is fetched on a worker when it opens and shown as plain text (`html::to_text`: tags, scripts and images dropped,
-  paragraphs and list items kept, capped). Esc, the close button or clicking the result again closes it.
-  (`f4_5_description_is_plain_text`, e2e `f4_5_clicking_a_result_opens_its_detail_and_esc_closes_it`)
+  Install / progress / Installed ("Show in My Addons") / Update. The long description is fetched on a worker when it opens
+  and shown as plain text, capped at 8000 characters: CurseForge's HTML (`GET /v1/mods/{id}/description`, `html::to_text`:
+  tags, scripts and images dropped, paragraphs and list items kept) or a GitHub repo's README (`GET /repos/{repo}/readme`
+  raw, `html::markdown_to_text`: badges, images and HTML dropped, link text kept). Esc, the close button or clicking the
+  result again closes it. (`f4_5_description_is_plain_text`, `f4_5_github_readme_is_plain_text`,
+  e2e `f4_5_clicking_a_result_opens_its_detail_and_esc_closes_it`, `f4_4_install_from_github_url_without_a_key`)
 - **F4.6 Filters** ✅ — A category dropdown (CurseForge's WoW addon tree from `GET /v1/categories?gameId=1`, fetched once
-  per run and cached 7 days in the cache dir; subcategories indented, class categories with our own line glyphs) and a
+  per run and cached 7 days in the cache dir; subcategories indented, the Class subtree left out), a row of class chips
+  (only Forever's nine classes, picked by CurseForge category id, each with our own line glyph; one at a time, a second
+  click clears it, a class and a dropdown category replace each other since `categoryId` takes one) and a
   sort dropdown (Popularity, Last updated, Name, Total downloads) apply to search and browsing: `categoryId`, `sortField`
   (2/3/4/6) and `sortOrder` on `/v1/mods/search`; with no text, category or order the popular list shows. Esc or a click
   outside closes a dropdown. (`f4_6_categories_are_the_addon_tree`, `f4_6_search_sends_category_and_sort`,
@@ -115,7 +119,8 @@ What the addon manager does, one short paragraph per feature. Ids are referenced
 
 ## F6 Maintenance
 - **F6.1 Clear cache** ✅ — Deletes the client's `Cache` folder (or just `Cache/WDB`). All F6 tools refuse while a `Wow.exe` of this
-  client runs, act only on a `_forever_` client folder and never follow a `Cache` link; the UI asks first.
+  client runs (its working directory or an open file is inside the client folder; a `_forever_` command line counts only
+  when `/proc` can't tell, so a game of another client never locks this one), act only on a `_forever_` client folder and never follow a `Cache` link; the UI asks first.
   (`f6_1_clear_cache_removes_cache_dir`, `f6_1_refuses_while_game_running`, `f6_1_only_touches_a_forever_client_folder`,
   e2e `f6_1_clear_cache_asks_then_deletes_the_cache`, `f6_1_maintenance_locked_while_game_runs`)
 - **F6.2 Clean backups** ✅ — Deletes `WTF/**/*.lua.bak` and `WTF/*.old` leftovers. (`f6_2_clean_backup_files`)
