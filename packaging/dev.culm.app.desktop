@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Culm
+Comment=Addon manager for World of Warcraft: Forever
+# Replace with the absolute path of your build, e.g. /home/you/Projects/culm/target/release/culm
+Exec=/path/to/culm/target/release/culm
+Icon=applications-games
+Terminal=false
+Categories=Game;Utility;
+StartupWMClass=dev.culm.app
