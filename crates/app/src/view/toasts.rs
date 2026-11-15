@@ -1,7 +1,8 @@
 //! Toasts: the stack of notices at the bottom right.
 //!
-//! shortcut: `ADDONS_TOAST_STYLE=0..5` picks one of several looks while the user compares them
-//! (`--scene toasts@<theme>`); delete the losers and the variable once one is chosen.
+//! The look is 2, the framed alert. The other looks stay on purpose as ready alternatives (the user
+//! liked them all): `ADDONS_TOAST_STYLE=0..5` picks one (0 rune-kit's toast, 1 badge, 2 framed alert,
+//! 3 pill, 4 tinted, 5 seal); `--scene toasts@<theme>` shows every tone at once.
 
 use crate::icons;
 use crate::state::{State, Tone};
@@ -16,7 +17,7 @@ static STYLE: LazyLock<u8> = LazyLock::new(|| {
     std::env::var("ADDONS_TOAST_STYLE")
         .ok()
         .and_then(|v| v.parse().ok())
-        .unwrap_or(0)
+        .unwrap_or(2)
 });
 
 const W: f32 = 340.0;

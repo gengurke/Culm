@@ -1,8 +1,12 @@
 # AGENTS.md
 
-Addon manager for **World of Warcraft: Forever**, written in Rust on the
-[Rune](https://github.com/anomalyco/rune) GUI framework. Product name is not final: it lives only in
-`crates/app/src/brand.rs` and the `[[bin]]` name in `crates/app/Cargo.toml`.
+**Culm**, an addon manager for **World of Warcraft: Forever**, written in Rust on the
+[Rune](https://github.com/anomalyco/rune) GUI framework. The name lives only in `crates/app/src/brand.rs` and the
+`[[bin]]` name in `crates/app/Cargo.toml`.
+
+Culm is cross-platform: Linux, macOS and Windows, and it must look and behave the same on all three. So no
+platform-only APIs without a path for the others (`std::path`, `rune::dirs` for folders, no hard-coded `/` or `~`),
+and nothing visual taken from the system: every font is bundled (see Themes).
 
 ## Layout
 
@@ -25,6 +29,7 @@ target/debug/culm --snap out.png [--size 1100x720] [--scene settings@hearthwood]
 target/debug/culm --tree tree.json                  # element tree (keys, text, rects)
 ```
 
+Development happens on Linux; keep the build free of Linux-only steps for macOS and Windows.
 Build needs `libxkbcommon-devel wayland-devel` (Fedora). Without root, a gitignored
 `.cargo/config.toml` sets `LIBRARY_PATH` to a shim dir containing `libxkbcommon.so -> /usr/lib64/libxkbcommon.so.0`.
 
@@ -76,8 +81,9 @@ Build needs `libxkbcommon-devel wayland-devel` (Fedora). Without root, a gitigno
   without a cache surfaces keep their base colour.
 - Adding a theme: one file `theme/<name>.rs` with `pub static THEME: LazyLock<Theme>` (start from `moonlit.rs`) and one
   `Variant => module` line in the `themes!` list in `theme/mod.rs`. The picker, prefs id, scenes (`<scene>@<id>`) and
-  `f7_3_every_theme_renders_every_screen` pick it up. Fonts: name families in `Family::Named` lists; never bundle
-  proprietary game fonts or assets.
+  `f7_3_every_theme_renders_every_screen` pick it up. Fonts: every family a theme names
+  (`Family::Named`) is bundled in the binary with its licence (OFL/Apache), so text looks identical on every OS; never
+  rely on system fonts, and never bundle proprietary game fonts or assets.
 - A light-paged theme (Grimoire) sets `Theme::frame` to a second, dark theme: views build the sidebar and the header band
   inside `theme::framed(|| ..)`, where `t()`/`pal()` return the frame. `Skin::glyphs` swaps stock glyphs per theme
   (`theme::glyph`, applied in `ui::button`/`icon_button`/`glyph_tile` and the nav). `Surface::press` sets the pressed wash.

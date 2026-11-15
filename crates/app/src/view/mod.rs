@@ -203,86 +203,27 @@ fn sidebar(s: &State) -> El {
         .child(installation_picker(s))
 }
 
-/// Which wordmark the sidebar header draws (`ADDONS_WORDMARK`, default 0).
-// shortcut: a temporary chooser for the wordmark comparison sheet; keep the winner, drop the rest
-// and the env var once one is picked. Every family but Inter (embedded) needs bundling first.
-static WORDMARK: std::sync::LazyLock<usize> = std::sync::LazyLock::new(|| {
-    std::env::var("ADDONS_WORDMARK")
-        .ok()
-        .and_then(|v| v.parse().ok())
-        .unwrap_or(0)
-});
-
-/// The app name (and tagline) beside the brand mark.
+/// The app name over the tagline beside the brand mark, in Inter (embedded, so it looks the same
+/// everywhere) whatever the theme.
 fn wordmark() -> El {
-    use rune::{Family, TextStyle};
-    let (th, p) = (t(), pal());
-    let name = brand::APP_NAME;
-    let tag = |s: &str, style: TextStyle| text(s.to_string()).font(style).color(p.text_muted);
-    let (mark, tagline) = match *WORDMARK {
-        // 1: Inter SemiBold, title case, no tagline.
-        1 => (
-            text(name).font(TextStyle::new(19.0, 600.0).tracking(-0.4).lh(24.0)),
-            None,
-        ),
-        // 2: Inter, title case over a quiet sentence-case tagline.
-        2 => (
-            text(name).font(TextStyle::new(17.0, 650.0).tracking(-0.3).lh(21.0)),
-            Some(tag(
-                "Addons for WoW Forever",
-                TextStyle::new(11.5, 400.0).lh(15.0),
-            )),
-        ),
-        // 3: Noto Serif SemiBold, title case, no tagline.
-        3 => (
-            text(name).font(
-                TextStyle::new(20.0, 600.0)
-                    .family(Family::Named("Noto Serif, serif"))
-                    .lh(24.0),
-            ),
-            None,
-        ),
-        // 4: STIX Two Text, title case, with a small-caps-style tracked tagline.
-        4 => (
-            text(name).font(
-                TextStyle::new(21.0, 600.0)
-                    .family(Family::Named("STIX Two Text, serif"))
-                    .lh(24.0),
-            ),
-            Some(tag(
-                "ADDON MANAGER",
-                TextStyle::new(9.5, 500.0).tracking(1.4).lh(12.0),
-            )),
-        ),
-        // 5: Comfortaa Bold, lowercase, rounded, no tagline.
-        5 => (
-            text(name.to_lowercase()).font(
-                TextStyle::new(20.0, 700.0)
-                    .family(Family::Named("Comfortaa"))
-                    .lh(24.0),
-            ),
-            None,
-        ),
-        // 6: Inter Bold caps, widely tracked and small: a label, not a logo.
-        6 => (
-            text(name.to_uppercase()).font(TextStyle::new(13.0, 700.0).tracking(3.2).lh(16.0)),
-            None,
-        ),
-        // 0: the theme's serif caps over the tracked tagline.
-        _ => (
-            text(name.to_uppercase()).font(th.ty.wordmark),
-            Some(tag(brand::TAGLINE, th.ty.eyebrow)),
-        ),
-    };
-    let mut c = col()
+    use rune::TextStyle;
+    let p = pal();
+    col()
         .key("brand/wordmark")
         .gap(2.0)
         .min_w(0.0)
-        .child(mark.color(p.heading).truncate());
-    if let Some(t) = tagline {
-        c = c.child(t.truncate());
-    }
-    c
+        .child(
+            text(brand::APP_NAME)
+                .font(TextStyle::new(17.0, 650.0).tracking(-0.3).lh(21.0))
+                .color(p.heading)
+                .truncate(),
+        )
+        .child(
+            text(brand::TAGLINE)
+                .font(TextStyle::new(11.5, 400.0).lh(15.0))
+                .color(p.text_muted)
+                .truncate(),
+        )
 }
 
 fn nav_row(
