@@ -421,11 +421,16 @@ fn glowing(glyph: &'static Icon, size: f32) -> El {
         .child(icon(glyph, size).color(p.accent))
 }
 
-/// A class medallion (classicplus.io-style, all ours): a bevelled metal ring in the theme's
-/// [`Medal`](theme::Medal) tones, gilded when `on`, around a sunk disc in the class colour (darkened,
-/// lit from the centre like a faint glow) bearing the class emblem in light ink. None for a slug
-/// that isn't one of Forever's classes.
-pub fn class_medal(slug: &str, size: f32, on: bool) -> Option<El> {
+/// How far a class icon is enlarged behind its disc, to crop the frame drawn into the image.
+const ICON_ZOOM: f32 = 1.2;
+
+/// A class medallion (classicplus.io-style): a bevelled metal ring in the theme's
+/// [`Medal`](theme::Medal) tones, gilded when `on`, around a sunk disc showing the class's original
+/// icon (`icon`, downloaded at runtime: it is Blizzard's art, never bundled) cut round, over our own
+/// fallback: the disc in the class colour (darkened, lit from the centre like a faint glow) bearing
+/// the class emblem in light ink, which shows while the icon is missing or decoding. None for a
+/// slug that isn't one of Forever's classes.
+pub fn class_medal(slug: &str, size: f32, on: bool, icon: Option<&rune::Image>) -> Option<El> {
     let glyph = icons::class_icon(slug)?;
     let class = theme::h(icons::class_color(slug)?);
     let m = t().skin.medal;
@@ -455,7 +460,7 @@ pub fn class_medal(slug: &str, size: f32, on: bool) -> Option<El> {
             ],
         )
         .a11y_hidden();
-    let disc = el()
+    let mut disc = el()
         .pin(Some(ring), Some(ring), None, None)
         .size(d, d)
         .radius(d / 2.0)
@@ -466,17 +471,33 @@ pub fn class_medal(slug: &str, size: f32, on: bool) -> Option<El> {
             d * 0.6,
             [(0.0, glow), (0.45, core), (1.0, deep)],
         )
-        // Sunk into the ring: shaded under the top edge, a lit lip at the bottom.
-        .border_gradient(0.75, Color::BLACK.alpha(0.7), class.alpha(0.5))
-        .box_shadow(Shadow {
-            y: 1.2,
-            blur: 2.4,
-            color: Color::BLACK.alpha(0.6),
-            inset: true,
-            ..Shadow::default()
-        })
+        .clip_rounded(d / 2.0)
         .child(sheen)
-        .child(icon(glyph, d * 0.8).color(Color::WHITE.mix(class, 0.12)));
+        .child(self::icon(glyph, d * 0.8).color(Color::WHITE.mix(class, 0.12)));
+    if let Some(img) = icon {
+        // Painted once decoded, over the glyph (AGENTS.md: `.pixels` over a fallback). The
+        // icon's own square frame falls outside the disc: only its middle shows.
+        let z = d * ICON_ZOOM;
+        disc = disc.child(
+            el().key(format!("class-icon/{slug}"))
+                .pin(Some((d - z) / 2.0), Some((d - z) / 2.0), None, None)
+                .size(z, z)
+                .pixels(img.pixels()),
+        );
+    }
+    // Sunk into the ring, over glyph or icon: shaded under the top edge, a lit lip at the bottom.
+    let disc = disc.child(
+        el().pin(Some(0.0), Some(0.0), Some(0.0), Some(0.0))
+            .radius(d / 2.0)
+            .border_gradient(0.75, Color::BLACK.alpha(0.7), class.alpha(0.5))
+            .box_shadow(Shadow {
+                y: 1.2,
+                blur: 2.4,
+                color: Color::BLACK.alpha(0.6),
+                inset: true,
+                ..Shadow::default()
+            }),
+    );
     let mut medal = el()
         .size(size, size)
         .radius(size / 2.0)

@@ -77,7 +77,7 @@ fn class_chips(s: &State, list: &[Category], enabled: bool) -> Option<El> {
                 ..sk.clone()
             })
             .focus_ring(1.0, 2.0, p.accent_focus);
-        if let Some(m) = ui::class_medal(&c.slug, 24.0, on) {
+        if let Some(m) = ui::class_medal(&c.slug, 24.0, on, s.class_icon(&c.slug)) {
             chip = chip.child(m);
         }
         chip = chip.child(text(c.name.clone()).font(th.ty.small).color(ink));

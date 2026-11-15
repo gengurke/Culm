@@ -98,8 +98,7 @@ What the addon manager does, one short paragraph per feature. Ids are referenced
 - **F4.6 Filters** ✅ — A category dropdown (CurseForge's WoW addon tree from `GET /v1/categories?gameId=1`, fetched once
   per run and cached 7 days in the cache dir; subcategories indented, the Class subtree left out), a row of class chips
   (only Forever's nine classes, picked by CurseForge category id, each with its round medallion: a bevelled metal ring
-in the theme's tones, gilded on the active chip, around a disc in the darkened class colour with our own filled class
-emblem, no game art; one at a time, a second
+in the theme's tones, gilded on the active chip, around a disc showing the original WoW class icon cut round; one at a time, a second
   click clears it, a class and a dropdown category replace each other since `categoryId` takes one) and a
   sort dropdown (Popularity, Last updated, Name, Total downloads) apply to search and browsing: `categoryId`, `sortField`
   (2/3/4/6) and `sortOrder` on `/v1/mods/search`; with no text, category or order the popular list shows. Esc or a click
@@ -109,6 +108,17 @@ emblem, no game art; one at a time, a second
   CurseForge's: while a category or class is set (or the list is browsed in another order without text) only CurseForge
   is asked, silently. (`f4_6_categories_are_the_addon_tree`, `f4_6_search_sends_category_and_sort`,
   e2e `f4_6_category_and_sort_filter_the_search`, `f4_6_clear_filters_resets_class_category_and_sort`)
+  - **F4.6.1 Class icons** ✅ — The icons are Blizzard's art, so they are never bundled: `class_icons::load` downloads
+    them on a worker the first time the class chips show (never at startup otherwise), from the first source that serves
+    a valid image (decodes, < 200 KB, 32–128 px): Blizzard's render CDN (`classic-us`, then `us`);
+    `ADDONS_CLASS_ICON_URLS` (comma-separated base URLs) replaces the list. They are kept for good in
+    `<cache>/class-icons/<slug>.jpg`; later starts read them from disk without a request, a missing or corrupt file is
+    fetched again. A source that fails is skipped for the rest of the run and nothing is retried until the next start;
+    without an icon the medallion keeps our own class glyph on the darkened class colour, which also shows while the
+    icon decodes. (`f4_6_class_icons_come_from_the_first_working_source`, `f4_6_cached_class_icons_need_no_request`,
+    `f4_6_corrupt_cached_class_icon_is_fetched_again`, `f4_6_class_icons_unavailable_cost_one_attempt_per_source`,
+    `f4_6_oversized_class_icon_is_refused`, e2e `f4_6_class_chips_show_the_original_icons`,
+    `f4_6_class_chips_keep_their_glyphs_without_icons`)
 - **F4.7 WowUp Hub provider** ✅ — `providers::Hub` (hub.wowup.io, no key, gameType `forever`, base URL in
   `ProviderConfig::hub_base_url`): search, featured (popular + recent, deduped), batch `get_many` for update checks,
   `wowup.io/addons/<id>` URLs, and folder matching by WowUp's md5 fingerprint (`POST /addons/fingerprint`, exact matches

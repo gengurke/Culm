@@ -175,4 +175,7 @@ pub trait Backend: Send + Sync {
     fn open_folder(&self, path: &Path) -> Result<()>;
     /// Image bytes of an addon thumbnail (cached on disk).
     fn thumbnail(&self, url: &str) -> Result<Vec<u8>>;
+    /// The original class icons for the class chips (F4.6), from the cache or downloaded once;
+    /// `each(slug, None)` for a class whose icon could not be had (its glyph stays).
+    fn class_icons(&self, each: &mut dyn FnMut(&str, Option<Vec<u8>>));
 }

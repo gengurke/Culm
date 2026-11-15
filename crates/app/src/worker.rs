@@ -54,6 +54,11 @@ pub enum Msg {
         url: String,
         bytes: Option<Vec<u8>>,
     },
+    /// An original class icon's bytes for a class slug (F4.6).
+    ClassIcon {
+        slug: String,
+        bytes: Vec<u8>,
+    },
     GameRunning {
         inst: String,
         running: bool,

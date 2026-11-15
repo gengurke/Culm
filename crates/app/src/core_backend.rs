@@ -11,8 +11,8 @@ use crate::ui::bytes;
 use addon_core::discover::{self, Discovery};
 use addon_core::providers::{self, CurseForge, GitHub, Provider, ProviderConfig};
 use addon_core::{
-    Addon, Category, Channel, Flavor, Installation, RemoteAddon, SearchFilter, http, install,
-    maintenance, scan, store, updates, wow, wowup_import,
+    Addon, Category, Channel, Flavor, Installation, RemoteAddon, SearchFilter, class_icons, http,
+    install, maintenance, scan, store, updates, wow, wowup_import,
 };
 use anyhow::{Context, Result, bail};
 use rune::prefs::Prefs;
@@ -37,13 +37,16 @@ pub struct Config {
     pub wowup_dirs: Vec<PathBuf>,
     /// Provider endpoints; the CurseForge key comes from the settings.
     pub providers: ProviderConfig,
+    /// Base URLs of the class icons, tried in order ([`class_icons::DEFAULT_SOURCES`]).
+    pub class_icon_sources: Vec<String>,
 }
 
 impl Config {
     /// The app's XDG folders and prefs (`RUNE_DIRS_ROOT` relocates them), the usual WoW and
     /// WowUp places, and the real provider endpoints unless `ADDONS_CURSEFORGE_URL`,
     /// `ADDONS_GITHUB_URL`, `ADDONS_HUB_URL` or `ADDONS_WOWINTERFACE_URL` point elsewhere (a fake server, or a
-    /// closed port for an offline run).
+    /// closed port for an offline run); `ADDONS_CLASS_ICON_URLS` (comma-separated bases) likewise
+    /// replaces the class icon sources.
     pub fn from_env() -> Result<Config> {
         let dirs =
             rune::dirs::AppDirs::new(brand::APP_ID).context("no home folder to keep data in")?;
@@ -60,6 +63,10 @@ impl Config {
         if let Ok(url) = std::env::var("ADDONS_WOWINTERFACE_URL") {
             providers.wowinterface_base_url = url;
         }
+        let class_icon_sources = match std::env::var("ADDONS_CLASS_ICON_URLS") {
+            Ok(list) => list.split(',').map(|u| u.trim().to_string()).collect(),
+            Err(_) => class_icons::DEFAULT_SOURCES.map(String::from).to_vec(),
+        };
         Ok(Config {
             data_dir: dirs.data().to_path_buf(),
             cache_dir: dirs.cache().to_path_buf(),
@@ -67,6 +74,7 @@ impl Config {
             search_roots: wow::default_search_roots(),
             wowup_dirs: wowup_import::default_wowup_dirs(),
             providers,
+            class_icon_sources,
         })
     }
 }
@@ -77,6 +85,7 @@ pub struct CoreBackend {
     search_roots: Vec<PathBuf>,
     wowup_dirs: Vec<PathBuf>,
     endpoints: ProviderConfig,
+    class_icon_sources: Vec<String>,
     prefs: Mutex<Prefs>,
     /// Serializes load-modify-save of the stored lists (workers run concurrently).
     store: Mutex<()>,
@@ -99,6 +108,7 @@ impl CoreBackend {
             search_roots: c.search_roots,
             wowup_dirs: c.wowup_dirs,
             endpoints: c.providers,
+            class_icon_sources: c.class_icon_sources,
             prefs: Mutex::new(c.prefs),
             store: Mutex::new(()),
             disk: RwLock::new(()),
@@ -564,5 +574,9 @@ impl Backend for CoreBackend {
             let _ = std::fs::rename(&tmp, &path);
         }
         Ok(bytes)
+    }
+
+    fn class_icons(&self, each: &mut dyn FnMut(&str, Option<Vec<u8>>)) {
+        class_icons::load(&self.cache_dir, &self.class_icon_sources, each);
     }
 }

@@ -1281,4 +1281,7 @@ impl Backend for MockBackend {
     fn thumbnail(&self, _url: &str) -> Result<Vec<u8>> {
         bail!("no thumbnails in the mock")
     }
+
+    /// None: the mock draws the own class glyphs.
+    fn class_icons(&self, _each: &mut dyn FnMut(&str, Option<Vec<u8>>)) {}
 }

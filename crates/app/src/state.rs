@@ -332,6 +332,8 @@ pub struct State {
     pub images: Option<ImageCache>,
     /// Thumbnail per URL: requested (None) or loaded.
     pub thumbs: HashMap<String, Option<Image>>,
+    /// The original class icons per slug; None until the class chips first show (asked once per run).
+    pub class_icons: Option<HashMap<String, Image>>,
     /// Seconds on the window clock as of the last poll.
     pub clock: f64,
     pub(crate) msgs: (Sender<Msg>, Receiver<Msg>),
@@ -380,6 +382,7 @@ impl State {
             next_toast: 1,
             images: None,
             thumbs: HashMap::new(),
+            class_icons: None,
             clock: 0.0,
             msgs: channel(),
             waker: Arc::new(|| {}),
@@ -730,6 +733,11 @@ impl State {
                     };
                 }
             }
+            Msg::ClassIcon { slug, bytes } => {
+                if let (Some(icons), Some(cache)) = (&mut self.class_icons, &self.images) {
+                    icons.insert(slug, cache.load(bytes));
+                }
+            }
             Msg::Thumbnail { url, bytes } => {
                 let image = bytes.and_then(|b| Some(self.images.as_ref()?.load(b)));
                 self.thumbs.insert(url, image);
@@ -810,6 +818,31 @@ impl State {
                 post.send(Msg::Thumbnail { url, bytes });
             });
         }
+    }
+
+    /// Asks for the original class icons once per run, when the class chips first show
+    /// (Get Addons with the category list loaded); never at startup otherwise.
+    fn load_class_icons(&mut self) {
+        let shown = self.screen == Screen::GetAddons && matches!(self.categories, Fetch::Ready(_));
+        if !shown || self.class_icons.is_some() || self.images.is_none() {
+            return;
+        }
+        self.class_icons = Some(HashMap::new());
+        worker::spawn(self, "class icons", |b, post| {
+            b.class_icons(&mut |slug, bytes| {
+                if let Some(bytes) = bytes {
+                    post.send(Msg::ClassIcon {
+                        slug: slug.into(),
+                        bytes,
+                    });
+                }
+            })
+        });
+    }
+
+    /// The original icon of a class slug, once loaded (F4.6).
+    pub fn class_icon(&self, slug: &str) -> Option<&Image> {
+        self.class_icons.as_ref()?.get(slug)
     }
 
     /// The loaded thumbnail for `url`, if any.
@@ -1365,6 +1398,7 @@ pub fn poll(s: &mut State, clock: f64, tx: &mut Tx) -> bool {
         s.apply(msg);
         changed = true;
     }
+    s.load_class_icons();
     changed |= s.take_search();
     changed |= s.take_link();
     changed |= crate::theme::textures_landed();

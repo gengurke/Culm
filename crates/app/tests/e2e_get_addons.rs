@@ -423,3 +423,77 @@ fn f7_1_f7_2_saved_settings_survive_a_restart() {
     let featured = world.server.requests_to("/v1/mods/featured");
     assert_eq!(featured.last().unwrap().header("x-api-key"), Some("my-key"));
 }
+
+/// The app with an image cache (tests don't run `setup`), so class icons can load.
+fn app_with_images(world: &World) -> App {
+    let mut state = addon_app::State::new(std::sync::Arc::new(
+        addon_app::core_backend::CoreBackend::new(world.config()),
+    ));
+    state.images = Some(rune::ImageCache::new(std::sync::Arc::new(|| {})));
+    let mut app = App {
+        rt: addon_app::runtime(state, (1280.0, 800.0)),
+    };
+    app.rt.frame(0.0);
+    app
+}
+
+fn icon_requests(world: &World) -> usize {
+    let all = world.server.requests();
+    all.iter().filter(|r| r.path.starts_with("/icons/")).count()
+}
+
+#[test]
+fn f4_6_class_chips_show_the_original_icons() {
+    let world = World::new().with_key("test-key");
+    // The first source is gone; the second serves the icons.
+    world.server.respond(
+        "GET",
+        "/icons/b/*",
+        200,
+        "image/jpeg",
+        addon_testkit::CLASS_ICON,
+    );
+    let mut app = app_with_images(&world);
+    app.wait_idle();
+    assert_eq!(icon_requests(&world), 0, "not fetched before Get Addons");
+
+    app.tap("nav/get-addons");
+    app.wait_until("the warrior icon", |a| a.has("class-icon/warrior"));
+    assert!(app.has("class/1028"));
+    assert_eq!(
+        world
+            .server
+            .requests_to("/icons/b/classicon_warrior.jpg")
+            .len(),
+        1
+    );
+    let cached = world.tmp.path().join("cache/class-icons/warrior.jpg");
+    assert!(cached.exists(), "kept in the cache");
+    let asked = icon_requests(&world);
+    drop(app);
+
+    // The next start reads them from the cache.
+    let mut app = app_with_images(&world);
+    app.wait_idle();
+    app.tap("nav/get-addons");
+    app.wait_until("the cached icon", |a| a.has("class-icon/warrior"));
+    assert_eq!(icon_requests(&world), asked, "no network");
+}
+
+#[test]
+fn f4_6_class_chips_keep_their_glyphs_without_icons() {
+    let world = World::new().with_key("test-key");
+    let mut app = app_with_images(&world);
+    app.wait_idle();
+    app.tap("nav/get-addons");
+    app.wait_until("both sources tried", |_| icon_requests(&world) == 2);
+    // Leaving and coming back doesn't try again in this run.
+    app.tap("nav/my-addons");
+    app.tap("nav/get-addons");
+    for _ in 0..20 {
+        std::thread::sleep(std::time::Duration::from_millis(5));
+        app.frame();
+    }
+    assert!(app.has("class/1028") && !app.has("class-icon/warrior"));
+    assert_eq!(icon_requests(&world), 2, "one attempt per source per run");
+}

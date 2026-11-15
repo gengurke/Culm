@@ -207,6 +207,9 @@ fn decode(s: &str) -> String {
     String::from_utf8_lossy(&out).into_owned()
 }
 
+/// A 56 px PNG standing in for a class icon (a plain gradient of our own, not game art).
+pub const CLASS_ICON: &[u8] = include_bytes!("../fixtures/class-icon.png");
+
 /// A committed fixture from `crates/testkit/fixtures/<name>`, parsed as JSON.
 pub fn fixture(name: &str) -> Value {
     let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))

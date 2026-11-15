@@ -317,9 +317,11 @@ impl World {
                 curseforge_base_url: url.clone(),
                 github_base_url: url.clone(),
                 hub_base_url: format!("{url}/hub"),
-                wowinterface_base_url: url,
+                wowinterface_base_url: url.clone(),
                 ..Default::default()
             },
+            // Nothing served there unless a test adds it: the class chips keep their glyphs.
+            class_icon_sources: vec![format!("{url}/icons/a/"), format!("{url}/icons/b/")],
         }
     }
 
