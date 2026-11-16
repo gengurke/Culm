@@ -152,12 +152,7 @@ fn grouped_fixture() -> (FakeWow, Vec<Box<dyn Provider>>) {
         "## Title: Tiny\n## RequiredDeps: Details\n",
         &[],
     );
-    w.add_folder(
-        "Moonlit",
-        "Moonlit.toc",
-        &simple_toc("Moonlit", "2"),
-        &[],
-    );
+    w.add_folder("Moonlit", "Moonlit.toc", &simple_toc("Moonlit", "2"), &[]);
     w.add_folder(
         "Moonlit_Codex",
         "Moonlit_Codex.toc",
