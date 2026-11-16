@@ -111,6 +111,8 @@ Build needs `libxkbcommon-devel wayland-devel` (Fedora). Without root, a gitigno
 - Never cut validation at trust boundaries (zip paths!, API data), error handling that prevents data loss
   (install backup/rollback), or safety checks (no maintenance while WoW runs).
 - Shortcuts get a comment: `// shortcut: <limit>, <when to upgrade>`.
+- Planned work, bugs and shortcuts worth upgrading live in GitHub issues (`gh issue list -R gengurke/culm`), not in TODO
+  files. Open an issue for work found in passing instead of doing it unasked; a commit that settles one says `Fixes #<n>`.
 
 ## Tests
 
