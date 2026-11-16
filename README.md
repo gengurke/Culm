@@ -8,6 +8,14 @@ existing addon records, scans and groups `Interface/AddOns`, updates/installs/re
 WowUp Hub, GitHub (WowInterface is implemented but disabled: no game-version info for Forever), and has client maintenance (cache, WTF leftovers, WTF backups). What exactly works and
 how it is tested: [docs/FEATURES.md](docs/FEATURES.md).
 
+![My Addons in the default Moonlit theme](docs/screenshots/my-addons.png)
+
+| Get Addons: one search over CurseForge, WowUp Hub and GitHub links | Addon detail in the Grimoire theme |
+|---|---|
+| ![Get Addons](docs/screenshots/get-addons.png) | ![Addon detail, Grimoire theme](docs/screenshots/addon-detail-grimoire.jpg) |
+| **Client maintenance** (Hearthwood theme) | **Themes:** Hearthwood, Emberglow, Ledger, Grimoire |
+| ![Maintenance, Hearthwood theme](docs/screenshots/maintenance-hearthwood.jpg) | ![The other themes](docs/screenshots/themes.jpg) |
+
 ## Build and run
 
 ```sh
