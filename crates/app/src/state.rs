@@ -338,6 +338,9 @@ pub struct State {
     pub clock: f64,
     pub(crate) msgs: (Sender<Msg>, Receiver<Msg>),
     pub(crate) waker: Waker,
+    /// The newest settings not yet written. Writers run on workers in any order: each takes the newest under
+    /// the lock, so an older snapshot never overwrites a newer one (#7).
+    unsaved: Arc<std::sync::Mutex<Option<Settings>>>,
 }
 
 impl State {
@@ -386,6 +389,7 @@ impl State {
             clock: 0.0,
             msgs: channel(),
             waker: Arc::new(|| {}),
+            unsaved: Arc::default(),
         }
     }
 
@@ -890,11 +894,20 @@ impl State {
     }
 
     fn start_scan(&mut self) {
+        self.start_scan_after(|_, _| {});
+    }
+
+    /// Scans after `first` ran on the same worker (e.g. writing the key the scan reads).
+    fn start_scan_after(
+        &mut self,
+        first: impl FnOnce(&dyn Backend, &worker::Post) + Send + 'static,
+    ) {
         let Some(inst) = self.installation().cloned() else {
-            return;
+            return worker::spawn(self, "settings", first);
         };
         self.job = Job::Scanning;
         worker::spawn(self, "scan", move |b, post| {
+            first(b, post);
             post.send(Msg::Scanned {
                 result: b.scan(&inst).map_err(err),
                 inst: inst.id,
@@ -1053,15 +1066,25 @@ impl State {
     }
 
     fn save_settings(&mut self) {
-        let settings = self.settings.clone();
-        worker::spawn(self, "settings", move |b, post| {
-            if let Err(e) = b.save_settings(&settings) {
+        let flush = self.queue_settings();
+        worker::spawn(self, "settings", move |b, post| flush(b, post));
+    }
+
+    /// Queues the current settings and returns the worker step that writes the newest queued ones.
+    fn queue_settings(&mut self) -> impl FnOnce(&dyn Backend, &worker::Post) + Send + 'static {
+        let unsaved = self.unsaved.clone();
+        *unsaved.lock().unwrap_or_else(|e| e.into_inner()) = Some(self.settings.clone());
+        move |b, post| {
+            let mut slot = unsaved.lock().unwrap_or_else(|e| e.into_inner());
+            if let Some(settings) = slot.take()
+                && let Err(e) = b.save_settings(&settings)
+            {
                 post.send(Msg::Failed {
                     title: "Could not save settings".into(),
                     error: err(e),
                 });
             }
-        });
+        }
     }
 
     fn save_addon(&mut self, id: &str) {
@@ -1364,7 +1387,7 @@ pub fn dispatch(s: &mut State, intent: Intent, tx: &mut Tx) {
         Intent::SaveApiKey => {
             let key = s.api_key.text.trim().to_string();
             s.settings.curseforge_key = (!key.is_empty()).then_some(key);
-            s.save_settings();
+            let save = s.queue_settings();
             s.featured = Fetch::Idle;
             s.results = Fetch::Idle;
             s.categories = Fetch::Idle;
@@ -1374,11 +1397,15 @@ pub fn dispatch(s: &mut State, intent: Intent, tx: &mut Tx) {
                     "CurseForge key saved",
                     "Search and updates from CurseForge are on",
                 );
-                // Rescan: fingerprints can now match CurseForge, then updates get checked.
+                // Rescan once the key is written (providers read it from the settings): fingerprints can
+                // now match CurseForge, then updates get checked.
                 if s.job == Job::Idle {
-                    s.start_scan();
+                    s.start_scan_after(save);
+                } else {
+                    worker::spawn(s, "settings", save);
                 }
             } else {
+                worker::spawn(s, "settings", save);
                 s.toast(
                     Tone::Info,
                     "CurseForge key removed",
