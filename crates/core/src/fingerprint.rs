@@ -1,4 +1,4 @@
-//! CurseForge folder fingerprint (murmur2) (F2.3).
+//! CurseForge folder fingerprint (murmur2) and the Hub's md5 fingerprint (F2.3, F4.7).
 //! Only the TOC/XML include tree (plus a top-level `Bindings.xml`) is hashed, never media files.
 
 use crate::util::walk_files;

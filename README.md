@@ -65,6 +65,20 @@ cargo clippy --all-targets
 
 Test names carry the feature id from `docs/FEATURES.md` (`f3_2_...`). Contributor notes: `AGENTS.md`.
 
+## Inspiration and thanks
+
+Culm builds on the work of others:
+
+- **[WowUp](https://github.com/WowUp/WowUp)** (GPL-3.0), the addon manager many Forever players already use, and the
+  model for Culm's My Addons / Get Addons split. Culm's folder fingerprints follow WowUp's scanners and are checked
+  against its test fixture. Culm can import WowUp's addon records (Settings), and it searches the
+  [WowUp Hub](https://wowup.io/addons), WowUp's public index of GitHub-hosted addons.
+- **[Rune](https://github.com/anomalyco/rune)**, the GUI framework Culm is drawn with.
+- **[Polestar](https://www.polestar.com)**'s calm, minimal design language inspired the default Moonlit theme. Culm
+  uses none of its assets.
+
+Culm is an independent project, not affiliated with or endorsed by WowUp or Polestar.
+
 ## License
 
 Copyright (C) 2026 the Culm contributors.
