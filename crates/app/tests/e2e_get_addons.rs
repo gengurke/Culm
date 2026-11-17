@@ -469,8 +469,8 @@ fn f4_6_class_chips_show_the_original_icons() {
             .len(),
         1
     );
-    let cached = world.tmp.path().join("cache/class-icons/warrior.jpg");
-    assert!(cached.exists(), "kept in the cache");
+    let cached = world.tmp.path().join("data/class-icons/warrior.jpg");
+    assert!(cached.exists(), "kept in the data dir");
     let asked = icon_requests(&world);
     drop(app);
 

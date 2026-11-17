@@ -115,7 +115,7 @@ in the theme's tones, gilded on the active chip, around a disc showing the origi
     them on a worker the first time the class chips show (never at startup otherwise), from the first source that serves
     a valid image (decodes, < 200 KB, 32–128 px): Blizzard's render CDN (`classic-us`, then `us`);
     `ADDONS_CLASS_ICON_URLS` (comma-separated base URLs) replaces the list. They are kept for good in
-    `<cache>/class-icons/<slug>.jpg`; later starts read them from disk without a request, a missing or corrupt file is
+    `<data>/class-icons/<slug>.jpg` (not the cache dir, which cleaners empty), unaltered; later starts read them from disk without a request, a missing or corrupt file is
     fetched again. A source that fails is skipped for the rest of the run and nothing is retried until the next start;
     without an icon the medallion keeps our own class glyph on the darkened class colour, which also shows while the
     icon decodes. (`f4_6_class_icons_come_from_the_first_working_source`, `f4_6_cached_class_icons_need_no_request`,

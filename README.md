@@ -45,7 +45,7 @@ the import already knew about; CurseForge addons show "Not checked".
 
 | What | Where |
 |---|---|
-| Installations, addon lists per installation | `~/.local/share/dev.culm.app/` (`installations.json`, `addons/<id>.json`) |
+| Installations, addon lists per installation, class icons (downloaded once) | `~/.local/share/dev.culm.app/` (`installations.json`, `addons/<id>.json`, `class-icons/`) |
 | WTF backups | `~/.local/share/dev.culm.app/wtf-backups/<installation id>/` |
 | Settings (API key, default channel) | `~/.config/dev.culm.app/` |
 | Thumbnail cache | `~/.cache/dev.culm.app/` |

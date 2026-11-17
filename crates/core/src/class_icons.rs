@@ -1,8 +1,9 @@
 //! The original WoW class icons for the Get Addons class chips (F4.6).
 //!
 //! They are Blizzard's art, so they are never bundled with this GPL program: they are downloaded
-//! at runtime, once, from the first source that serves a valid image, and kept in the cache dir
-//! for good. Without them the app draws its own class glyphs.
+//! at runtime, once per user, from the first source that serves a valid image, and kept in the
+//! data dir for good (not the cache dir, which cleaners empty). Nothing is re-encoded or altered.
+//! Without them the app draws its own class glyphs.
 
 use crate::http;
 use std::path::Path;
@@ -24,12 +25,12 @@ const MAX_BYTES: usize = 200 << 10;
 const SIDE: std::ops::RangeInclusive<u32> = 32..=128;
 
 /// Reports each class's icon bytes to `each` as they come (None: no valid copy in
-/// `<cache_dir>/class-icons/` and no source gave one). A valid cached copy is used without any
-/// request; a missing or corrupt one is fetched from `sources` in order and cached. A source that
+/// `<data_dir>/class-icons/` and no source gave one). A valid cached copy is used without any
+/// request; a missing or corrupt one is fetched from `sources` in order and kept. A source that
 /// fails once is skipped for the rest of the call, so an offline start costs at most one request
 /// per source, and nothing is retried until the next call (the app makes one per run).
-pub fn load(cache_dir: &Path, sources: &[String], each: &mut dyn FnMut(&str, Option<Vec<u8>>)) {
-    let dir = cache_dir.join("class-icons");
+pub fn load(data_dir: &Path, sources: &[String], each: &mut dyn FnMut(&str, Option<Vec<u8>>)) {
+    let dir = data_dir.join("class-icons");
     let mut dead = vec![false; sources.len()];
     for slug in CLASSES {
         let path = dir.join(format!("{slug}.jpg"));

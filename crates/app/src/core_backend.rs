@@ -595,6 +595,6 @@ impl Backend for CoreBackend {
     }
 
     fn class_icons(&self, each: &mut dyn FnMut(&str, Option<Vec<u8>>)) {
-        class_icons::load(&self.cache_dir, &self.class_icon_sources, each);
+        class_icons::load(&self.data_dir, &self.class_icon_sources, each);
     }
 }
