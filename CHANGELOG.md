@@ -6,6 +6,8 @@ or break. New changes go under "Unreleased"; a release turns that heading into i
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-11-17
+
 ### Fixed
 - After an update in the app, the restart no longer leaves a helper process of the old version running until Culm closes.
 - My Addons says "No addons installed yet" for an empty installation instead of "No addons match “”".
@@ -30,6 +32,7 @@ First beta, Linux only (AppImage).
 - Updates itself: the AppImage checks for a new version at start and installs it with one click and a restart.
 - The AppImage carries update information, so Gear Lever, AppImageUpdate and AppImageLauncher can update it too.
 
-[Unreleased]: https://github.com/gengurke/Culm/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/gengurke/Culm/compare/v0.1.2...HEAD
+[0.1.2]: https://github.com/gengurke/Culm/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/gengurke/Culm/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/gengurke/Culm/releases/tag/v0.1.0

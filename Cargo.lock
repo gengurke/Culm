@@ -81,7 +81,7 @@ dependencies = [
 
 [[package]]
 name = "addon-app"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "addon-core",
  "addon-testkit",
@@ -96,7 +96,7 @@ dependencies = [
 
 [[package]]
 name = "addon-core"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "addon-testkit",
  "anyhow",
@@ -111,7 +111,7 @@ dependencies = [
 
 [[package]]
 name = "addon-testkit"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "serde_json",
  "sha2",
