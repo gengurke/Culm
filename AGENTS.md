@@ -4,9 +4,18 @@
 [Rune](https://github.com/anomalyco/rune) GUI framework. The name lives only in `crates/app/src/brand.rs` and the
 `[[bin]]` name in `crates/app/Cargo.toml`.
 
-Culm is cross-platform: Linux, macOS and Windows, and it must look and behave the same on all three. So no
-platform-only APIs without a path for the others (`std::path`, `rune::dirs` for folders, no hard-coded `/` or `~`),
-and nothing visual taken from the system: every font is bundled (see Themes).
+Culm is cross-platform and should look and behave the same everywhere. Targets:
+- **Linux with KDE Plasma** (Wayland and X11): the main target; everything must work here.
+- **Windows** and **macOS**: fully supported, same features.
+- **Linux with GNOME**: supported. Where GNOME lacks something (e.g. the tray needs an extension), the feature
+  may be missing or limited there, but nothing errors or breaks. Small GNOME tweaks are fine; workarounds that
+  complicate the code or hurt other platforms are not.
+- Other desktops and distros (Mint/Cinnamon, XFCE, …): welcome when they work, no extra code unless asked.
+
+Write platform-neutral code: Rune and std APIs (`std::path`, `rune::dirs`, no hard-coded `/` or `~`), nothing
+visual from the system (fonts are bundled, see Themes). Per-OS code only where no neutral way exists: small,
+in one place behind one function, with a sensible fallback elsewhere. Issues and PRs that touch platform
+behaviour say what happens on each target.
 
 ## Layout
 
