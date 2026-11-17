@@ -17,6 +17,13 @@ visual from the system (fonts are bundled, see Themes). Per-OS code only where n
 in one place behind one function, with a sensible fallback elsewhere. Issues and PRs that touch platform
 behaviour say what happens on each target.
 
+Where files go: every file Culm writes goes in the `rune::dirs` folder that fits its kind; never invent paths.
+`config` holds settings the user chose. `data` holds records Culm keeps and can't rebuild (installed addons,
+backups, downloaded class icons). `cache` holds anything rebuildable; deleting it must be safe. `state` and `logs`
+hold machine-local runtime state and logs. These follow each OS's convention (XDG on Linux, `~/Library/…` on
+macOS, AppData on Windows). On Windows `data` roams with the profile (`%APPDATA%`) while `cache` and `state` stay
+local (`%LOCALAPPDATA%`), so keep large or machine-specific files out of `data`.
+
 ## Layout
 
 ```
