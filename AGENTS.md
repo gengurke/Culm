@@ -120,6 +120,19 @@ Build dependencies (Fedora): `sudo dnf install libxkbcommon-devel wayland-devel`
 - Push back: when a request or issue adds options, steps or jargon that make Culm harder to understand, say so
   and propose the simpler version before building it.
 
+## Sources
+
+- Open by design: support as many addon sources as we can (CurseForge, WowUp Hub, GitHub, WowInterface, Wago, …),
+  merged into one list. People see addons, not providers: one card per addon, its sources as a detail, one Install.
+- A new source must not break anything: it sits behind the `Provider` trait, existing records and links keep
+  working, a source that is down or not set up only loses its own results (no errors elsewhere), and sources
+  that need no key work out of the box.
+- Use every source only the official, allowed way and follow its terms: respect authors' choices (no download
+  URL → no install), store nothing a source forbids storing, send keys only to their own hosts, no proxies or
+  scraping around limits. When unsure, read the terms and record the outcome in an issue.
+- Setup stays light: everything optional and skippable, settings reachable later; a missing key only shows
+  where it matters.
+
 ## Data-safety rules (learned here)
 
 - Worker results about an installation carry its id (`Msg::Scanned { inst, .. }`); `State::apply` drops stale ones.
