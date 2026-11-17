@@ -20,6 +20,8 @@ rm -rf "$appdir" "$out/$name" "$out/$name.zsync"
 
 install -Dm755 "$bin" "$appdir/usr/bin/culm"
 install -Dm644 "$here/dev.culm.app.desktop" "$appdir/usr/share/applications/dev.culm.app.desktop"
+# Gear Lever and AppImageLauncher show this as the installed version.
+echo "X-AppImage-Version=$version" >> "$appdir/usr/share/applications/dev.culm.app.desktop"
 install -Dm644 "$here/dev.culm.app.metainfo.xml" "$appdir/usr/share/metainfo/dev.culm.app.metainfo.xml"
 install -Dm644 "$here/culm.svg" "$appdir/usr/share/icons/hicolor/scalable/apps/culm.svg"
 for size in 32 48 64 128 256 512; do

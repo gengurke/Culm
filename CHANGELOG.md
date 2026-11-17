@@ -6,6 +6,11 @@ or break. New changes go under "Unreleased"; a release turns that heading into i
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-11-17
+
+### Changed
+- Nothing new to see: this release makes sure updating from 0.1.0 works, in the app and with Gear Lever.
+
 ## [0.1.0] - 2026-11-17
 
 First beta, Linux only (AppImage).
@@ -21,5 +26,6 @@ First beta, Linux only (AppImage).
 - Updates itself: the AppImage checks for a new version at start and installs it with one click and a restart.
 - The AppImage carries update information, so Gear Lever, AppImageUpdate and AppImageLauncher can update it too.
 
-[Unreleased]: https://github.com/gengurke/Culm/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/gengurke/Culm/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/gengurke/Culm/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/gengurke/Culm/releases/tag/v0.1.0
