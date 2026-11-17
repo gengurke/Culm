@@ -264,22 +264,26 @@ fn list(s: &State) -> El {
     let p = pal();
     let visible = s.visible_addons();
     let rows: El = if visible.is_empty() {
+        // Nothing installed is not a filter miss.
+        let (title, hint) = if s.addons.is_empty() {
+            (
+                "No addons installed yet".to_string(),
+                "Find some under Get Addons.",
+            )
+        } else {
+            (
+                format!("No addons match “{}”", s.filter.text.trim()),
+                "Clear the filter to see everything.",
+            )
+        };
         col()
             .key("my-addons/empty")
             .w_full()
             .py(48.0)
             .center()
             .gap(6.0)
-            .child(
-                text(format!("No addons match “{}”", s.filter.text.trim()))
-                    .font(t().ty.body)
-                    .color(p.text_dim),
-            )
-            .child(
-                text("Clear the filter to see everything.")
-                    .font(t().ty.small)
-                    .color(p.text_muted),
-            )
+            .child(text(title).font(t().ty.body).color(p.text_dim))
+            .child(text(hint).font(t().ty.small).color(p.text_muted))
     } else {
         col()
             .key("my-addons/rows")

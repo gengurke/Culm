@@ -6,6 +6,10 @@ or break. New changes go under "Unreleased"; a release turns that heading into i
 
 ## [Unreleased]
 
+### Fixed
+- After an update in the app, the restart no longer leaves a helper process of the old version running until Culm closes.
+- My Addons says "No addons installed yet" for an empty installation instead of "No addons match “”".
+
 ## [0.1.1] - 2026-11-17
 
 ### Changed

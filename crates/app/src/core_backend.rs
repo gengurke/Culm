@@ -631,11 +631,26 @@ impl Backend for CoreBackend {
             .appimage
             .as_deref()
             .context("this build can't restart itself")?;
-        std::process::Command::new(file)
-            .stdin(std::process::Stdio::null())
+        let mut cmd = std::process::Command::new(file);
+        cmd.stdin(std::process::Stdio::null())
             .stdout(std::process::Stdio::null())
-            .stderr(std::process::Stdio::null())
-            .spawn()
+            .stderr(std::process::Stdio::null());
+        // The AppImage runtime hands its mount to children through an inherited descriptor (fd 1023);
+        // the new version would keep the old image mounted, and its helper process alive, until it
+        // quits. Close everything past stdio before the new image starts. Kernels before 5.9 lack
+        // close_range: then the old mount just lives a little longer, nothing breaks.
+        #[cfg(target_os = "linux")]
+        {
+            use std::os::unix::process::CommandExt;
+            // SAFETY: close_range is async-signal-safe and touches only this child's descriptors.
+            unsafe {
+                cmd.pre_exec(|| {
+                    libc::syscall(libc::SYS_close_range, 3u32, u32::MAX, 0u32);
+                    Ok(())
+                });
+            }
+        }
+        cmd.spawn()
             .with_context(|| format!("start {}", file.display()))?;
         Ok(())
     }

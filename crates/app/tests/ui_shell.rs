@@ -352,3 +352,14 @@ fn f7_5_about_shows_the_version_and_release_stage() {
         .unwrap();
     assert_eq!(label, format!("v{} · Beta", env!("CARGO_PKG_VERSION")));
 }
+
+#[test]
+fn f2_1_an_empty_installation_says_so_instead_of_a_filter_miss() {
+    let mut rt = app(|s| {
+        loaded(s);
+        s.addons.clear();
+    });
+    rt.frame(1.0 / 60.0);
+    assert!(shows(&rt, "No addons installed yet"));
+    assert!(!shows(&rt, "No addons match"));
+}

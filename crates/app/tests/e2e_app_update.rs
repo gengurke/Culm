@@ -17,7 +17,8 @@ fn asset(version: &str) -> String {
 fn f8_4_update_from_the_sidebar_replaces_the_appimage_and_restarts_it() {
     let world = World::new();
     let started = world.tmp.path().join("new-version-started");
-    let script = format!("#!/bin/sh\ntouch '{}'\n", started.display());
+    // The new version records the descriptors it inherited.
+    let script = format!("#!/bin/sh\nls /proc/self/fd > '{}'\n", started.display());
     serve_app_release(
         &world.server,
         REPO,
@@ -45,14 +46,27 @@ fn f8_4_update_from_the_sidebar_replaces_the_appimage_and_restarts_it() {
     assert_eq!(std::fs::read_to_string(&appimage).unwrap(), script);
     assert!(app.shows_in("app-update/sidebar", "Restart for 99.0.0"));
 
+    // Like the AppImage runtime's mount keep-alive: a descriptor without close-on-exec.
+    #[cfg(target_os = "linux")]
+    let keepalive = unsafe { libc::dup2(0, 1000) };
     app.tap("app-update/sidebar");
     let start = std::time::Instant::now();
-    while !started.exists() {
+    while std::fs::read_to_string(&started).map_or(true, |s| s.is_empty()) {
         assert!(
             start.elapsed().as_secs() < 10,
             "the new version never started"
         );
         std::thread::sleep(std::time::Duration::from_millis(20));
+    }
+    #[cfg(target_os = "linux")]
+    {
+        assert_eq!(keepalive, 1000);
+        let fds = std::fs::read_to_string(&started).unwrap();
+        assert!(
+            !fds.lines().any(|l| l == "1000"),
+            "the new version inherited the old one's descriptors: {fds}"
+        );
+        unsafe { libc::close(1000) };
     }
 }
 

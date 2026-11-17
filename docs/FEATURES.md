@@ -206,7 +206,8 @@ in the theme's tones, gilded on the active chip, around a disc showing the origi
   (`self_update::latest`, no other data sent); a newer one shows a toast and an "Update to x.y.z" button in the sidebar and
   under Settings → About. Update downloads the asset next to the AppImage, checks it against the release's
   `SHA256SUMS` (no checksum, no install), makes it executable and moves it over the AppImage in one step; "Restart for
-  x.y.z" starts the new file and quits. A failed or damaged download leaves the running version alone and can be retried.
+  x.y.z" starts the new file and quits; the new process gets no inherited descriptors, so the old image's mount (the
+  AppImage runtime keeps it through fd 1023) ends with the old process. A failed or damaged download leaves the running version alone and can be retried.
   Other builds check only when "Check for updates" is pressed and link the release page ("Get x.y.z").
   `ADDONS_APP_RELEASES_URL` points the check elsewhere. (`f8_4_latest_release_picks_the_fitting_asset`,
   `f8_4_update_replaces_the_file_and_keeps_it_executable`, `f8_4_damaged_download_leaves_the_app_alone`,

@@ -86,6 +86,7 @@ dependencies = [
  "addon-core",
  "addon-testkit",
  "anyhow",
+ "libc",
  "rune",
  "rune-kit",
  "serde_json",
