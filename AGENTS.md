@@ -48,6 +48,15 @@ target/debug/culm --tree tree.json                  # element tree (keys, text, 
 Development happens on Linux; keep the build free of Linux-only steps for macOS and Windows.
 Build dependencies (Fedora): `sudo dnf install libxkbcommon-devel wayland-devel`.
 
+## Releases
+
+SemVer, 0.x while in beta (`brand::STAGE` shows "Beta" beside the version). Every user-visible change adds a line under
+"Unreleased" in `CHANGELOG.md`. To release: turn "Unreleased" into `## [x.y.z] - <date>` (and the links at the bottom),
+bump `version` in the root `Cargo.toml`, add `<release version="x.y.z" date="..."/>` to
+`packaging/dev.culm.app.metainfo.xml`, commit, then `git tag vx.y.z && git push origin vx.y.z`.
+`.github/workflows/release.yml` checks all three, runs the tests, builds the AppImage (`packaging/appimage.sh`) and
+publishes the release. Never mark a release "pre-release": the AppImage's zsync update info only follows `latest`.
+
 ## Rune rules (from Rune's own guidance — see docs/research/rune.md)
 
 - Rune is pinned to one `dev` commit in the root `Cargo.toml`. On a bump: same rev everywhere, re-copy

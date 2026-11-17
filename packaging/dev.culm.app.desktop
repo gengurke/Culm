@@ -3,10 +3,12 @@ Type=Application
 Name=Culm
 GenericName=Addon manager
 Comment=Addon manager for World of Warcraft: Forever
-# Replace with the absolute path of your build, e.g. /home/you/Projects/culm/target/release/culm
-Exec=/path/to/culm/target/release/culm
-# Copy packaging/culm.svg to ~/.local/share/icons/hicolor/scalable/apps/culm.svg
+# The AppImage runs `culm` from inside the image. For a self-built binary, put it on PATH or replace this with its
+# absolute path (e.g. /home/you/Projects/culm/target/release/culm).
+Exec=culm
+# Self-built: copy packaging/culm.svg to ~/.local/share/icons/hicolor/scalable/apps/culm.svg
 Icon=culm
 Terminal=false
-Categories=Game;Utility;
+Categories=Game;
+Keywords=WoW;Warcraft;addons;CurseForge;
 StartupWMClass=dev.culm.app

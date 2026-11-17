@@ -339,3 +339,16 @@ fn ui_buttons_explain_themselves() {
         .expect("a tooltip after resting on Rescan");
     assert!(tip.starts_with("Read the AddOns folder again"), "{tip}");
 }
+
+#[test]
+fn f7_5_about_shows_the_version_and_release_stage() {
+    let mut rt = app(loaded);
+    tap(&mut rt, "nav/settings");
+    let label = rt
+        .elements()
+        .into_iter()
+        .find(|e| e.key.as_deref() == Some("settings/version") && !e.exiting)
+        .and_then(|e| e.text)
+        .unwrap();
+    assert_eq!(label, format!("v{} · Beta", env!("CARGO_PKG_VERSION")));
+}

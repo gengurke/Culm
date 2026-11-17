@@ -2,6 +2,8 @@
 pub const APP_NAME: &str = "Culm";
 /// The line under the wordmark.
 pub const TAGLINE: &str = "Addon Manager";
+/// Release stage shown beside the version (Settings → About); empty from 1.0 on.
+pub const STAGE: &str = "Beta";
 /// Used for XDG dirs, prefs, Wayland app_id and single-instance lock.
 pub const APP_ID: &str = "dev.culm.app";
 /// Shown at the bottom of Settings → About.

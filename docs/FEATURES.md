@@ -189,6 +189,19 @@ in the theme's tones, gilded on the active chip, around a disc showing the origi
   `f7_3_every_theme_font_is_bundled`; unit
   `f7_3_every_theme_keeps_text_readable`)
 - **F7.4 Name and folders** ✅ — The app is Culm (`brand.rs`: name, tagline, app id `dev.culm.app`).
+- **F7.5 About** ✅ — Settings → About shows the version from `Cargo.toml` and, until 1.0, the release stage
+  (`brand::STAGE`, "v0.1.0 · Beta"). (`f7_5_about_shows_the_version_and_release_stage`)
+
+## F8 Releases
+- **F8.1 Versioning** ✅ — SemVer, 0.x while in beta; user-visible changes go into `CHANGELOG.md` under "Unreleased".
+- **F8.2 CI** ✅ — `.github/workflows/ci.yml` runs `cargo fmt --check`, `cargo clippy --all-targets -D warnings` and
+  `cargo test` on Linux for every push and pull request.
+- **F8.3 Linux AppImage** ✅ — Pushing a tag `v<version>` (it must match `Cargo.toml`) runs `.github/workflows/release.yml`:
+  tests, a release build on Ubuntu 22.04 (glibc 2.35, so older distros run it), `packaging/appimage.sh` packs
+  `Culm-<version>-x86_64.AppImage` with the desktop entry, icons and AppStream metadata, and embeds the update
+  information `gh-releases-zsync|gengurke|Culm|latest|Culm-*-x86_64.AppImage.zsync`. The release carries the AppImage,
+  its `.zsync` and `SHA256SUMS`, with notes from the CHANGELOG section. Releases are never marked "pre-release":
+  zsync's `latest` skips those, and the beta shows in the version instead.
 
 ## App wiring ✅
 `crates/app/src/core_backend.rs` implements `backend::Backend` over the core: data/cache dirs from `rune::dirs::AppDirs`

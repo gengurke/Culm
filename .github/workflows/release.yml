@@ -1,0 +1,71 @@
+# Pushing a tag v<version> builds the Linux AppImage and publishes a GitHub release (F8.3).
+# Release steps: move CHANGELOG "Unreleased" to the new version, bump Cargo.toml, add a <release> line to
+# packaging/dev.culm.app.metainfo.xml, commit, `git tag v0.2.0`, push the tag.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    uses: ./.github/workflows/ci.yml
+
+  appimage:
+    needs: test
+    # The oldest supported runner: the AppImage links glibc from here, so it runs on this and anything newer.
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v5
+      - name: Version from the tag must match Cargo.toml
+        id: version
+        run: |
+          tag=${GITHUB_REF_NAME#v}
+          cargo_version=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)
+          if [[ $tag != "$cargo_version" ]]; then
+            echo "::error::Tag v$tag does not match Cargo.toml version $cargo_version"
+            exit 1
+          fi
+          grep -q "^## \[$tag\]" CHANGELOG.md || { echo "::error::CHANGELOG.md has no section for $tag"; exit 1; }
+          grep -q "<release version=\"$tag\"" packaging/dev.culm.app.metainfo.xml \
+            || { echo "::error::packaging/dev.culm.app.metainfo.xml has no <release> for $tag"; exit 1; }
+          echo "version=$tag" >> "$GITHUB_OUTPUT"
+      - name: Build and packaging dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libxkbcommon-dev libwayland-dev librsvg2-bin zsync
+      - name: Rust toolchain (from rust-toolchain.toml)
+        run: rustup toolchain install
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo build --release --locked
+      - name: AppImage
+        run: packaging/appimage.sh target/release/culm "${{ steps.version.outputs.version }}" dist
+      - name: Checksums
+        working-directory: dist
+        run: sha256sum Culm-*.AppImage Culm-*.AppImage.zsync > SHA256SUMS
+      - name: Release notes from CHANGELOG.md
+        run: |
+          awk -v v="${{ steps.version.outputs.version }}" '
+            $0 ~ "^## \\[" v "\\]" { on = 1; next }
+            on && /^## \[/ { exit }
+            on && /^\[.*\]: / { exit }
+            on { print }
+          ' CHANGELOG.md > dist/notes.md
+          cat >> dist/notes.md <<'NOTES'
+
+          ### Install
+          Download the `.AppImage`, make it executable (`chmod +x Culm-*.AppImage`) and start it. With
+          [Gear Lever](https://flathub.org/apps/it.mijorus.gearlever) it gets a menu entry and updates itself.
+          NOTES
+      # Never a "pre-release": the zsync update info asks for `latest`, which skips those. The beta shows in the version.
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            --title "Culm ${{ steps.version.outputs.version }} (Beta)" \
+            --notes-file dist/notes.md \
+            dist/Culm-*.AppImage dist/Culm-*.AppImage.zsync dist/SHA256SUMS

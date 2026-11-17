@@ -3,7 +3,7 @@
 An addon manager for **World of Warcraft: Forever** on Linux, written in Rust on the
 [Rune](https://github.com/anomalyco/rune) GUI framework.
 
-**Status:** early but usable. Detects Forever clients in Wine/Proton/Faugus/Lutris/Bottles prefixes, imports
+**Status:** beta (0.x): usable, but expect rough edges and changes. Linux first; Windows and macOS later. Detects Forever clients in Wine/Proton/Faugus/Lutris/Bottles prefixes, imports
 existing addon records, scans and groups `Interface/AddOns`, updates/installs/removes addons from CurseForge,
 WowUp Hub, GitHub (WowInterface is implemented but disabled: no game-version info for Forever), and has client maintenance (cache, WTF leftovers, WTF backups). What exactly works and
 how it is tested: [docs/FEATURES.md](docs/FEATURES.md).
@@ -16,6 +16,16 @@ how it is tested: [docs/FEATURES.md](docs/FEATURES.md).
 | **Client maintenance** (Hearthwood theme) | **Themes:** Hearthwood, Emberglow, Ledger, Grimoire |
 | ![Maintenance, Hearthwood theme](docs/screenshots/maintenance-hearthwood.png) | ![The other themes](docs/screenshots/themes.png) |
 
+## Install (Linux)
+
+1. Download `Culm-<version>-x86_64.AppImage` from the [latest release](https://github.com/gengurke/Culm/releases/latest).
+2. Make it executable and start it: `chmod +x Culm-*.AppImage && ./Culm-*.AppImage`
+   (or right-click → Properties → "Allow executing as program").
+
+Recommended: open it with [Gear Lever](https://flathub.org/apps/it.mijorus.gearlever). It adds Culm to your app
+menu and updates it with one click; AppImageUpdate and AppImageLauncher work too (the AppImage carries zsync
+update information). What changed in each version: [CHANGELOG.md](CHANGELOG.md).
+
 ## Build and run
 
 ```sh
@@ -26,7 +36,7 @@ target/release/culm
 
 The first build takes a few minutes (Rune is big).
 
-A desktop entry template is in `packaging/dev.culm.app.desktop`: set `Exec` to your binary and copy it to
+A desktop entry is in `packaging/dev.culm.app.desktop`: put the binary on your `PATH` (or set `Exec` to it) and copy it to
 `~/.local/share/applications/` if you want a launcher; copy `packaging/culm.svg` to
 `~/.local/share/icons/hicolor/scalable/apps/culm.svg` for its icon.
 

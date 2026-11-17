@@ -165,7 +165,7 @@ pub fn page(s: &State) -> El {
     let about = section("About").child(setting_row(
         brand::APP_NAME,
         "An addon manager for World of Warcraft: Forever. Free software under the GNU GPL v3 or later.",
-        text(format!("v{}", env!("CARGO_PKG_VERSION")))
+        text(version_label())
             .key("settings/version")
             .font(t().ty.mono)
             .color(p.text_dim),
@@ -366,4 +366,13 @@ fn setting_row(label: &str, description: &str, control: El) -> El {
                 ),
         )
         .child(control)
+}
+
+/// "v0.1.0 · Beta" while a release stage is set, "v1.0.0" after.
+fn version_label() -> String {
+    let v = env!("CARGO_PKG_VERSION");
+    match brand::STAGE {
+        "" => format!("v{v}"),
+        stage => format!("v{v} · {stage}"),
+    }
 }
