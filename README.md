@@ -12,9 +12,9 @@ how it is tested: [docs/FEATURES.md](docs/FEATURES.md).
 
 | Get Addons: one search over CurseForge, WowUp Hub and GitHub links | Addon detail in the Grimoire theme |
 |---|---|
-| ![Get Addons](docs/screenshots/get-addons.png) | ![Addon detail, Grimoire theme](docs/screenshots/addon-detail-grimoire.jpg) |
+| ![Get Addons](docs/screenshots/get-addons.png) | ![Addon detail, Grimoire theme](docs/screenshots/addon-detail-grimoire.png) |
 | **Client maintenance** (Hearthwood theme) | **Themes:** Hearthwood, Emberglow, Ledger, Grimoire |
-| ![Maintenance, Hearthwood theme](docs/screenshots/maintenance-hearthwood.jpg) | ![The other themes](docs/screenshots/themes.jpg) |
+| ![Maintenance, Hearthwood theme](docs/screenshots/maintenance-hearthwood.png) | ![The other themes](docs/screenshots/themes.png) |
 
 ## Build and run
 
