@@ -322,6 +322,9 @@ impl World {
             },
             // Nothing served there unless a test adds it: the class chips keep their glyphs.
             class_icon_sources: vec![format!("{url}/icons/a/"), format!("{url}/icons/b/")],
+            // Nothing served there unless a test adds a release (F8.4).
+            app_releases_url: url,
+            appimage: None,
         }
     }
 
@@ -362,6 +365,24 @@ impl App {
         self.rt.pointer_down(x, y);
         self.rt.pointer_up(x, y);
         self.frame();
+    }
+
+    /// Scrolls the page under the window's middle until `key` is within the 1280×800 window.
+    pub fn reveal(&mut self, key: &str) {
+        for _ in 0..40 {
+            let (_, y) = self
+                .rt
+                .find(key)
+                .unwrap_or_else(|| panic!("nothing keyed {key} on screen"));
+            if y < 760.0 {
+                return;
+            }
+            self.rt.wheel(800.0, 400.0, -120.0);
+            for _ in 0..10 {
+                self.frame();
+            }
+        }
+        panic!("{key} stays below the window");
     }
 
     pub fn type_text(&mut self, t: &str) {

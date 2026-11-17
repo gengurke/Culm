@@ -8,7 +8,7 @@ mod toasts;
 
 use crate::brand;
 use crate::icons;
-use crate::state::{Intent, Job, Screen, State, dispatch};
+use crate::state::{AppUpdate, Intent, Job, Screen, State, dispatch};
 use crate::theme::{self, StyleExt, SurfaceExt, pal, t};
 use crate::theme::{BandDeco, Surface};
 use crate::ui::{self, Kind};
@@ -200,7 +200,53 @@ fn sidebar(s: &State) -> El {
         .child(brand_block)
         .child(nav)
         .child(el().grow(1.0))
+        .children(app_update(s, "app-update/sidebar").map(|b| col().px(16.0).pb(14.0).child(b)))
         .child(installation_picker(s))
+}
+
+/// The app's own update while one is on offer (F8.4): the sidebar shows it on every screen,
+/// Settings → About next to "Check for updates".
+pub(crate) fn app_update(s: &State, key: &str) -> Option<El> {
+    let p = pal();
+    let self_updating = s.backend.self_updating();
+    Some(match &s.app_update {
+        AppUpdate::Available(r) | AppUpdate::Failed { release: r, .. } if self_updating => ui::button(
+            key,
+            &format!("Update to {}", r.version),
+            Kind::Primary,
+            Some(&icons::DOWNLOAD),
+            true,
+            |s, tx| dispatch(s, Intent::InstallAppUpdate, tx),
+        )
+        .help("Download the new version over this one (checked before it's used); a restart starts it"),
+        AppUpdate::Available(r) | AppUpdate::Failed { release: r, .. } => ui::button(
+            key,
+            &format!("Get {}", r.version),
+            Kind::Primary,
+            Some(&icons::EXTERNAL),
+            true,
+            |s, tx| dispatch(s, Intent::InstallAppUpdate, tx),
+        )
+        .help("Open the release page: this copy can't update itself"),
+        AppUpdate::Downloading { release, done } => text(format!(
+            "Downloading {}… {}%",
+            release.version,
+            (done * 100.0).round() as u32
+        ))
+        .key(key)
+        .font(t().ty.note)
+        .color(p.text_dim),
+        AppUpdate::Ready(version) => ui::button(
+            key,
+            &format!("Restart for {version}"),
+            Kind::Primary,
+            Some(&icons::ROTATE),
+            true,
+            |s, tx| dispatch(s, Intent::RestartApp, tx),
+        )
+        .help("Close and start the new version"),
+        _ => return None,
+    })
 }
 
 /// The app name over the tagline beside the brand mark, in Inter (bundled, so it looks the same

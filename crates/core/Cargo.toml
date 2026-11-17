@@ -12,6 +12,8 @@ anyhow.workspace = true
 # Validates the downloaded class icons (already built for Rune: no new crates).
 image = { version = "0.25", default-features = false, features = ["jpeg", "png"] }
 ureq = "3"
+# Checks a downloaded app update against the release's SHA256SUMS.
+sha2 = "0.10"
 zip = { version = "9.5.1", default-features = false, features = ["deflate"] }
 
 [dev-dependencies]

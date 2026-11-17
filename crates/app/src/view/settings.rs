@@ -3,7 +3,7 @@
 use super::{band, band_note};
 use crate::brand;
 use crate::icons;
-use crate::state::{Intent, State, dispatch};
+use crate::state::{AppUpdate, Intent, State, dispatch};
 use crate::theme::{self, StyleExt, SurfaceExt, ThemeId, pal, t};
 use crate::ui::{self, Kind};
 use addon_core::Channel;
@@ -162,14 +162,43 @@ pub fn page(s: &State) -> El {
             ),
     );
 
+    let updates = setting_row(
+        "Updates",
+        &match &s.app_update {
+            AppUpdate::UpToDate => "You have the newest version.".to_string(),
+            AppUpdate::Failed { error, .. } => format!("The last update failed: {error}"),
+            AppUpdate::Ready(_) => "The new version starts with the next start.".to_string(),
+            _ if s.backend.self_updating() => {
+                "Checks GitHub for a new version when it starts.".to_string()
+            }
+            _ => "This copy updates by hand: the check finds the new version for you.".to_string(),
+        },
+        crate::view::app_update(s, "settings/app-update").unwrap_or_else(|| {
+            let checking = s.app_update == AppUpdate::Checking;
+            ui::button(
+                "settings/check-app-update",
+                if checking {
+                    "Checking…"
+                } else {
+                    "Check for updates"
+                },
+                Kind::Secondary,
+                Some(&icons::REFRESH),
+                !checking,
+                |s, tx| dispatch(s, Intent::CheckAppUpdate, tx),
+            )
+            .help("Ask GitHub whether a newer version is out (sends nothing about you)")
+        }),
+    );
     let about = section("About").child(setting_row(
         brand::APP_NAME,
         "An addon manager for World of Warcraft: Forever. Free software under the GNU GPL v3 or later.",
-        text(version_label())
+        text(brand::version_label())
             .key("settings/version")
             .font(t().ty.mono)
             .color(p.text_dim),
     ))
+    .child(updates)
     .child(
         text(brand::DISCLAIMER)
             .key("settings/disclaimer")
@@ -366,13 +395,4 @@ fn setting_row(label: &str, description: &str, control: El) -> El {
                 ),
         )
         .child(control)
-}
-
-/// "v0.1.0 · Beta" while a release stage is set, "v1.0.0" after.
-fn version_label() -> String {
-    let v = env!("CARGO_PKG_VERSION");
-    match brand::STAGE {
-        "" => format!("v{v}"),
-        stage => format!("v{v} · {stage}"),
-    }
 }

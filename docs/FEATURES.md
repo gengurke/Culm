@@ -202,6 +202,17 @@ in the theme's tones, gilded on the active chip, around a disc showing the origi
   information `gh-releases-zsync|gengurke|Culm|latest|Culm-*-x86_64.AppImage.zsync`. The release carries the AppImage,
   its `.zsync` and `SHA256SUMS`, with notes from the CHANGELOG section. Releases are never marked "pre-release":
   zsync's `latest` skips those, and the beta shows in the version instead.
+- **F8.4 Updates itself** ✅ — Run as an AppImage (`$APPIMAGE`), Culm asks GitHub for its newest release once per start
+  (`self_update::latest`, no other data sent); a newer one shows a toast and an "Update to x.y.z" button in the sidebar and
+  under Settings → About. Update downloads the asset next to the AppImage, checks it against the release's
+  `SHA256SUMS` (no checksum, no install), makes it executable and moves it over the AppImage in one step; "Restart for
+  x.y.z" starts the new file and quits. A failed or damaged download leaves the running version alone and can be retried.
+  Other builds check only when "Check for updates" is pressed and link the release page ("Get x.y.z").
+  `ADDONS_APP_RELEASES_URL` points the check elsewhere. (`f8_4_latest_release_picks_the_fitting_asset`,
+  `f8_4_update_replaces_the_file_and_keeps_it_executable`, `f8_4_damaged_download_leaves_the_app_alone`,
+  `f8_4_release_without_checksums_is_refused`, e2e `f8_4_update_from_the_sidebar_replaces_the_appimage_and_restarts_it`,
+  `f8_4_damaged_update_keeps_the_running_version`, `f8_4_a_copy_that_cant_update_itself_asks_only_when_told_and_links_the_release`,
+  `f8_4_check_says_when_the_app_is_up_to_date`)
 
 ## App wiring ✅
 `crates/app/src/core_backend.rs` implements `backend::Backend` over the core: data/cache dirs from `rune::dirs::AppDirs`

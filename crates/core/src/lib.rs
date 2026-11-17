@@ -11,6 +11,7 @@ pub mod maintenance;
 pub mod model;
 pub mod providers;
 pub mod scan;
+pub mod self_update;
 pub mod store;
 pub mod toc;
 pub mod updates;

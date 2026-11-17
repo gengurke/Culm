@@ -10,9 +10,10 @@ use crate::theme::ThemeId;
 use crate::ui::bytes;
 use addon_core::discover::{self, Discovery};
 use addon_core::providers::{self, CurseForge, GitHub, Provider, ProviderConfig};
+use addon_core::self_update::Release;
 use addon_core::{
     Addon, Category, Channel, Flavor, Installation, RemoteAddon, SearchFilter, class_icons, http,
-    install, maintenance, scan, store, updates, wow, wowup_import,
+    install, maintenance, scan, self_update, store, updates, wow, wowup_import,
 };
 use anyhow::{Context, Result, bail};
 use rune::prefs::Prefs;
@@ -36,6 +37,10 @@ pub struct Config {
     pub providers: ProviderConfig,
     /// Base URLs of the class icons, tried in order ([`class_icons::DEFAULT_SOURCES`]).
     pub class_icon_sources: Vec<String>,
+    /// GitHub API base asked for the app's own releases (F8.4).
+    pub app_releases_url: String,
+    /// The AppImage this process runs from (`$APPIMAGE`); None: the app can't update itself.
+    pub appimage: Option<PathBuf>,
 }
 
 impl Config {
@@ -43,7 +48,7 @@ impl Config {
     /// WowUp places, and the real provider endpoints unless `ADDONS_CURSEFORGE_URL`,
     /// `ADDONS_GITHUB_URL`, `ADDONS_HUB_URL` or `ADDONS_WOWINTERFACE_URL` point elsewhere (a fake server, or a
     /// closed port for an offline run); `ADDONS_CLASS_ICON_URLS` (comma-separated bases) likewise
-    /// replaces the class icon sources.
+    /// replaces the class icon sources, and `ADDONS_APP_RELEASES_URL` the API asked for Culm's own releases.
     pub fn from_env() -> Result<Config> {
         let dirs =
             rune::dirs::AppDirs::new(brand::APP_ID).context("no home folder to keep data in")?;
@@ -72,6 +77,10 @@ impl Config {
             wowup_dirs: wowup_import::default_wowup_dirs(),
             providers,
             class_icon_sources,
+            app_releases_url: std::env::var("ADDONS_APP_RELEASES_URL")
+                .unwrap_or_else(|_| self_update::DEFAULT_API_BASE.into()),
+            // Set by the AppImage runtime to the image's own path.
+            appimage: std::env::var_os("APPIMAGE").map(PathBuf::from),
         })
     }
 }
@@ -83,6 +92,8 @@ pub struct CoreBackend {
     wowup_dirs: Vec<PathBuf>,
     endpoints: ProviderConfig,
     class_icon_sources: Vec<String>,
+    app_releases_url: String,
+    appimage: Option<PathBuf>,
     prefs: Mutex<Prefs>,
     /// Serializes load-modify-save of the stored lists (workers run concurrently).
     store: Mutex<()>,
@@ -110,6 +121,8 @@ impl CoreBackend {
             wowup_dirs: c.wowup_dirs,
             endpoints: c.providers,
             class_icon_sources: c.class_icon_sources,
+            app_releases_url: c.app_releases_url,
+            appimage: c.appimage,
             prefs: Mutex::new(c.prefs),
             store: Mutex::new(()),
             disk: RwLock::new(()),
@@ -587,5 +600,43 @@ impl Backend for CoreBackend {
 
     fn class_icons(&self, each: &mut dyn FnMut(&str, Option<Vec<u8>>)) {
         class_icons::load(&self.data_dir, &self.class_icon_sources, each);
+    }
+
+    fn app_release(&self) -> Result<Option<Release>> {
+        let suffix = format!("-{}.AppImage", std::env::consts::ARCH);
+        let release = self_update::latest(&self.app_releases_url, brand::REPO, |n| {
+            n.ends_with(&suffix)
+        })?;
+        Ok(self_update::is_newer(&release.version, env!("CARGO_PKG_VERSION")).then_some(release))
+    }
+
+    fn self_updating(&self) -> bool {
+        self.appimage.is_some()
+    }
+
+    fn install_app_release(&self, release: &Release, progress: &dyn Fn(f32)) -> Result<()> {
+        let file = self
+            .appimage
+            .as_deref()
+            .context("this build can't update itself")?;
+        self_update::replace(file, release, &mut |done, total| {
+            if let Some(total) = total.filter(|t| *t > 0) {
+                progress((done as f32 / total as f32).min(1.0));
+            }
+        })
+    }
+
+    fn launch_app(&self) -> Result<()> {
+        let file = self
+            .appimage
+            .as_deref()
+            .context("this build can't restart itself")?;
+        std::process::Command::new(file)
+            .stdin(std::process::Stdio::null())
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .spawn()
+            .with_context(|| format!("start {}", file.display()))?;
+        Ok(())
     }
 }

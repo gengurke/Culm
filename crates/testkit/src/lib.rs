@@ -368,6 +368,49 @@ pub fn hub_addon(
     })
 }
 
+/// Serve a GitHub release `version` of `repo` with one asset (`asset`, `bytes`) and its `SHA256SUMS`
+/// (F8.4). `sums_override` replaces the checksum file's text, e.g. to simulate a damaged download.
+pub fn serve_app_release(
+    server: &FakeServer,
+    repo: &str,
+    version: &str,
+    asset: &str,
+    bytes: &[u8],
+    sums_override: Option<&str>,
+) {
+    use sha2::{Digest, Sha256};
+    let base = server.url();
+    let hash: String = Sha256::digest(bytes)
+        .iter()
+        .map(|b| format!("{b:02x}"))
+        .collect();
+    let sums = sums_override.map_or(format!("{hash}  {asset}\n"), String::from);
+    server.json(
+        "GET",
+        &format!("/repos/{repo}/releases/latest"),
+        &json!({
+            "tag_name": format!("v{version}"),
+            "html_url": format!("{base}/{repo}/releases/tag/v{version}"),
+            "assets": [
+                { "name": asset, "browser_download_url": format!("{base}/download/v{version}/{asset}") },
+                { "name": "SHA256SUMS", "browser_download_url": format!("{base}/download/v{version}/SHA256SUMS") },
+            ]
+        }),
+    );
+    server.bytes(
+        "GET",
+        &format!("/download/v{version}/{asset}"),
+        bytes.to_vec(),
+    );
+    server.respond(
+        "GET",
+        &format!("/download/v{version}/SHA256SUMS"),
+        200,
+        "text/plain",
+        sums,
+    );
+}
+
 /// Build an in-memory zip from `(path, contents)` pairs (deflate).
 pub fn make_zip(entries: &[(&str, &[u8])]) -> Vec<u8> {
     let mut zip = zip::ZipWriter::new(Cursor::new(Vec::new()));

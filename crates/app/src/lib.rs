@@ -320,6 +320,16 @@ const SCENES: &[Scene] = &[
         s.screen = Screen::Settings;
         s.settings.default_channel = Channel::Stable;
     }),
+    ("app-update", |s| {
+        loaded(s);
+        s.screen = Screen::Settings;
+        s.app_update = state::AppUpdate::Available(addon_core::self_update::Release {
+            version: "0.2.0".into(),
+            page: "https://github.com/gengurke/Culm/releases/tag/v0.2.0".into(),
+            asset: None,
+            sums: None,
+        });
+    }),
     ("onboarding", |s| {
         s.settings = s.backend.load_settings();
         s.job = Job::Idle;

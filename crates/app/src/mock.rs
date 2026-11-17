@@ -1284,4 +1284,25 @@ impl Backend for MockBackend {
 
     /// None: the mock draws the own class glyphs.
     fn class_icons(&self, _each: &mut dyn FnMut(&str, Option<Vec<u8>>)) {}
+
+    fn app_release(&self) -> Result<Option<addon_core::self_update::Release>> {
+        std::thread::sleep(self.delay);
+        Ok(None)
+    }
+
+    fn self_updating(&self) -> bool {
+        false
+    }
+
+    fn install_app_release(
+        &self,
+        _release: &addon_core::self_update::Release,
+        _progress: &dyn Fn(f32),
+    ) -> Result<()> {
+        bail!("the mock can't update itself")
+    }
+
+    fn launch_app(&self) -> Result<()> {
+        bail!("the mock can't restart")
+    }
 }

@@ -4,6 +4,7 @@
 
 use crate::theme::ThemeId;
 use addon_core::discover::Entry;
+use addon_core::self_update::Release;
 use addon_core::{Addon, Category, Channel, Installation, RemoteAddon, SearchFilter, Sort};
 use anyhow::Result;
 use std::path::Path;
@@ -178,4 +179,12 @@ pub trait Backend: Send + Sync {
     /// The original class icons for the class chips (F4.6), from the cache or downloaded once;
     /// `each(slug, None)` for a class whose icon could not be had (its glyph stays).
     fn class_icons(&self, each: &mut dyn FnMut(&str, Option<Vec<u8>>));
+    /// The app's newest release if it is newer than this build (F8.4).
+    fn app_release(&self) -> Result<Option<Release>>;
+    /// Whether this build can replace itself (it runs as an AppImage); otherwise updates are by hand.
+    fn self_updating(&self) -> bool;
+    /// Replace the app's own file with `release` (checked against its checksums); `progress` 0..=1.
+    fn install_app_release(&self, release: &Release, progress: &dyn Fn(f32)) -> Result<()>;
+    /// Start the (updated) app as a new process; the caller quits.
+    fn launch_app(&self) -> Result<()>;
 }

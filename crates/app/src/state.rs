@@ -2,10 +2,12 @@
 //! worker result ([`State::apply`]). Views only read this; handlers call `dispatch`.
 
 use crate::backend::{AddonOrder, Backend, Backup, Found, Maintenance, Settings, SortBy};
+use crate::brand::{self, version_label};
 use crate::theme::ThemeId;
 use crate::worker::{self, Msg};
 use addon_core::discover::{Entry, source_ids};
 use addon_core::providers::link_source;
+use addon_core::self_update::Release;
 use addon_core::{
     Addon, Category, Channel, IgnoreReason, Installation, RemoteAddon, SearchFilter, Sort,
 };
@@ -32,6 +34,38 @@ pub enum Job {
     Idle,
     Scanning,
     CheckingUpdates,
+}
+
+/// The app's own update (F8.4).
+#[derive(Debug, Clone, PartialEq)]
+pub enum AppUpdate {
+    /// Not asked yet (or the quiet check at start failed: offline is not news).
+    Unknown,
+    Checking,
+    UpToDate,
+    Available(Release),
+    Downloading {
+        release: Release,
+        done: f32,
+    },
+    /// The new version is in place; it runs after a restart.
+    Ready(String),
+    Failed {
+        release: Release,
+        error: String,
+    },
+}
+
+impl AppUpdate {
+    /// The release on offer, while one is.
+    pub fn release(&self) -> Option<&Release> {
+        match self {
+            AppUpdate::Available(r)
+            | AppUpdate::Downloading { release: r, .. }
+            | AppUpdate::Failed { release: r, .. } => Some(r),
+            _ => None,
+        }
+    }
 }
 
 /// A running or failed operation on one addon (or one search result being installed).
@@ -282,6 +316,12 @@ pub enum Intent {
     SetTheme(ThemeId),
     /// A My Addons column header: order by it, or flip the order if it already is (F2.6).
     SortAddons(SortBy),
+    /// Settings → About: ask GitHub for a newer app version (F8.4).
+    CheckAppUpdate,
+    /// Download the offered version over the running AppImage (or, if it can't, open its page).
+    InstallAppUpdate,
+    /// Start the updated app and quit this one.
+    RestartApp,
 }
 
 pub struct State {
@@ -325,6 +365,8 @@ pub struct State {
     // Settings
     pub api_key: TextEdit,
     pub api_key_revealed: bool,
+
+    pub app_update: AppUpdate,
 
     pub toasts: Vec<Toast>,
     next_toast: u64,
@@ -381,6 +423,7 @@ impl State {
             backups: vec![],
             api_key: TextEdit::new("").secure(),
             api_key_revealed: false,
+            app_update: AppUpdate::Unknown,
             toasts: vec![],
             next_toast: 1,
             images: None,
@@ -639,6 +682,10 @@ impl State {
                 if self.current.is_some() {
                     self.start_scan();
                 }
+                // Only a build that can update itself asks on its own (one GitHub request per start).
+                if self.backend.self_updating() {
+                    self.check_app_update(false);
+                }
             }
             Msg::Scanned {
                 result: Ok((addons, warnings)),
@@ -823,6 +870,60 @@ impl State {
                 self.toast(Tone::Danger, "WowUp import failed", e)
             }
             Msg::Failed { title, error } => self.toast(Tone::Danger, title, error),
+            Msg::AppRelease { asked, result } => match result {
+                Ok(Some(release)) => {
+                    let how = if self.backend.self_updating() {
+                        "Update from the sidebar; it takes a restart"
+                    } else {
+                        "Download it from the sidebar"
+                    };
+                    self.toast(
+                        Tone::Info,
+                        format!("{} {} is available", brand::APP_NAME, release.version),
+                        how,
+                    );
+                    self.app_update = AppUpdate::Available(release);
+                }
+                Ok(None) => {
+                    self.app_update = AppUpdate::UpToDate;
+                    if asked {
+                        self.toast(
+                            Tone::Success,
+                            format!("{} is up to date", brand::APP_NAME),
+                            version_label(),
+                        );
+                    }
+                }
+                Err(e) => {
+                    self.app_update = AppUpdate::Unknown;
+                    if asked {
+                        self.toast(Tone::Danger, "Could not check for updates", e);
+                    }
+                }
+            },
+            Msg::AppProgress(p) => {
+                if let AppUpdate::Downloading { done, .. } = &mut self.app_update {
+                    *done = p;
+                }
+            }
+            Msg::AppInstalled { version, result } => {
+                let release = self.app_update.release().cloned();
+                match (result, release) {
+                    (Ok(()), _) => {
+                        self.toast(
+                            Tone::Success,
+                            format!("{} {version} is installed", brand::APP_NAME),
+                            "Restart to use it",
+                        );
+                        self.app_update = AppUpdate::Ready(version);
+                    }
+                    (Err(error), Some(release)) => {
+                        self.toast(Tone::Danger, "Update failed", error.clone());
+                        self.app_update = AppUpdate::Failed { release, error };
+                    }
+                    (Err(error), None) => self.toast(Tone::Danger, "Update failed", error),
+                }
+            }
         }
     }
 
@@ -1068,6 +1169,17 @@ impl State {
     fn save_settings(&mut self) {
         let flush = self.queue_settings();
         worker::spawn(self, "settings", move |b, post| flush(b, post));
+    }
+
+    /// Asks for the app's newest release; `asked`: the user pressed the button (say "up to date").
+    fn check_app_update(&mut self, asked: bool) {
+        self.app_update = AppUpdate::Checking;
+        worker::spawn(self, "app-update", move |b, post| {
+            post.send(Msg::AppRelease {
+                asked,
+                result: b.app_release().map_err(err),
+            })
+        });
     }
 
     /// Queues the current settings and returns the worker step that writes the newest queued ones.
@@ -1429,6 +1541,43 @@ pub fn dispatch(s: &mut State, intent: Intent, tx: &mut Tx) {
             s.settings.theme = theme;
             s.save_settings();
         }
+        Intent::CheckAppUpdate => {
+            if !matches!(
+                s.app_update,
+                AppUpdate::Checking | AppUpdate::Downloading { .. } | AppUpdate::Ready(_)
+            ) {
+                s.check_app_update(true);
+            }
+        }
+        Intent::InstallAppUpdate => {
+            let Some(release) = s.app_update.release().cloned() else {
+                return;
+            };
+            if matches!(s.app_update, AppUpdate::Downloading { .. }) {
+                return;
+            }
+            if !s.backend.self_updating() {
+                let _ = tx.open_url(&release.page);
+                return;
+            }
+            s.app_update = AppUpdate::Downloading {
+                release: release.clone(),
+                done: 0.0,
+            };
+            worker::spawn(s, "app-update", move |b, post| {
+                let result = b
+                    .install_app_release(&release, &|p| post.send(Msg::AppProgress(p)))
+                    .map_err(err);
+                post.send(Msg::AppInstalled {
+                    version: release.version,
+                    result,
+                });
+            });
+        }
+        Intent::RestartApp => match s.backend.launch_app() {
+            Ok(()) => tx.quit(),
+            Err(e) => s.toast(Tone::Danger, "Could not restart", err(e)),
+        },
     }
 }
 

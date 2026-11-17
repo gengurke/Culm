@@ -3,6 +3,7 @@
 
 use crate::backend::{Backend, Backup, Found, Settings, Warned};
 use crate::state::{MaintCard, State};
+use addon_core::self_update::Release;
 use addon_core::{Addon, Category, Installation};
 use rune::Waker;
 use std::sync::mpsc::Sender;
@@ -80,6 +81,18 @@ pub enum Msg {
     Failed {
         title: String,
         error: String,
+    },
+    /// The app's newest release, if newer (F8.4); `asked`: the user pressed "Check for updates".
+    AppRelease {
+        asked: bool,
+        result: Result<Option<Release>, String>,
+    },
+    /// Download progress 0..=1 of the app update.
+    AppProgress(f32),
+    /// The app's file was replaced by `version`.
+    AppInstalled {
+        version: String,
+        result: Result<(), String>,
     },
 }
 
