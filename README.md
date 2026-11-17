@@ -24,8 +24,7 @@ cargo build --release
 target/release/culm
 ```
 
-Without root: a gitignored `.cargo/config.toml` can set `LIBRARY_PATH` to a shim dir containing
-`libxkbcommon.so -> /usr/lib64/libxkbcommon.so.0` (see `AGENTS.md`). The first build takes a few minutes (Rune is big).
+The first build takes a few minutes (Rune is big).
 
 A desktop entry template is in `packaging/dev.culm.app.desktop`: set `Exec` to your binary and copy it to
 `~/.local/share/applications/` if you want a launcher; copy `packaging/culm.svg` to

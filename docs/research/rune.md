@@ -146,15 +146,7 @@ The scratch app lives at `/tmp/claude-1000/rune-research/hello-rune`. It is the 
 | `cargo build --release` | 2 min 22 s. Binary is 38 MB, **29.5 MB stripped**, much bigger than the README's 10.9 MB macOS figure (Linux links the ICU word dictionaries and zbus/tokio). `ldd` shows only libc/libm/libgcc_s; X11, Wayland and Vulkan are dlopened. |
 | `--snap` on the release binary | Refused: "this build has no agent tooling … `features = ["tooling"]`" |
 
-**Link fix:**
-
-- Preferred: `sudo dnf install libxkbcommon-devel wayland-devel`.
-- Without root, shim the unversioned `.so`. `LIBRARY_PATH` does not change rustc fingerprints, so nothing rebuilds:
-
-  ```sh
-  mkdir -p ~/.local/lib/rune-shim && ln -sf /usr/lib64/libxkbcommon.so.0 ~/.local/lib/rune-shim/libxkbcommon.so
-  export LIBRARY_PATH=~/.local/lib/rune-shim
-  ```
+**Link fix:** `sudo dnf install libxkbcommon-devel wayland-devel`.
 
 Scripted e2e file used:
 

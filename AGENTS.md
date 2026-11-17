@@ -46,8 +46,7 @@ target/debug/culm --tree tree.json                  # element tree (keys, text, 
 ```
 
 Development happens on Linux; keep the build free of Linux-only steps for macOS and Windows.
-Build needs `libxkbcommon-devel wayland-devel` (Fedora). Without root, a gitignored
-`.cargo/config.toml` sets `LIBRARY_PATH` to a shim dir containing `libxkbcommon.so -> /usr/lib64/libxkbcommon.so.0`.
+Build dependencies (Fedora): `sudo dnf install libxkbcommon-devel wayland-devel`.
 
 ## Rune rules (from Rune's own guidance — see docs/research/rune.md)
 
