@@ -73,8 +73,7 @@ Culm builds on the work of others:
   against its test fixture. Culm can import WowUp's addon records (Settings), and it searches the
   [WowUp Hub](https://wowup.io/addons), WowUp's public index of GitHub-hosted addons.
 - **[Rune](https://github.com/anomalyco/rune)**, the GUI framework Culm is drawn with.
-- **[Polestar](https://www.polestar.com)**'s calm, minimal design language inspired the default Moonlit theme. Culm
-  uses none of its assets.
+- **[Polestar](https://www.polestar.com)**'s calm, minimal design language inspired the Moonlit theme.
 
 Culm is an independent project, not affiliated with or endorsed by WowUp or Polestar.
 
