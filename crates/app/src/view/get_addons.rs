@@ -656,6 +656,8 @@ fn install_action(s: &State, remote: &RemoteAddon, key: &str, label: &str, prima
             .child(text("Installing…").font(t().ty.small).color(p.text_dim)),
         None => {
             let r = remote.clone();
+            // No URL: the author allows downloads only through the source's own app.
+            let allowed = remote.files.iter().any(|f| !f.download_url.is_empty());
             let b = ui::button(
                 format!("{key}/install"),
                 label,
@@ -665,14 +667,21 @@ fn install_action(s: &State, remote: &RemoteAddon, key: &str, label: &str, prima
                     Kind::Secondary
                 },
                 Some(&icons::DOWNLOAD),
-                true,
+                allowed,
                 move |s, tx| dispatch(s, Intent::Install(Box::new(r.clone())), tx),
             )
-            .help(format!(
-                "Download {} from {} into your AddOns folder",
-                remote.name,
-                source_label(&remote.provider)
-            ));
+            .help(if allowed {
+                format!(
+                    "Download {} from {} into your AddOns folder",
+                    remote.name,
+                    source_label(&remote.provider)
+                )
+            } else {
+                format!(
+                    "The author only allows downloads through {}'s own app or website",
+                    source_label(&remote.provider)
+                )
+            });
             if primary { b.w_full() } else { b.h(28.0) }
         }
     }

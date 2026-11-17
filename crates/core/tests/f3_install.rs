@@ -316,3 +316,20 @@ fn f4_3_install_takes_only_shared_folders_from_other_records() {
     assert_eq!(store::owned_folders(&overlapping, &b), ["B"]);
     assert_eq!(store::owned_folders(&list, &b), ["B", "LibShared"]);
 }
+
+#[test]
+fn f4_3_no_download_url_means_the_author_said_no() {
+    // CurseForge sends no URL when the author turned off downloads outside its own app.
+    let w = fake_wow();
+    let mut file = remote_file("10", "1.0", Channel::Stable, &[]);
+    file.download_url.clear();
+    let remote = remote_addon("42", "Foo", vec![file]);
+    let err = install::install_remote(&w.inst, &remote, Channel::Stable, &|_| {
+        panic!("nothing is downloaded")
+    })
+    .unwrap_err();
+    assert!(
+        format!("{err:#}").contains("only allows downloads"),
+        "{err:#}"
+    );
+}

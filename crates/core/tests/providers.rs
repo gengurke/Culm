@@ -89,11 +89,20 @@ fn f4_1_search_curseforge_filters_forever_files() {
     assert_eq!(stable.dependencies[0].external_id, "1001");
     assert_eq!(a.categories, ["Combat"]);
     assert_eq!(a.updated_at.as_deref(), Some("2026-10-12T10:00:00Z"));
-    // Null downloadUrl falls back to the CDN path.
-    assert_eq!(
-        a.files[0].download_url,
-        "https://edge.forgecdn.net/files/5200/5/Details-Forever-20261001-beta.zip"
-    );
+    // Null downloadUrl: the author allows downloads only in CurseForge's app, so no URL is made up.
+    assert_eq!(a.files[0].download_url, "");
+}
+
+#[test]
+fn f3_2_only_curseforge_hosts_get_the_key() {
+    use providers::curseforge::is_curseforge_host as cf;
+    assert!(cf("https://edge.forgecdn.net/files/1/2/a.zip"));
+    assert!(cf("https://mediafilez.forgecdn.net/files/1/2/a.zip"));
+    assert!(cf("https://www.curseforge.com/wow/addons/x"));
+    assert!(!cf("https://forgecdn.net.evil.example/a.zip"));
+    assert!(!cf("https://evilforgecdn.net/a.zip"));
+    assert!(!cf("https://edge.forgecdn.net@evil.example/a.zip"));
+    assert!(!cf("https://github.com/a/b/releases/download/v1/a.zip"));
 }
 
 #[test]

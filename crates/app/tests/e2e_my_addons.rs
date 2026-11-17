@@ -91,7 +91,7 @@ fn f2_1_thumbnails_load_over_initials() {
         world
             .tmp
             .path()
-            .join("cache/thumbnails")
+            .join("cache/images")
             .read_dir()
             .unwrap()
             .next()

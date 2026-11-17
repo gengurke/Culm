@@ -19,6 +19,16 @@ const FOREVER_TYPE_ID: u32 = 88568;
 /// The "Addons" class of game 1: the root of the addon category tree.
 const ADDONS_CLASS_ID: u32 = 1;
 
+/// Whether `url` is on a CurseForge host (`forgecdn.net`, `curseforge.com` and their subdomains):
+/// the only places the API key is sent to besides the API itself.
+pub fn is_curseforge_host(url: &str) -> bool {
+    http::host(url).is_some_and(|h| {
+        ["forgecdn.net", "curseforge.com"]
+            .iter()
+            .any(|d| h == *d || h.ends_with(&format!(".{d}")))
+    })
+}
+
 pub struct CurseForge {
     pub api_key: Option<String>,
     pub base_url: String,
@@ -272,16 +282,9 @@ fn to_file(f: &CfFile) -> RemoteFile {
             3 => Channel::Alpha,
             _ => Channel::Stable,
         },
-        // shortcut: null downloadUrl (distribution disabled) → the public CDN path pattern, which
-        // works today; switch to GET /v1/mods/{id}/files/{fileId}/download-url if it stops working.
-        download_url: f.download_url.clone().unwrap_or_else(|| {
-            format!(
-                "https://edge.forgecdn.net/files/{}/{}/{}",
-                f.id / 1000,
-                f.id % 1000,
-                f.file_name.replace(' ', "%20")
-            )
-        }),
+        // Null when the author turned off downloads outside CurseForge's own app: then there is no
+        // URL, and the install says so instead of building one (that would bypass their choice).
+        download_url: f.download_url.clone().unwrap_or_default(),
         released_at: f.file_date.clone(),
         game_versions: f
             .sortable_game_versions

@@ -499,3 +499,38 @@ fn f4_6_class_chips_keep_their_glyphs_without_icons() {
     assert!(app.has("class/1028") && !app.has("class-icon/warrior"));
     assert_eq!(icon_requests(&world), 2, "one attempt per source per run");
 }
+
+#[test]
+fn f4_3_install_is_greyed_out_when_the_author_blocks_other_apps() {
+    // CurseForge sends no downloadUrl when the author allows downloads only in its own app.
+    let world = World::new().with_key("test-key");
+    let mut file = addon_testkit::cf_file(50, "5.0", 1, &["Eff"], 0);
+    file["downloadUrl"] = serde_json::Value::Null;
+    let eff = addon_testkit::cf_mod_with_files(5, "Eff", vec![file]);
+    world.server.json(
+        "GET",
+        "/v1/mods/search",
+        &addon_testkit::cf_envelope(serde_json::json!([eff])),
+    );
+    let mut app = world.app();
+    app.wait_idle();
+    app.tap("nav/get-addons");
+    app.tap("get-addons/search");
+    app.type_text("eff");
+    app.wait_for(
+        "search results",
+        |s| matches!(&s.results, Fetch::Ready(r) if !r.entries.is_empty()),
+    );
+    let help = app
+        .rt
+        .elements()
+        .iter()
+        .find(|e| e.key.as_deref() == Some("remote/5/install"))
+        .and_then(|e| e.help.clone())
+        .unwrap_or_default();
+    assert!(help.contains("only allows downloads"), "{help}");
+    app.tap("remote/5/install");
+    app.wait_idle();
+    assert!(!app.has("remote/5/installed"), "nothing was installed");
+    assert!(!world.exists("Interface/AddOns/Eff"));
+}

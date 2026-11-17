@@ -50,6 +50,8 @@ struct Route {
     status: u16,
     content_type: String,
     body: Vec<u8>,
+    /// Sent as `Location` (redirects).
+    location: Option<String>,
 }
 
 /// Local HTTP server on 127.0.0.1:<random>. Unrouted requests get 404. Stops when dropped.
@@ -98,12 +100,20 @@ impl FakeServer {
                         .cloned();
                     requests.lock().unwrap().push(recorded);
                     let res = match route {
-                        Some(r) => tiny_http::Response::from_data(r.body)
-                            .with_status_code(r.status)
-                            .with_header(
-                                tiny_http::Header::from_bytes("Content-Type", r.content_type)
-                                    .unwrap(),
-                            ),
+                        Some(r) => {
+                            let mut res = tiny_http::Response::from_data(r.body)
+                                .with_status_code(r.status)
+                                .with_header(
+                                    tiny_http::Header::from_bytes("Content-Type", r.content_type)
+                                        .unwrap(),
+                                );
+                            if let Some(l) = r.location {
+                                res.add_header(
+                                    tiny_http::Header::from_bytes("Location", l).unwrap(),
+                                );
+                            }
+                            res
+                        }
                         None => tiny_http::Response::from_data(b"no route".to_vec())
                             .with_status_code(404),
                     };
@@ -140,6 +150,19 @@ impl FakeServer {
             status,
             content_type: content_type.into(),
             body: body.into(),
+            location: None,
+        });
+    }
+
+    /// Answer `GET path` with a 302 to `location`.
+    pub fn redirect(&self, path: &str, location: &str) {
+        self.routes.lock().unwrap().push(Route {
+            method: "GET".into(),
+            path: path.into(),
+            status: 302,
+            content_type: "text/plain".into(),
+            body: Vec::new(),
+            location: Some(location.into()),
         });
     }
 

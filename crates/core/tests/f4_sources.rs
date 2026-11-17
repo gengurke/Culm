@@ -385,8 +385,36 @@ fn f3_2_big_downloads_stream_to_a_file() {
 
     let mut file = tempfile::tempfile().unwrap();
     let mut last = (0, None::<u64>);
-    let n = http::download_to(&url, &mut file, &mut |done, total| last = (done, total)).unwrap();
+    let n = http::download_to(&url, None, &mut file, &mut |done, total| {
+        last = (done, total)
+    })
+    .unwrap();
     assert_eq!(n, size as u64);
     assert_eq!(last.0, size as u64, "progress reaches the end");
     assert_eq!(file.metadata().unwrap().len(), size as u64);
+}
+
+#[test]
+fn f3_2_download_keys_go_only_to_their_hosts_even_across_redirects() {
+    // The CurseForge CDN wants the key; a redirect elsewhere must not carry it along.
+    let s = FakeServer::start();
+    s.redirect("/cdn/a.zip", "/cdn/b.zip");
+    s.bytes("GET", "/cdn/b.zip", b"zip".to_vec());
+    s.redirect("/cdn/c.zip", &format!("{}/other/d.zip", s.url()));
+    s.bytes("GET", "/other/d.zip", b"zip".to_vec());
+    let key = http::ScopedHeader {
+        name: "x-api-key",
+        value: "test-key",
+        to: |u| u.contains("/cdn/"),
+    };
+    for start in ["/cdn/a.zip", "/cdn/c.zip"] {
+        let url = format!("{}{start}", s.url());
+        let n = http::download_to(&url, Some(&key), &mut Vec::new(), &mut |_, _| {}).unwrap();
+        assert_eq!(n, 3);
+    }
+    let key_at = |p: &str| s.requests_to(p)[0].header("x-api-key").map(str::to_string);
+    assert_eq!(key_at("/cdn/a.zip").as_deref(), Some("test-key"));
+    assert_eq!(key_at("/cdn/b.zip").as_deref(), Some("test-key"));
+    assert_eq!(key_at("/cdn/c.zip").as_deref(), Some("test-key"));
+    assert_eq!(key_at("/other/d.zip"), None, "the key stays with its host");
 }

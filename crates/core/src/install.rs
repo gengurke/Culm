@@ -231,6 +231,12 @@ pub fn install_file(
     file: &RemoteFile,
     download: Download,
 ) -> Result<Addon> {
+    if file.download_url.is_empty() {
+        bail!(
+            "{}: the author only allows downloads through the source's own app or website",
+            addon.name
+        );
+    }
     let zip =
         download(&file.download_url).with_context(|| format!("downloading {}", addon.name))?;
     let folders = install_zip(inst, zip, &addon.folders)

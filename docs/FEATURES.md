@@ -19,7 +19,7 @@ What the addon manager does, one short paragraph per feature. Ids are referenced
 ## F2 My Addons (local)
 - **F2.1 Scan** ✅ — Reads `Interface/AddOns`, picks the right TOC per folder (Forever: `_Forever`/`_Camelot`
   first, then the plain TOC), and reads title, version, author, interface version. Rows show provider thumbnails
-  (downloaded on a worker, cached in the cache dir) over an initials tile. (`f2_1_scan_picks_forever_toc`,
+  (downloaded on a worker, cached in the cache dir; CurseForge's only in memory, its terms forbid storing its data) over an initials tile. (`f2_1_scan_picks_forever_toc`,
   e2e `f2_1_f2_3_scan_shows_matched_and_unknown_addons`, `f2_1_thumbnails_load_over_initials`)
 - **F2.2 Grouping** ✅ — Folders that belong to one addon (same provider match, folders listed in the installed file,
   or unmatched folders requiring a prefix parent such as `Details_*`) form one entry. (`f2_2_groups_by_provider_and_dependencies`)
@@ -63,7 +63,8 @@ What the addon manager does, one short paragraph per feature. Ids are referenced
   cache, so big addons (audio packs pass 512 MB) never sit in memory, validates it (no `..`/absolute paths/symlinks,
   at least one top-level folder with a `.toc`, so a wrapper-folder zip can't replace the addon), extracts next to AddOns,
   swaps the folders with backup + rollback, removes folders the new version dropped (only folders no other record lists),
-  records the new version. A running update can't be started twice, also across a rescan. (e2e `f3_2_update_replaces_folder_contents`, `f3_2_update_all_updates_every_outdated_addon`, core: `f3_2_download_reports_progress_and_http_errors`, `f3_2_update_swaps_folders_and_rolls_back_on_bad_zip`, `f3_2_swap_failure_restores_backups`, `f3_2_big_downloads_stream_to_a_file`)
+  records the new version. A running update can't be started twice, also across a rescan. CurseForge CDN downloads carry the
+  user's key (`x-api-key`), sent only to CurseForge hosts and checked again on every redirect. (e2e `f3_2_update_replaces_folder_contents`, `f3_2_update_all_updates_every_outdated_addon`, core: `f3_2_download_reports_progress_and_http_errors`, `f3_2_update_swaps_folders_and_rolls_back_on_bad_zip`, `f3_2_swap_failure_restores_backups`, `f3_2_big_downloads_stream_to_a_file`, `f3_2_download_keys_go_only_to_their_hosts_even_across_redirects`, `f3_2_only_curseforge_hosts_get_the_key`)
 - **F3.3 Channels** 🚧 — Per addon Stable / Beta / Alpha in the detail panel (stored, rechecked); "Beta" also accepts
   stable files, etc. (`f3_1_check_updates_batches_per_provider_and_isolates_failures`)
 - **F3.4 Ignore** ✅ — Ignored addons are never checked or updated; can be un-ignored; stored. Git checkouts are ignored
@@ -82,8 +83,10 @@ What the addon manager does, one short paragraph per feature. Ids are referenced
   grouped like search (`discover::featured`). CurseForge: `POST /v1/mods/featured`, popular + recentlyUpdated deduped
   (`f4_2_popular_lists_featured`, e2e `f4_8_a_result_on_two_sources_installs_from_the_picked_one`).
 - **F4.3 Install** ✅ — Installs a search result with the default channel; it appears in My Addons and takes the folders it
-  installed from other records (records left without folders go). (`f4_3_install_creates_record_and_replaces_existing_folders`,
-  `f4_3_install_takes_only_shared_folders_from_other_records`, e2e `f4_1_search_and_f4_3_install_from_a_result`)
+  installed from other records (records left without folders go). When the author allows downloads only in CurseForge's own app
+  (no `downloadUrl`), Install is greyed out with the reason in its tooltip and never builds a URL itself. (`f4_3_install_creates_record_and_replaces_existing_folders`,
+  `f4_3_install_takes_only_shared_folders_from_other_records`, `f4_3_no_download_url_means_the_author_said_no`, e2e `f4_1_search_and_f4_3_install_from_a_result`,
+  `f4_3_install_is_greyed_out_when_the_author_blocks_other_apps`)
 - **F4.4 Install from URL** ✅ — The F4.1 field resolves a pasted CurseForge addon URL, WowUp Hub page or GitHub repo URL (releases with
   `release.json` or a `*-forever.zip`/plain zip asset) on a worker and installs it from its card or detail. Provider `from_url` done for CurseForge (slug search),
   GitHub (`owner/repo`, newest 5 non-draft releases, prerelease = Beta; plain-zip fallback skips zips tagged for other
@@ -99,7 +102,7 @@ What the addon manager does, one short paragraph per feature. Ids are referenced
   result again closes it. (`f4_5_description_is_plain_text`, `f4_5_github_readme_is_plain_text`,
   e2e `f4_5_clicking_a_result_opens_its_detail_and_esc_closes_it`, `f4_4_install_from_github_url_without_a_key`)
 - **F4.6 Filters** ✅ — A category dropdown (CurseForge's WoW addon tree from `GET /v1/categories?gameId=1`, fetched once
-  per run and cached 7 days in the cache dir; subcategories indented, the Class subtree left out), a row of class chips
+  per run and never stored, per CurseForge's terms; subcategories indented, the Class subtree left out), a row of class chips
   (only Forever's nine classes, picked by CurseForge category id, each with its round medallion: a bevelled metal ring
 in the theme's tones, gilded on the active chip, around a disc showing the original WoW class icon cut round (only its baked 2 px frame is cropped; the ring never covers the picture); one at a time, a second
   click clears it, a class and a dropdown category replace each other since `categoryId` takes one) and a

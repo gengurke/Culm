@@ -20,10 +20,6 @@ use std::hash::{DefaultHasher, Hash, Hasher};
 use std::io::Seek;
 use std::path::{Path, PathBuf};
 use std::sync::{Mutex, RwLock};
-use std::time::Duration;
-
-/// How long the cached CurseForge category list is used before it is fetched again.
-const CATEGORIES_MAX_AGE: Duration = Duration::from_secs(7 * 24 * 3600);
 
 /// Where the backend reads and writes. Tests build one over temp dirs and a fake server.
 pub struct Config {
@@ -103,6 +99,10 @@ const ADDON_ORDER: &str = "addon_order";
 
 impl CoreBackend {
     pub fn new(c: Config) -> CoreBackend {
+        // Earlier versions stored CurseForge data here (categories, thumbnails mixed with others);
+        // its terms don't allow that. Best effort: both are rebuilt when needed.
+        let _ = std::fs::remove_file(c.cache_dir.join("curseforge-categories.json"));
+        let _ = std::fs::remove_dir_all(c.cache_dir.join("thumbnails"));
         CoreBackend {
             data_dir: c.data_dir,
             cache_dir: c.cache_dir,
@@ -171,7 +171,17 @@ impl CoreBackend {
         std::fs::create_dir_all(&dir).with_context(|| format!("creating {}", dir.display()))?;
         let mut file =
             tempfile::tempfile_in(&dir).context("creating a temp file for the download")?;
-        http::download_to(url, &mut file, &mut |done, total| {
+        // CurseForge's CDN wants the user's key; it never goes to any other host.
+        let key = self.load_settings().curseforge_key;
+        if key.is_none() && providers::curseforge::is_curseforge_host(url) {
+            bail!("CurseForge downloads need an API key (Settings)");
+        }
+        let header = key.as_deref().map(|value| http::ScopedHeader {
+            name: "x-api-key",
+            value,
+            to: providers::curseforge::is_curseforge_host,
+        });
+        http::download_to(url, header.as_ref(), &mut file, &mut |done, total| {
             if let Some(total) = total.filter(|t| *t > 0) {
                 progress((done as f32 / total as f32).min(1.0));
             }
@@ -439,34 +449,9 @@ impl Backend for CoreBackend {
         Ok(found)
     }
 
-    /// From `<cache>/curseforge-categories.json` while it is fresh; a failed refresh falls back
-    /// to a stale copy.
+    /// Fetched fresh: CurseForge's terms don't allow storing API data. The UI asks once per run.
     fn categories(&self) -> Result<Vec<Category>> {
-        let path = self.cache_dir.join("curseforge-categories.json");
-        let cached = || -> Option<Vec<Category>> {
-            serde_json::from_slice(&std::fs::read(&path).ok()?).ok()
-        };
-        let fresh = std::fs::metadata(&path)
-            .and_then(|m| m.modified())
-            .ok()
-            .and_then(|t| t.elapsed().ok())
-            .is_some_and(|age| age < CATEGORIES_MAX_AGE);
-        if fresh && let Some(list) = cached() {
-            return Ok(list);
-        }
-        match self.curseforge().categories() {
-            Ok(list) => {
-                // Best effort, like thumbnails: a failed write only costs a refetch.
-                let tmp = path.with_extension("part");
-                if std::fs::create_dir_all(&self.cache_dir).is_ok()
-                    && serde_json::to_vec(&list).is_ok_and(|b| std::fs::write(&tmp, b).is_ok())
-                {
-                    let _ = std::fs::rename(&tmp, &path);
-                }
-                Ok(list)
-            }
-            Err(e) => cached().ok_or(e),
-        }
+        self.curseforge().categories()
     }
 
     fn description(&self, remote: &RemoteAddon) -> Result<Option<String>> {
@@ -578,12 +563,18 @@ impl Backend for CoreBackend {
         url.hash(&mut h);
         let path = self
             .cache_dir
-            .join("thumbnails")
+            .join("images")
             .join(format!("{:016x}", h.finish()));
-        if let Ok(bytes) = std::fs::read(&path) {
+        // CurseForge's terms don't allow storing its data, so its images stay in memory (the
+        // image cache) and are fetched again next run.
+        let keep = !providers::curseforge::is_curseforge_host(url);
+        if keep && let Ok(bytes) = std::fs::read(&path) {
             return Ok(bytes);
         }
         let bytes = http::download(url, &mut |_, _| {})?;
+        if !keep {
+            return Ok(bytes);
+        }
         // Best effort: a failed cache write only costs a refetch next time.
         let tmp = path.with_extension("part");
         if std::fs::create_dir_all(path.parent().unwrap_or(&self.cache_dir)).is_ok()
