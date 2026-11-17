@@ -59,10 +59,11 @@ What the addon manager does, one short paragraph per feature. Ids are referenced
   (`f3_1_never_checked_addons_say_not_checked`, `f3_1_get_many_reports_latest_file_per_channel`,
   `f3_1_check_updates_batches_per_provider_and_isolates_failures`, `f3_1_check_updates_without_key_skips_curseforge_quietly`,
   e2e `f3_1_check_shows_update_available`)
-- **F3.2 Update / Update all** ✅ — Downloads the release zip (progress in the row), validates it (no `..`/absolute paths/symlinks,
+- **F3.2 Update / Update all** ✅ — Downloads the release zip (progress in the row) straight into a temp file in the
+  cache, so big addons (audio packs pass 512 MB) never sit in memory, validates it (no `..`/absolute paths/symlinks,
   at least one top-level folder with a `.toc`, so a wrapper-folder zip can't replace the addon), extracts next to AddOns,
   swaps the folders with backup + rollback, removes folders the new version dropped (only folders no other record lists),
-  records the new version. A running update can't be started twice, also across a rescan. (e2e `f3_2_update_replaces_folder_contents`, `f3_2_update_all_updates_every_outdated_addon`, core: `f3_2_download_reports_progress_and_http_errors`, `f3_2_update_swaps_folders_and_rolls_back_on_bad_zip`, `f3_2_swap_failure_restores_backups`)
+  records the new version. A running update can't be started twice, also across a rescan. (e2e `f3_2_update_replaces_folder_contents`, `f3_2_update_all_updates_every_outdated_addon`, core: `f3_2_download_reports_progress_and_http_errors`, `f3_2_update_swaps_folders_and_rolls_back_on_bad_zip`, `f3_2_swap_failure_restores_backups`, `f3_2_big_downloads_stream_to_a_file`)
 - **F3.3 Channels** 🚧 — Per addon Stable / Beta / Alpha in the detail panel (stored, rechecked); "Beta" also accepts
   stable files, etc. (`f3_1_check_updates_batches_per_provider_and_isolates_failures`)
 - **F3.4 Ignore** ✅ — Ignored addons are never checked or updated; can be un-ignored; stored. Git checkouts are ignored

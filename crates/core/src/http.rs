@@ -2,14 +2,16 @@
 
 use anyhow::{Context, Result, bail};
 use serde::{Serialize, de::DeserializeOwned};
-use std::io::Read;
+use std::io::{Read, Write};
 use std::sync::OnceLock;
 use std::time::Duration;
 
 /// Max JSON response size (CurseForge fingerprint answers for big AddOns folders are a few MB).
 const JSON_LIMIT: u64 = 64 << 20;
-/// Max download size; addon zips are far below this.
-const DOWNLOAD_LIMIT: u64 = 512 << 20;
+/// Max size of a download kept in memory (thumbnails, icons).
+const MEMORY_LIMIT: u64 = 64 << 20;
+/// Max size of a download streamed to a file: addon zips with audio packs pass 512 MB.
+const FILE_LIMIT: u64 = 8 << 30;
 
 /// Sent with every request. Generic on purpose: the product name lives in the app crate only.
 pub const USER_AGENT: &str = concat!(
@@ -81,17 +83,38 @@ pub fn post_json<T: DeserializeOwned>(
     parse_json(url, req.send(&serde_json::to_vec(body)?[..]))
 }
 
-/// Download `url` into memory. `progress(done, total)` is called as bytes arrive.
+/// Download `url` into memory (small files only). `progress(done, total)` is called as bytes arrive.
 pub fn download(url: &str, progress: &mut dyn FnMut(u64, Option<u64>)) -> Result<Vec<u8>> {
+    let mut out = Vec::new();
+    stream(url, MEMORY_LIMIT, &mut out, progress)?;
+    Ok(out)
+}
+
+/// Download `url` into `out` without holding it in memory (addon zips). Returns the byte count.
+pub fn download_to(
+    url: &str,
+    out: &mut dyn Write,
+    progress: &mut dyn FnMut(u64, Option<u64>),
+) -> Result<u64> {
+    stream(url, FILE_LIMIT, out, progress)
+}
+
+fn stream(
+    url: &str,
+    limit: u64,
+    out: &mut dyn Write,
+    progress: &mut dyn FnMut(u64, Option<u64>),
+) -> Result<u64> {
     let res = check(url, agent().get(url).call())?;
     let total = res.body().content_length();
-    let mut reader = res
-        .into_body()
-        .into_with_config()
-        .limit(DOWNLOAD_LIMIT)
-        .reader();
-    let mut out = Vec::with_capacity(total.unwrap_or(0).min(DOWNLOAD_LIMIT) as usize);
-    let mut buf = [0u8; 64 * 1024];
+    let too_large = || anyhow::anyhow!("the file is too large (over {} MB)", limit >> 20);
+    if total.is_some_and(|t| t > limit) {
+        return Err(too_large());
+    }
+    // The limit is checked here, so the error reads the same with or without a Content-Length.
+    let mut reader = res.into_body().into_with_config().limit(u64::MAX).reader();
+    let mut buf = vec![0u8; 256 * 1024];
+    let mut done = 0u64;
     progress(0, total);
     loop {
         let n = reader
@@ -100,10 +123,15 @@ pub fn download(url: &str, progress: &mut dyn FnMut(u64, Option<u64>)) -> Result
         if n == 0 {
             break;
         }
-        out.extend_from_slice(&buf[..n]);
-        progress(out.len() as u64, total);
+        if done + n as u64 > limit {
+            return Err(too_large());
+        }
+        out.write_all(&buf[..n]).context("writing the download")?;
+        done += n as u64;
+        progress(done, total);
     }
-    Ok(out)
+    out.flush().context("writing the download")?;
+    Ok(done)
 }
 
 type Res = ureq::http::Response<ureq::Body>;

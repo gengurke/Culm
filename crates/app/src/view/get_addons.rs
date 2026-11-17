@@ -344,7 +344,7 @@ fn error(e: &str) -> El {
             text(e.to_string())
                 .font(t().ty.body)
                 .color(p.danger)
-                .wrap()
+                .wrap_anywhere()
                 .grow(1.0)
                 .min_w(0.0),
         )
@@ -403,7 +403,7 @@ fn note(key: &str, glyph: &'static Icon, line: &str) -> El {
             text(line.to_string())
                 .font(t().ty.small)
                 .color(p.text_muted)
-                .wrap()
+                .wrap_anywhere()
                 .grow(1.0)
                 .min_w(0.0),
         )
@@ -566,7 +566,7 @@ fn menu_panel(s: &State, menu: Menu) -> El {
                     text(format!("Categories unavailable: {e}"))
                         .font(t().ty.small)
                         .color(pal().danger)
-                        .wrap()
+                        .wrap_anywhere()
                         .px(14.0)
                         .py(6.0),
                 );

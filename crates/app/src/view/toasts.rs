@@ -98,9 +98,14 @@ fn words(title: &str, body: &str, title_color: Color, heading: bool) -> El {
         .grow(1.0)
         .min_w(0.0)
         .gap(3.0)
-        .child(text(title).font(font).color(title_color).wrap());
+        .child(text(title).font(font).color(title_color).wrap_anywhere());
     if !body.is_empty() {
-        c = c.child(text(body).font(th.ty.small).color(p.text_dim).wrap());
+        c = c.child(
+            text(body)
+                .font(th.ty.small)
+                .color(p.text_dim)
+                .wrap_anywhere(),
+        );
     }
     c
 }

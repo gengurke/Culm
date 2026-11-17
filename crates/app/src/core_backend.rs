@@ -17,6 +17,7 @@ use addon_core::{
 use anyhow::{Context, Result, bail};
 use rune::prefs::Prefs;
 use std::hash::{DefaultHasher, Hash, Hasher};
+use std::io::Seek;
 use std::path::{Path, PathBuf};
 use std::sync::{Mutex, RwLock};
 use std::time::Duration;
@@ -163,12 +164,20 @@ impl CoreBackend {
         Ok(vec![])
     }
 
-    fn download(&self, url: &str, progress: &dyn Fn(f32)) -> Result<Vec<u8>> {
-        http::download(url, &mut |done, total| {
+    /// Streams `url` into an anonymous temp file in the cache (deleted when dropped), so big
+    /// addons (audio packs pass 512 MB) never sit in memory.
+    fn download(&self, url: &str, progress: &dyn Fn(f32)) -> Result<Box<dyn install::Zip>> {
+        let dir = self.cache_dir.join("downloads");
+        std::fs::create_dir_all(&dir).with_context(|| format!("creating {}", dir.display()))?;
+        let mut file =
+            tempfile::tempfile_in(&dir).context("creating a temp file for the download")?;
+        http::download_to(url, &mut file, &mut |done, total| {
             if let Some(total) = total.filter(|t| *t > 0) {
                 progress((done as f32 / total as f32).min(1.0));
             }
-        })
+        })?;
+        file.rewind().context("reading the download")?;
+        Ok(Box::new(file))
     }
 
     fn backups_dir(&self, inst: &Installation) -> PathBuf {

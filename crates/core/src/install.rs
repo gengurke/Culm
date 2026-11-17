@@ -10,20 +10,29 @@ use crate::toc::read_folder_toc;
 use crate::util::{new_id, now_rfc3339, now_stamp};
 use anyhow::{Context, Result, bail};
 use std::collections::BTreeSet;
-use std::io::{Cursor, Read};
+use std::io::{Cursor, Read, Seek};
 use std::path::{Path, PathBuf};
 
-/// Fetches a URL's bytes (the app injects its HTTP client).
-pub type Download<'a> = &'a dyn Fn(&str) -> Result<Vec<u8>>;
+/// A downloaded zip: a temp file from the app, or bytes in memory ([`in_memory`]).
+pub trait Zip: Read + Seek {}
+impl<T: Read + Seek> Zip for T {}
+
+/// Fetches a URL (the app injects its HTTP client and streams to a temp file).
+pub type Download<'a> = &'a dyn Fn(&str) -> Result<Box<dyn Zip>>;
+
+/// Wraps bytes already in memory as a [`Zip`].
+pub fn in_memory(bytes: Vec<u8>) -> Box<dyn Zip> {
+    Box::new(Cursor::new(bytes))
+}
 
 /// Refuse archives that inflate beyond this (zip bombs).
-const MAX_UNPACKED: u64 = 2 << 30;
+const MAX_UNPACKED: u64 = 16 << 30;
 
 /// Installs the zip's top-level folders into AddOns, replacing `old_folders` (the addon's current
 /// folders) and any existing folder of the same name. Returns the new folder list.
 pub fn install_zip(
     inst: &Installation,
-    zip_bytes: &[u8],
+    zip: impl Read + Seek,
     old_folders: &[String],
 ) -> Result<Vec<String>> {
     for f in old_folders {
@@ -36,7 +45,7 @@ pub fn install_zip(
     let staging = work.join(format!(".addons-staging-{tag}"));
     let backup = work.join(format!(".addons-backup-{tag}"));
 
-    let extracted = extract(zip_bytes, &staging);
+    let extracted = extract(zip, &staging);
     let result =
         extracted.and_then(|new| swap(&addons, &staging, &backup, &new, old_folders).map(|_| new));
     let _ = std::fs::remove_dir_all(&staging);
@@ -47,9 +56,8 @@ pub fn install_zip(
 }
 
 /// Validates every entry, then extracts. Returns the top-level folder names.
-fn extract(zip_bytes: &[u8], dest: &Path) -> Result<Vec<String>> {
-    let mut ar = zip::ZipArchive::new(Cursor::new(zip_bytes))
-        .context("the download is not a valid zip file")?;
+fn extract(zip: impl Read + Seek, dest: &Path) -> Result<Vec<String>> {
+    let mut ar = zip::ZipArchive::new(zip).context("the download is not a valid zip file")?;
     let mut entries: Vec<(usize, Vec<String>, bool)> = Vec::new();
     let mut tops: BTreeSet<String> = BTreeSet::new();
     let mut with_toc: BTreeSet<String> = BTreeSet::new();
@@ -223,9 +231,9 @@ pub fn install_file(
     file: &RemoteFile,
     download: Download,
 ) -> Result<Addon> {
-    let bytes =
+    let zip =
         download(&file.download_url).with_context(|| format!("downloading {}", addon.name))?;
-    let folders = install_zip(inst, &bytes, &addon.folders)
+    let folders = install_zip(inst, zip, &addon.folders)
         .with_context(|| format!("installing {}", addon.name))?;
     let mut a = addon.clone();
     let main = folders

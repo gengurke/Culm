@@ -23,8 +23,8 @@ fn curseforge(s: &FakeServer) -> CurseForge {
     }
 }
 
-fn download(u: &str) -> anyhow::Result<Vec<u8>> {
-    http::download(u, &mut |_, _| {})
+fn download(u: &str) -> anyhow::Result<Box<dyn install::Zip>> {
+    http::download(u, &mut |_, _| {}).map(install::in_memory)
 }
 
 #[test]
@@ -371,4 +371,22 @@ fn f4_8_failing_provider_returns_partial_results() {
     let d = discover::featured(F, &keyless);
     assert!(d.errors.is_empty());
     assert_eq!(shape(&d), [vec!["WowUpHub:1"]]);
+}
+
+#[test]
+fn f3_2_big_downloads_stream_to_a_file() {
+    // Addon zips (audio packs pass 512 MB) go to a file; only small downloads are held in memory.
+    let s = FakeServer::start();
+    let size = (64 << 20) + 4096;
+    s.bytes("GET", "/big.zip", vec![7u8; size]);
+    let url = format!("{}/big.zip", s.url());
+    let err = http::download(&url, &mut |_, _| {}).unwrap_err();
+    assert!(format!("{err:#}").contains("too large"), "{err:#}");
+
+    let mut file = tempfile::tempfile().unwrap();
+    let mut last = (0, None::<u64>);
+    let n = http::download_to(&url, &mut file, &mut |done, total| last = (done, total)).unwrap();
+    assert_eq!(n, size as u64);
+    assert_eq!(last.0, size as u64, "progress reaches the end");
+    assert_eq!(file.metadata().unwrap().len(), size as u64);
 }

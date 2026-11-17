@@ -792,7 +792,7 @@ fn detail(s: &State, a: &AddonUi) -> El {
                     text(e.clone())
                         .font(t().ty.small.size_of(12.0))
                         .color(p.danger)
-                        .wrap()
+                        .wrap_anywhere()
                         .grow(1.0)
                         .min_w(0.0),
                 ),

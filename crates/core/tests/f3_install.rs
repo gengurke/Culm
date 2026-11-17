@@ -54,8 +54,10 @@ fn f4_3_install_creates_record_and_replaces_existing_folders() {
         ("__MACOSX/Foo/._Core.lua", "junk"),
     ]);
     let server = Server::new(vec![(&stable, zip)]);
-    let addon =
-        install::install_remote(&w.inst, &remote, Channel::Stable, &|u| server.get(u)).unwrap();
+    let addon = install::install_remote(&w.inst, &remote, Channel::Stable, &|u| {
+        server.get(u).map(install::in_memory)
+    })
+    .unwrap();
 
     assert_eq!(addon.folders, ["Foo", "Foo_Options"]);
     assert_eq!(addon.installed_file_id.as_deref(), Some("10"));
@@ -107,13 +109,16 @@ fn f3_2_update_swaps_folders_and_rolls_back_on_bad_zip() {
         ("Bar_New/y.lua", "new module"),
     ]);
     let server = Server::new(vec![(&v1, zip1), (&v2, zip2)]);
-    let mut addon =
-        install::install_remote(&w.inst, &remote, Channel::Stable, &|u| server.get(u)).unwrap();
+    let mut addon = install::install_remote(&w.inst, &remote, Channel::Stable, &|u| {
+        server.get(u).map(install::in_memory)
+    })
+    .unwrap();
     assert_eq!(w.folder_names(), ["Bar", "Bar_Old"]);
 
     addon.latest = Some(v2.clone());
     assert!(addon.update_available());
-    let updated = install::update_addon(&w.inst, &addon, &|u| server.get(u)).unwrap();
+    let updated =
+        install::update_addon(&w.inst, &addon, &|u| server.get(u).map(install::in_memory)).unwrap();
     assert_eq!(updated.folders, ["Bar", "Bar_New"]);
     assert_eq!(updated.installed_file_id.as_deref(), Some("22"));
     assert!(!updated.update_available());
@@ -135,7 +140,10 @@ fn f3_2_update_swaps_folders_and_rolls_back_on_bad_zip() {
     ] {
         let v3 = remote_file("333", "3.0", Channel::Stable, &[]);
         let server = Server::new(vec![(&v3, bad)]);
-        let err = install::install_file(&w.inst, &updated, &v3, &|u| server.get(u)).unwrap_err();
+        let err = install::install_file(&w.inst, &updated, &v3, &|u| {
+            server.get(u).map(install::in_memory)
+        })
+        .unwrap_err();
         assert!(format!("{err:#}").contains("installing Bar"), "{err:#}");
         assert_eq!(w.folder_names(), ["Bar", "Bar_New"]);
         assert!(read(&w, "Bar/Bar.toc").contains("## Version: 2"));
@@ -148,7 +156,10 @@ fn f3_2_update_swaps_folders_and_rolls_back_on_bad_zip() {
 
     // A failed download leaves everything alone too.
     let v4 = remote_file("4444", "4.0", Channel::Stable, &[]);
-    let err = install::install_file(&w.inst, &updated, &v4, &|u| server.get(u)).unwrap_err();
+    let err = install::install_file(&w.inst, &updated, &v4, &|u| {
+        server.get(u).map(install::in_memory)
+    })
+    .unwrap_err();
     assert!(format!("{err:#}").contains("404"));
 }
 
@@ -175,13 +186,20 @@ fn f3_2_swap_failure_restores_backups() {
                 vec![remote_file("s", "s", Channel::Stable, &[])],
             ),
             Channel::Stable,
-            &|_| Ok(zip_bytes(&[("Seed/Seed.toc", "## Title: Seed\n")])),
+            &|_| {
+                Ok(install::in_memory(zip_bytes(&[(
+                    "Seed/Seed.toc",
+                    "## Title: Seed\n",
+                )])))
+            },
         )
         .unwrap()
     };
     let file = remote_file("n", "2", Channel::Stable, &[]);
     let zip = zip_bytes(&[("A_First/A_First.toc", "## Title: new A\n")]);
-    let res = install::install_file(&w.inst, &addon, &file, &|_| Ok(zip.clone()));
+    let res = install::install_file(&w.inst, &addon, &file, &|_| {
+        Ok(install::in_memory(zip.clone()))
+    });
     std::fs::set_permissions(&locked, std::fs::Permissions::from_mode(0o755)).unwrap();
     let err = res.unwrap_err();
     assert!(format!("{err:#}").contains("backing up"), "{err:#}");
@@ -210,10 +228,10 @@ fn f5_1_remove_deletes_folders() {
         ),
         Channel::Stable,
         &|_| {
-            Ok(zip_bytes(&[
+            Ok(install::in_memory(zip_bytes(&[
                 ("Gone/Gone.toc", "x"),
                 ("Gone_Data/d.lua", "d"),
-            ]))
+            ])))
         },
     )
     .unwrap();
@@ -232,7 +250,7 @@ fn f5_2_reinstall_restores_modified_files() {
         ("R/R.toc", &simple_toc("R", "5")),
         ("R/Core.lua", "original"),
     ]);
-    let dl = |_: &str| Ok(zip.clone());
+    let dl = |_: &str| Ok(install::in_memory(zip.clone()));
     let addon = install::install_remote(
         &w.inst,
         &remote_addon("9", "R", vec![file.clone()]),

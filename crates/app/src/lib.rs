@@ -149,7 +149,7 @@ const SCENES: &[Scene] = &[
         s.toast(
             Tone::Danger,
             "Could not update WeakAuras",
-            "Download failed: GitHub answered 503 Service Unavailable",
+            "download https://edge.forgecdn.net/files/9645/914/WeakAuras-5.19.12-forever.zip: HTTP 503 Service Unavailable",
         );
         s.toast(
             Tone::Success,

@@ -226,7 +226,14 @@ fn card(
                 .gap(8.0)
                 .center_y()
                 .child(icon(&icons::ALERT, 14.0).color(p.danger))
-                .child(text(e.clone()).font(t().ty.small).color(p.danger)),
+                .child(
+                    text(e.clone())
+                        .font(t().ty.small)
+                        .color(p.danger)
+                        .wrap_anywhere()
+                        .grow(1.0)
+                        .min_w(0.0),
+                ),
         ),
     };
     if let Some(f) = foot {
