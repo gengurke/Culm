@@ -93,6 +93,18 @@ Build needs `libxkbcommon-devel wayland-devel` (Fedora). Without root, a gitigno
 - Keep textures on big surfaces (window, sidebar, band, detail); cards use gradients and bevels (GPU cost per textured box).
   `f7_3_every_theme_keeps_text_readable` checks palette contrast. `Skin::medal` holds the class medallions' ring tones.
 
+## UX rules
+
+- Simple beats configurable: pick a default that fits most people. Add a setting only when people with real
+  reasons need different behaviour, never "in case someone wants it".
+- Make risky actions safe instead of scary: back up first and offer undo/restore afterwards, rather than
+  confirmation dialogs.
+- Plain words in the UI (no WDB, WTF, SavedVariables in labels); details go into tooltips.
+- One obvious way to do a thing; every control explains itself (tooltip) and greys out with a reason when it
+  can't run.
+- Push back: when a request or issue adds options, steps or jargon that make Culm harder to understand, say so
+  and propose the simpler version before building it.
+
 ## Data-safety rules (learned here)
 
 - Worker results about an installation carry its id (`Msg::Scanned { inst, .. }`); `State::apply` drops stale ones.
