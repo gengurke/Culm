@@ -48,12 +48,26 @@ target/debug/culm --tree tree.json                  # element tree (keys, text, 
 Development happens on Linux; keep the build free of Linux-only steps for macOS and Windows.
 Build dependencies (Fedora): `sudo dnf install libxkbcommon-devel wayland-devel`.
 
+## Workflow
+
+- Every change goes on its own branch and into `master` through a pull request; nothing is committed to `master`
+  directly (GitHub enforces this).
+- Branch names: `<type>/<issue>-<what>`, lowercase kebab-case, type one of `feat`, `fix`, `docs`, `chore`
+  (e.g. `fix/81-sort-scroll-jump`; no issue → `docs/workflow`). Rename tool-made names (`claude/…`, `worktree-…`)
+  before pushing.
+- One topic per PR. Title says what changes for the user; the body starts with `Fixes #<n>` and briefly says what,
+  why and how it was tested. CI must be green; the user merges.
+- Several agents may work on this machine at once: edit only in your own git worktree, never in the main checkout.
+  No `git stash` (shared by all worktrees), no `git add -A`/`commit -a`, don't touch other branches, and never
+  merge or push `master` unless the user asks.
+
 ## Releases
 
 SemVer, 0.x while in beta (`brand::STAGE` shows "Beta" beside the version). Every user-visible change adds a line under
 "Unreleased" in `CHANGELOG.md`. To release: turn "Unreleased" into `## [x.y.z] - <date>` (and the links at the bottom),
 bump `version` in the root `Cargo.toml`, add `<release version="x.y.z" date="..."/>` to
-`packaging/dev.culm.app.metainfo.xml`, commit, then `git tag vx.y.z && git push origin vx.y.z`.
+`packaging/dev.culm.app.metainfo.xml` on a `chore/release-x.y.z` branch, merge its PR, then tag the merged `master`:
+`git tag vx.y.z && git push origin vx.y.z`.
 `.github/workflows/release.yml` checks all three, runs the tests, builds the AppImage (`packaging/appimage.sh`) and
 publishes the release. Never mark a release "pre-release": the AppImage's zsync update info only follows `latest`.
 
