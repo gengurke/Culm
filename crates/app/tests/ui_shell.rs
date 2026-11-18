@@ -363,3 +363,29 @@ fn f2_1_an_empty_installation_says_so_instead_of_a_filter_miss() {
     assert!(shows(&rt, "No addons installed yet"));
     assert!(!shows(&rt, "No addons match"));
 }
+
+#[test]
+fn ui_every_page_scrolls_with_a_thin_scroll_bar() {
+    let mut rt = app(loaded);
+    let pages = [
+        (Screen::MyAddons, "my-addons/scroll"),
+        (Screen::GetAddons, "get-addons/scroll"),
+        (Screen::Maintenance, "maintenance/scroll"),
+        (Screen::Settings, "settings/scroll"),
+    ];
+    for (screen, viewport) in pages {
+        rt.update(|s, _| s.screen = screen);
+        rt.frame(1.0 / 60.0);
+        let els = rt.elements();
+        let area = format!("{viewport}-scroll-area");
+        let at = els
+            .iter()
+            .position(|e| e.key.as_deref() == Some(area.as_str()) && !e.exiting)
+            .unwrap_or_else(|| panic!("{screen:?}: no scroll bar around {viewport}"));
+        assert!(
+            els.iter()
+                .any(|e| e.parent == Some(at) && e.key.as_deref() == Some("scroll-bar")),
+            "{screen:?}: no scroll bar in {area}"
+        );
+    }
+}

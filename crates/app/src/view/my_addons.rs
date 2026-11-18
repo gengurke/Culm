@@ -8,7 +8,7 @@ use crate::state::{AddonUi, Intent, Job, Op, Screen, State, Status, dispatch};
 use crate::theme::{self, StyleExt, SurfaceExt, pal, t};
 use crate::ui::{self, Kind, Mark};
 use addon_core::{Channel, IgnoreReason};
-use rune::{Cursor, El, GrowthSpec, ScrollSpec, Tx, col, el, icon, rich, row, text};
+use rune::{Cursor, El, GrowthSpec, Tx, col, el, icon, rich, row, text};
 use std::borrow::Cow;
 
 const VERSION_W: f32 = 180.0;
@@ -303,17 +303,14 @@ fn list(s: &State) -> El {
         .h_full()
         .min_h(0.0)
         .child(header(s))
-        .child(
+        .child(ui::scroll(
             col()
                 .key("my-addons/scroll")
                 .grow(1.0)
                 .min_h(0.0)
                 .w_full()
-                .scroll(ScrollSpec {
-                    stick_bottom: false,
-                })
                 .child(rows),
-        )
+        ))
 }
 
 fn addon_row(s: &State, a: &AddonUi) -> El {
@@ -809,14 +806,5 @@ fn detail(s: &State, a: &AddonUi) -> El {
         .h_full()
         .min_h(0.0)
         .skin(&t().skin.detail)
-        .child(
-            col()
-                .grow(1.0)
-                .min_h(0.0)
-                .w_full()
-                .scroll(ScrollSpec {
-                    stick_bottom: false,
-                })
-                .child(body),
-        )
+        .child(ui::scroll(col().grow(1.0).min_h(0.0).w_full().child(body)))
 }

@@ -4,8 +4,10 @@
 use crate::icons;
 use crate::state::State;
 use crate::theme::{self, StyleExt, Surface, SurfaceExt, pal, t};
-use rune::{Color, Cursor, El, HelpLook, Icon, Shadow, TextEdit, Tx, col, el, icon, row, text};
-use rune_kit::{Kit, PaletteSeed, TextInput};
+use rune::{
+    Color, Cursor, El, HelpLook, Icon, ScrollSpec, Shadow, TextEdit, Tx, col, el, icon, row, text,
+};
+use rune_kit::{Kit, PaletteSeed, ScrollBar, ScrollBarStyle, TextInput};
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Kind {
@@ -308,6 +310,24 @@ pub fn kit() -> Kit {
     let r = t().skin.input.radius;
     (k.radius.xs, k.radius.sm, k.radius.md, k.radius.lg) = (r, r, r, r);
     k
+}
+
+/// `viewport` scrolling down, with a thin overlay scroll bar: hidden at rest, shown while the
+/// pointer is over the area or it scrolls, a 3 pt pill in `border_strong` that widens to 6 pt in
+/// the theme's `accent` under the pointer or while dragged. Every scroll area goes through here.
+#[track_caller]
+pub fn scroll(viewport: El) -> El {
+    let p = pal();
+    let look = ScrollBarStyle::scroll_view(&kit())
+        .thumb(p.border_strong)
+        .thumb_hover(p.accent)
+        .width(3.0)
+        .hover_width(6.0);
+    viewport
+        .scroll(ScrollSpec {
+            stick_bottom: false,
+        })
+        .scroll_bar_styled(look)
 }
 
 /// A status glyph in a small round badge: a soft wash of `tone` in a faint ring of it (notices).
