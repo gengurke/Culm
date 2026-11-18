@@ -12,8 +12,9 @@ use addon_core::discover::{self, Discovery};
 use addon_core::providers::{self, CurseForge, GitHub, Provider, ProviderConfig};
 use addon_core::self_update::Release;
 use addon_core::{
-    Addon, Category, Channel, Flavor, Installation, RemoteAddon, SearchFilter, class_icons, http,
-    install, maintenance, scan, self_update, store, updates, wow, wowup_import,
+    Addon, Category, Channel, Flavor, Installation, RemoteAddon, RemoteFile, SearchFilter,
+    class_icons, http, install, maintenance, manual, scan, self_update, store, updates, wow,
+    wowup_import,
 };
 use anyhow::{Context, Result, bail};
 use rune::prefs::Prefs;
@@ -41,6 +42,8 @@ pub struct Config {
     pub app_releases_url: String,
     /// The AppImage this process runs from (`$APPIMAGE`); None: the app can't update itself.
     pub appimage: Option<PathBuf>,
+    /// The user's Downloads folder, watched for updates fetched by hand (F3.5).
+    pub downloads: Option<PathBuf>,
 }
 
 impl Config {
@@ -81,6 +84,7 @@ impl Config {
                 .unwrap_or_else(|_| self_update::DEFAULT_API_BASE.into()),
             // Set by the AppImage runtime to the image's own path.
             appimage: std::env::var_os("APPIMAGE").map(PathBuf::from),
+            downloads: dirs.downloads().map(Path::to_path_buf),
         })
     }
 }
@@ -94,6 +98,7 @@ pub struct CoreBackend {
     class_icon_sources: Vec<String>,
     app_releases_url: String,
     appimage: Option<PathBuf>,
+    downloads: Option<PathBuf>,
     prefs: Mutex<Prefs>,
     /// Serializes load-modify-save of the stored lists (workers run concurrently).
     store: Mutex<()>,
@@ -123,6 +128,7 @@ impl CoreBackend {
             class_icon_sources: c.class_icon_sources,
             app_releases_url: c.app_releases_url,
             appimage: c.appimage,
+            downloads: c.downloads,
             prefs: Mutex::new(c.prefs),
             store: Mutex::new(()),
             disk: RwLock::new(()),
@@ -363,6 +369,56 @@ impl Backend for CoreBackend {
             }
             store::upsert_addon(list, a.clone());
         })?;
+        Ok(a)
+    }
+
+    fn find_download(&self, file: &RemoteFile) -> Option<PathBuf> {
+        manual::find_in(self.downloads.as_deref()?, file.check.as_ref()?)
+            .into_iter()
+            .next()
+    }
+
+    fn downloads_dir(&self) -> Option<PathBuf> {
+        self.downloads.clone()
+    }
+
+    fn install_downloaded(
+        &self,
+        inst: &Installation,
+        addon: &Addon,
+        path: &Path,
+        remove: bool,
+    ) -> Result<Addon> {
+        let _disk = self.disk_shared();
+        let folders = self.edit(inst, |list| store::owned_folders(list, addon))?;
+        let mut a = manual::install(
+            inst,
+            &Addon {
+                folders,
+                ..addon.clone()
+            },
+            path,
+        )?;
+        self.edit(inst, |list| {
+            if let Some(s) = list.iter().find(|s| s.id == a.id) {
+                (a.channel, a.ignored, a.auto_update) = (s.channel, s.ignored, s.auto_update);
+            }
+            store::upsert_addon(list, a.clone());
+        })?;
+        if remove {
+            // Installed and recorded: the zip and any copy the browser saved twice have served
+            // their purpose. A file that can't be deleted only stays in Downloads.
+            let copies = match (
+                &self.downloads,
+                addon.latest.as_ref().and_then(|f| f.check.as_ref()),
+            ) {
+                (Some(dir), Some(check)) => manual::find_in(dir, check),
+                _ => vec![],
+            };
+            for p in std::iter::once(path.to_path_buf()).chain(copies) {
+                let _ = std::fs::remove_file(p);
+            }
+        }
         Ok(a)
     }
 

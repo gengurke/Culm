@@ -14,6 +14,8 @@ image = { version = "0.25", default-features = false, features = ["jpeg", "png"]
 ureq = "3"
 # Checks a downloaded app update against the release's SHA256SUMS.
 sha2 = "0.10"
+# Recognises a zip fetched by hand from the SHA-1 its source publishes (F3.5).
+sha1 = "0.10"
 zip = { version = "9.5.1", default-features = false, features = ["deflate"] }
 
 [dev-dependencies]

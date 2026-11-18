@@ -107,6 +107,7 @@ fn to_addon(d: Details) -> RemoteAddon {
             game_versions: vec![],
             folders: vec![],
             dependencies: vec![],
+            check: None,
         }],
         source_url: None,
         categories: vec![],

@@ -187,20 +187,29 @@ fn swap(
     }
 }
 
-/// Installs a provider addon (newest file allowed by `channel`, else the newest at all) and returns
-/// its new record. Existing folders with the same names are replaced; use
-/// [`crate::store::upsert_addon`] to drop records that owned them.
+/// Installs a provider addon ([`pick_file`]) and returns its new record. Existing folders with the
+/// same names are replaced; use [`crate::store::upsert_addon`] to drop records that owned them.
 pub fn install_remote(
     inst: &Installation,
     remote: &RemoteAddon,
     channel: Channel,
     download: Download,
 ) -> Result<Addon> {
-    let file = remote
+    let file = pick_file(remote, channel)?;
+    install_file(inst, &new_record(remote, channel), file, download)
+}
+
+/// The file a new install of `remote` takes: the newest allowed by `channel`, else the newest at all.
+pub fn pick_file(remote: &RemoteAddon, channel: Channel) -> Result<&RemoteFile> {
+    remote
         .latest_for(channel)
         .or_else(|| remote.latest_for(Channel::Alpha))
-        .with_context(|| format!("{} has no release for this game version", remote.name))?;
-    let mut addon = Addon {
+        .with_context(|| format!("{} has no release for this game version", remote.name))
+}
+
+/// A record for `remote` with nothing installed yet.
+pub fn new_record(remote: &RemoteAddon, channel: Channel) -> Addon {
+    Addon {
         id: new_id(),
         name: remote.name.clone(),
         author: remote.author.clone(),
@@ -219,9 +228,7 @@ pub fn install_remote(
         ignored: None,
         auto_update: false,
         dependencies: vec![],
-    };
-    addon = install_file(inst, &addon, file, download)?;
-    Ok(addon)
+    }
 }
 
 /// Installs `file` over `addon` (update, reinstall, or a channel switch) and returns the updated record.
@@ -239,6 +246,16 @@ pub fn install_file(
     }
     let zip =
         download(&file.download_url).with_context(|| format!("downloading {}", addon.name))?;
+    install_zip_file(inst, addon, file, zip)
+}
+
+/// Installs `zip`, the archive of `file`, over `addon` and returns the updated record.
+pub fn install_zip_file(
+    inst: &Installation,
+    addon: &Addon,
+    file: &RemoteFile,
+    zip: impl Read + Seek,
+) -> Result<Addon> {
     let folders = install_zip(inst, zip, &addon.folders)
         .with_context(|| format!("installing {}", addon.name))?;
     let mut a = addon.clone();

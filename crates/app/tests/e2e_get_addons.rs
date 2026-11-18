@@ -3,7 +3,7 @@
 
 mod common;
 use addon_app::Screen;
-use addon_app::state::Fetch;
+use addon_app::state::{Fetch, Op};
 use addon_core::Channel;
 use common::*;
 use rune::Key;
@@ -500,19 +500,33 @@ fn f4_6_class_chips_keep_their_glyphs_without_icons() {
     assert_eq!(icon_requests(&world), 2, "one attempt per source per run");
 }
 
-#[test]
-fn f4_3_install_is_greyed_out_when_the_author_blocks_other_apps() {
-    // CurseForge sends no downloadUrl when the author allows downloads only in its own app.
+/// Eff on CurseForge, whose author allows downloads only through CurseForge's own app or website
+/// (no downloadUrl); `hashed`: with the size and SHA-1 Culm recognises the zip by. Returns the zip.
+fn by_hand_world(hashed: bool) -> (World, Vec<u8>) {
+    use sha1::{Digest, Sha1};
     let world = World::new().with_key("test-key");
+    let zip = addon_testkit::make_zip(&[("Eff/Eff.toc", toc("Eff", "5.0").as_bytes())]);
     let mut file = addon_testkit::cf_file(50, "5.0", 1, &["Eff"], 0);
     file["downloadUrl"] = serde_json::Value::Null;
+    if hashed {
+        file["fileLength"] = serde_json::json!(zip.len());
+        let sha1: String = Sha1::digest(&zip)
+            .iter()
+            .map(|b| format!("{b:02x}"))
+            .collect();
+        file["hashes"] = serde_json::json!([{ "value": sha1, "algo": 1 }]);
+    }
     let eff = addon_testkit::cf_mod_with_files(5, "Eff", vec![file]);
     world.server.json(
         "GET",
         "/v1/mods/search",
         &addon_testkit::cf_envelope(serde_json::json!([eff])),
     );
-    let mut app = world.app();
+    std::fs::create_dir_all(world.downloads()).unwrap();
+    (world, zip)
+}
+
+fn search_eff(app: &mut App) {
     app.wait_idle();
     app.tap("nav/get-addons");
     app.tap("get-addons/search");
@@ -521,16 +535,134 @@ fn f4_3_install_is_greyed_out_when_the_author_blocks_other_apps() {
         "search results",
         |s| matches!(&s.results, Fetch::Ready(r) if !r.entries.is_empty()),
     );
-    let help = app
-        .rt
+}
+
+fn help_of(app: &App, key: &str) -> String {
+    app.rt
         .elements()
         .iter()
-        .find(|e| e.key.as_deref() == Some("remote/5/install"))
+        .find(|e| e.key.as_deref() == Some(key))
         .and_then(|e| e.help.clone())
-        .unwrap_or_default();
+        .unwrap_or_default()
+}
+
+fn waiting(app: &App) -> bool {
+    matches!(
+        app.state().installing.get("CurseForge:5"),
+        Some(Op::AwaitingDownload { .. })
+    )
+}
+
+#[test]
+fn f4_3_install_only_on_curseforge_installs_the_browser_download() {
+    let (world, zip) = by_hand_world(true);
+    let mut app = world.app();
+    search_eff(&mut app);
+    let help = help_of(&app, "remote/5/install");
+    assert!(
+        help.contains("only allows downloads") && help.contains("Downloads folder"),
+        "{help}"
+    );
+
+    app.tap("remote/5/install");
+    assert!(waiting(&app));
+    app.wait_until("Culm to look in Downloads first", |app| {
+        matches!(
+            app.state().installing.get("CurseForge:5"),
+            Some(Op::AwaitingDownload { opened: true, .. })
+        )
+    });
+    assert_eq!(
+        app.rt.take_url_requests(),
+        ["https://www.curseforge.com/wow/addons/eff/download/50"],
+        "not there yet: opens the file's download page"
+    );
+    assert!(app.shows_in("remote/5/awaiting", "Waiting"));
+
+    let downloads = world.downloads();
+    std::fs::write(downloads.join("Eff-5.0.zip"), &zip).unwrap();
+    app.wait_until("Eff to install", |app| app.has("remote/5/installed"));
+    assert!(app.shows("Installed Eff"));
+    assert!(world.exists("Interface/AddOns/Eff/Eff.toc"));
+    assert!(!downloads.join("Eff-5.0.zip").exists(), "the zip is gone");
+    app.tap("nav/my-addons");
+    assert!(app.shows_in(&app.row("Eff", ""), "Up to date"));
+}
+
+#[test]
+fn f4_3_a_zip_already_in_downloads_installs_without_the_browser() {
+    let (world, zip) = by_hand_world(true);
+    std::fs::write(world.downloads().join("Eff-5.0.zip"), &zip).unwrap();
+    let mut app = world.app();
+    search_eff(&mut app);
+    app.tap("remote/5/install");
+    app.wait_until("Eff to install", |app| app.has("remote/5/installed"));
+    assert!(
+        app.rt.take_url_requests().is_empty(),
+        "no browser tab: the file was already there"
+    );
+    assert!(world.exists("Interface/AddOns/Eff/Eff.toc"));
+    assert!(!world.downloads().join("Eff-5.0.zip").exists());
+}
+
+#[test]
+fn f4_3_waiting_for_a_new_addon_can_be_cancelled() {
+    let (world, _) = by_hand_world(true);
+    let mut app = world.app();
+    search_eff(&mut app);
+    app.tap("remote/5/install");
+    assert!(waiting(&app));
+    app.tap("remote/5/stop-waiting");
+    assert!(!waiting(&app) && app.has("remote/5/install"));
+
+    app.tap("remote/5/install");
+    assert!(waiting(&app));
+    app.rt.frame(601.0);
+    app.frame();
+    assert!(!waiting(&app), "gave up after ten minutes");
+}
+
+#[test]
+fn f4_3_install_from_file_checks_the_zip_first() {
+    let (world, zip) = by_hand_world(true);
+    let mut app = world.app();
+    search_eff(&mut app);
+    app.tap("remote/5");
+    app.wait_until("the detail panel", |app| {
+        app.has("remote-detail/install-from-file")
+    });
+    let elsewhere = world.downloads().join("elsewhere");
+    std::fs::create_dir_all(&elsewhere).unwrap();
+    let wrong = elsewhere.join("Eff.zip");
+    std::fs::write(&wrong, b"not Eff").unwrap();
+
+    app.tap("remote-detail/install-from-file");
+    app.rt.resolve_file_dialog(Some(wrong)).unwrap();
+    app.frame();
+    app.wait_idle();
+    assert!(app.shows("this file is not Eff 5.0"));
+    assert!(!world.exists("Interface/AddOns/Eff"));
+
+    let right = elsewhere.join("Eff-5.0.zip");
+    std::fs::write(&right, &zip).unwrap();
+    app.tap("remote-detail/install-from-file");
+    app.rt.resolve_file_dialog(Some(right.clone())).unwrap();
+    app.frame();
+    app.wait_until("Eff to install", |app| app.has("remote/5/installed"));
+    assert!(world.exists("Interface/AddOns/Eff/Eff.toc"));
+    assert!(right.exists(), "a file the user picked stays where it is");
+}
+
+#[test]
+fn f4_3_install_is_greyed_out_when_culm_cannot_recognise_the_file() {
+    let (world, _) = by_hand_world(false);
+    let mut app = world.app();
+    search_eff(&mut app);
+    let help = help_of(&app, "remote/5/install");
     assert!(help.contains("only allows downloads"), "{help}");
     app.tap("remote/5/install");
     app.wait_idle();
+    assert!(!waiting(&app) && app.rt.take_url_requests().is_empty());
     assert!(!app.has("remote/5/installed"), "nothing was installed");
     assert!(!world.exists("Interface/AddOns/Eff"));
 }

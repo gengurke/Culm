@@ -508,3 +508,13 @@ fn onboarding_page() -> El {
         ))
         .child(centered(card))
 }
+
+/// What a wait for a download fetched by hand means (F3.5, F4.3).
+pub(crate) const AWAITING_HELP: &str = "Save the file in your browser; Culm installs it as soon as it is in your Downloads folder. Saved somewhere else? Use \"Install from file\" in the details.";
+
+/// Why an install or update opens the browser (F3.5, F4.3).
+pub(crate) fn by_hand_help(source: &str) -> String {
+    format!(
+        "The author only allows downloads through {source}'s own app or website. This starts the download in your browser; Culm installs the file once it is in your Downloads folder."
+    )
+}

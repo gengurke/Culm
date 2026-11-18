@@ -6,6 +6,7 @@ use crate::state::{MaintCard, State};
 use addon_core::self_update::Release;
 use addon_core::{Addon, Category, Installation};
 use rune::Waker;
+use std::path::PathBuf;
 use std::sync::mpsc::Sender;
 
 /// A worker result. Errors are already formatted for display.
@@ -28,6 +29,12 @@ pub enum Msg {
     Progress {
         id: String,
         done: f32,
+    },
+    /// A look in Downloads for the `looked` addons' zips; `found` as (addon id, path) (F3.5).
+    Downloads {
+        inst: String,
+        looked: Vec<String>,
+        found: Vec<(String, PathBuf)>,
     },
     Updated {
         id: String,

@@ -608,3 +608,38 @@ fn f3_2_download_reports_progress_and_http_errors() {
             .contains("404")
     );
 }
+
+#[test]
+fn f3_5_curseforge_file_carries_its_size_and_sha1() {
+    let s = FakeServer::start();
+    let mut file = cf_file(11, "1.1", 1, &["A"], 100);
+    file["downloadUrl"] = serde_json::Value::Null;
+    file["fileLength"] = json!(830726);
+    file["hashes"] = json!([
+        { "value": "0E3F7B43BD22A290B66B9E291A2FE75A", "algo": 2 },
+        { "value": "4923D6A3F467C5A53DC1B915005440ED15849FF3", "algo": 1 }
+    ]);
+    s.json(
+        "POST",
+        "/v1/mods",
+        &cf_envelope(json!([cf_mod_with_files(1, "Alpha Addon", vec![file])])),
+    );
+
+    let addons = curseforge(&s).get_many(F, &["1".into()]).unwrap();
+    let latest = addons[0].latest_for(Channel::Stable).unwrap();
+    assert_eq!(
+        latest.download_url, "",
+        "no link: the author allows only CurseForge"
+    );
+    assert_eq!(
+        latest.check,
+        Some(addon_core::FileCheck {
+            size: 830726,
+            sha1: "4923d6a3f467c5a53dc1b915005440ed15849ff3".into()
+        })
+    );
+    assert!(
+        !serde_json::to_string(latest).unwrap().contains("4923d6a3"),
+        "the hash is never written to disk (#69)"
+    );
+}

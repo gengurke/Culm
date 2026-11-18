@@ -2,11 +2,12 @@
 //! filters, the popular list, and a detail panel for the clicked result. Results come from every
 //! source, one card per addon (F4.8); the detail panel picks the source to install from.
 
-use super::{band, band_note};
+use super::{AWAITING_HELP, band, band_note, by_hand_help};
 use crate::backend::{Found, curseforge_only, source_label};
 use crate::icons;
 use crate::state::{
-    Detail, Fetch, Input, Intent, Menu, Op, Screen, State, Status, dispatch, install_key, single,
+    Detail, Fetch, Input, Intent, Menu, Op, Screen, State, Status, by_hand_file, dispatch,
+    install_key, single,
 };
 use crate::theme::{self, Surface, SurfaceExt, pal, t};
 use crate::ui::{self, Kind};
@@ -631,10 +632,67 @@ fn source_line(entry: &Entry) -> El {
 /// Install progress, or the install button (`primary`: the detail panel's wide one).
 fn install_action(s: &State, remote: &RemoteAddon, key: &str, label: &str, primary: bool) -> El {
     let p = pal();
-    match s.installing.get(&install_key(remote)) {
+    let width = if primary { 200.0 } else { 120.0 };
+    let ikey = install_key(remote);
+    match s.installing.get(&ikey) {
+        // The card is narrow: a short label and a close glyph; the detail has room for words.
+        Some(Op::AwaitingDownload { .. }) => {
+            let waiting = row()
+                .key(format!("{key}/awaiting"))
+                .min_w(0.0)
+                .gap(8.0)
+                .center_y()
+                .help(AWAITING_HELP)
+                .child(ui::spinner(12.0, p.accent))
+                .child(
+                    text(if primary {
+                        "Waiting for download…"
+                    } else {
+                        "Waiting…"
+                    })
+                    .font(t().ty.small)
+                    .color(p.text_dim)
+                    .truncate(),
+                );
+            let stop = move |s: &mut State, tx: &mut Tx| {
+                dispatch(s, Intent::StopWaiting(ikey.clone()), tx)
+            };
+            if primary {
+                row()
+                    .w_full()
+                    .justify_between()
+                    .gap(10.0)
+                    .center_y()
+                    .child(waiting)
+                    .child(
+                        ui::button(
+                            format!("{key}/stop-waiting"),
+                            "Cancel",
+                            Kind::Ghost,
+                            None,
+                            true,
+                            stop,
+                        )
+                        .help("Stop waiting for the download")
+                        .h(28.0),
+                    )
+            } else {
+                row()
+                    .min_w(0.0)
+                    .gap(6.0)
+                    .center_y()
+                    .child(waiting)
+                    .child(ui::icon_button(
+                        format!("{key}/stop-waiting"),
+                        "Stop waiting for the download",
+                        &icons::CLOSE,
+                        stop,
+                    ))
+            }
+        }
         Some(Op::Downloading(done)) => col()
             .key(format!("{key}/progress"))
-            .w(if primary { 200.0 } else { 120.0 })
+            .w(width)
             .gap(6.0)
             .child(
                 text(format!("Installing… {:.0}%", done * 100.0))
@@ -650,8 +708,26 @@ fn install_action(s: &State, remote: &RemoteAddon, key: &str, label: &str, prima
             .child(text("Installing…").font(t().ty.small).color(p.text_dim)),
         None => {
             let r = remote.clone();
-            // No URL: the author allows downloads only through the source's own app.
-            let allowed = remote.files.iter().any(|f| !f.download_url.is_empty());
+            let source = source_label(&remote.provider);
+            // No URL: the author allows downloads only through the source's own app or website,
+            // so the user fetches the zip and Culm installs it once it is in Downloads (F4.3).
+            let by_hand = by_hand_file(remote, s.settings.default_channel);
+            let (allowed, help) = match by_hand {
+                None => (
+                    true,
+                    format!(
+                        "Download {} from {source} into your AddOns folder",
+                        remote.name
+                    ),
+                ),
+                Some(f) if f.check.is_some() => (true, by_hand_help(source)),
+                Some(_) => (
+                    false,
+                    format!(
+                        "The author only allows downloads through {source}'s own app or website"
+                    ),
+                ),
+            };
             let b = ui::button(
                 format!("{key}/install"),
                 label,
@@ -660,22 +736,15 @@ fn install_action(s: &State, remote: &RemoteAddon, key: &str, label: &str, prima
                 } else {
                     Kind::Secondary
                 },
-                Some(&icons::DOWNLOAD),
+                Some(if by_hand.is_some() {
+                    &icons::EXTERNAL
+                } else {
+                    &icons::DOWNLOAD
+                }),
                 allowed,
                 move |s, tx| dispatch(s, Intent::Install(Box::new(r.clone())), tx),
             )
-            .help(if allowed {
-                format!(
-                    "Download {} from {} into your AddOns folder",
-                    remote.name,
-                    source_label(&remote.provider)
-                )
-            } else {
-                format!(
-                    "The author only allows downloads through {}'s own app or website",
-                    source_label(&remote.provider)
-                )
-            });
+            .help(help);
             if primary { b.w_full() } else { b.h(28.0) }
         }
     }
@@ -876,6 +945,35 @@ fn detail(s: &State, d: &Detail) -> El {
             true,
         ),
         None => install_action(s, remote, &key("addon"), "Install", true),
+    };
+    // Fetched by hand (F4.3): a zip saved somewhere other than Downloads is picked here.
+    let action = match by_hand_file(remote, s.settings.default_channel) {
+        Some(f)
+            if installed.is_none()
+                && s.installing
+                    .get(&install_key(remote))
+                    .is_none_or(|op| matches!(op, Op::AwaitingDownload { .. })) =>
+        {
+            let r = remote.clone();
+            let can = f.check.is_some();
+            col().w_full().gap(8.0).child(action).child(
+                ui::button(
+                    key("install-from-file"),
+                    "Install from file…",
+                    Kind::Secondary,
+                    Some(&icons::FOLDER),
+                    can,
+                    move |s, tx| dispatch(s, Intent::InstallNewFromFile(Box::new(r.clone())), tx),
+                )
+                .help(if can {
+                    "Pick the zip you downloaded; Culm checks it is exactly this version, then installs it"
+                } else {
+                    "The source doesn't say how to recognise the file, so Culm can't check it"
+                })
+                .w_full(),
+            )
+        }
+        _ => action,
     };
     let file = remote
         .latest_for(s.settings.default_channel)

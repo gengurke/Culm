@@ -9,7 +9,8 @@ use addon_core::discover::{Entry, source_ids};
 use addon_core::providers::link_source;
 use addon_core::self_update::Release;
 use addon_core::{
-    Addon, Category, Channel, IgnoreReason, Installation, RemoteAddon, SearchFilter, Sort,
+    Addon, Category, Channel, IgnoreReason, Installation, RemoteAddon, RemoteFile, SearchFilter,
+    Sort, install, manual,
 };
 use rune::{FileDialogOptions, Image, ImageCache, Latest, TextEdit, Tx, Waker};
 use std::collections::HashMap;
@@ -71,6 +72,13 @@ impl AppUpdate {
 /// A running or failed operation on one addon (or one search result being installed).
 #[derive(Debug, Clone, PartialEq)]
 pub enum Op {
+    /// The update is fetched by hand (F3.5): Culm installs it once it is in Downloads. Looks there
+    /// first and opens the download in the browser (`opened`) only if it isn't. Gives up at
+    /// `until` (window clock).
+    AwaitingDownload {
+        until: f64,
+        opened: bool,
+    },
     Downloading(f32),
     Installing,
     Removing,
@@ -96,19 +104,71 @@ pub enum Status {
     /// Managed, but no update check produced a latest release (e.g. CurseForge without a key).
     NotChecked,
     UpdateAvailable,
+    /// A newer release exists, but its author only allows downloads through the source's own app or
+    /// website (no download URL), so Culm can only point there.
+    AppOnly,
     Working,
     Ignored,
     Unknown,
     Error,
 }
 
+/// Where `addon.latest` is fetched by hand (F3.5, F4.3): on CurseForge the file's download page
+/// (the browser starts the download itself), else the addon's page.
+pub fn manual_url(addon: &Addon) -> Option<String> {
+    let url = addon.url.clone()?;
+    match &addon.latest {
+        Some(f) if addon.provider.as_deref() == Some(addon_core::providers::curseforge::NAME) => {
+            Some(format!("{}/download/{}", url.trim_end_matches('/'), f.id))
+        }
+        _ => Some(url),
+    }
+}
+
+/// The file a new install of `remote` takes ([`install::pick_file`]) when its author allows
+/// downloads only through the source's own app or website, so it is fetched by hand (F4.3).
+pub fn by_hand_file(remote: &RemoteAddon, channel: Channel) -> Option<&RemoteFile> {
+    install::pick_file(remote, channel)
+        .ok()
+        .filter(|f| f.download_url.is_empty())
+}
+
+/// How long Culm looks for an addon fetched by hand, and how often (F3.5).
+const AWAIT_DOWNLOAD_SECS: f64 = 600.0;
+const DOWNLOADS_CHECK_SECS: f64 = 1.0;
+
 impl AddonUi {
+    /// Where the update is fetched by hand: [`manual_url`].
+    pub fn manual_url(&self) -> Option<String> {
+        manual_url(&self.addon)
+    }
+
+    /// Whether the update waiting has to be fetched by hand: its author allows downloads only
+    /// through the source's own app or website, so it has no download link (F3.5).
+    pub fn by_hand(&self) -> bool {
+        self.addon.update_available()
+            && self
+                .addon
+                .latest
+                .as_ref()
+                .is_some_and(|f| f.download_url.is_empty())
+    }
+
+    /// Whether a zip fetched by hand can be recognised: the source published its size and SHA-1.
+    pub fn can_install_by_hand(&self) -> bool {
+        self.addon
+            .latest
+            .as_ref()
+            .is_some_and(|f| f.check.is_some())
+    }
+
     pub fn status(&self) -> Status {
         match (&self.op, self.addon.ignored) {
             (Some(Op::Failed(_)), _) => Status::Error,
             (Some(_), _) => Status::Working,
             (None, Some(IgnoreReason::Unknown)) => Status::Unknown,
             (None, Some(_)) => Status::Ignored,
+            (None, None) if self.by_hand() => Status::AppOnly,
             (None, None) if self.addon.update_available() => Status::UpdateAvailable,
             (None, None) if self.addon.latest.is_none() => Status::NotChecked,
             (None, None) => Status::UpToDate,
@@ -217,11 +277,12 @@ fn attention(s: Status) -> u8 {
     match s {
         Status::Error => 0,
         Status::UpdateAvailable => 1,
-        Status::Working => 2,
-        Status::NotChecked => 3,
-        Status::UpToDate => 4,
-        Status::Unknown => 5,
-        Status::Ignored => 6,
+        Status::AppOnly => 2,
+        Status::Working => 3,
+        Status::NotChecked => 4,
+        Status::UpToDate => 5,
+        Status::Unknown => 6,
+        Status::Ignored => 7,
     }
 }
 
@@ -290,6 +351,17 @@ pub enum Intent {
     SetIgnored(String, bool),
     SetChannel(String, Channel),
     OpenWebsite(String),
+    /// An update its author hands out only through the source's app or website (F3.5): open its
+    /// download in the browser and install it once it lands in Downloads.
+    FetchByHand(String),
+    /// Stop waiting for that download.
+    StopWaiting(String),
+    /// Pick the downloaded zip in a file dialog.
+    InstallFromFile(String),
+    InstallZip(String, PathBuf),
+    /// Pick the downloaded zip of a search result fetched by hand (F4.3).
+    InstallNewFromFile(Box<RemoteAddon>),
+    InstallNewZip(Box<RemoteAddon>, PathBuf),
     OpenFolder(String),
     /// First press arms the confirm; `ConfirmRemove` does it.
     Remove(String),
@@ -353,6 +425,9 @@ pub struct State {
     pub detail: Option<Detail>,
     /// Install progress of search results, by [`install_key`].
     pub installing: HashMap<String, Op>,
+    /// Records of search results awaiting a download by hand (F4.3), by [`install_key`]; their
+    /// `latest` is the file Culm looks for.
+    fetching: HashMap<String, Addon>,
     pub search: Latest<SearchAnswer>,
     pub resolve: Latest<LinkAnswer>,
 
@@ -378,6 +453,11 @@ pub struct State {
     pub class_icons: Option<HashMap<String, Image>>,
     /// Seconds on the window clock as of the last poll.
     pub clock: f64,
+    /// When the Downloads folder is looked at next for updates fetched by hand (F3.5); None while
+    /// a look is running or nothing is awaited.
+    downloads_due: Option<f64>,
+    /// Pages a worker result asks to open in the browser; `poll` opens them.
+    open_urls: Vec<String>,
     pub(crate) msgs: (Sender<Msg>, Receiver<Msg>),
     pub(crate) waker: Waker,
     /// The newest settings not yet written. Writers run on workers in any order: each takes the newest under
@@ -415,6 +495,7 @@ impl State {
             menu: None,
             detail: None,
             installing: HashMap::new(),
+            fetching: HashMap::new(),
             search: Latest::default().debounce(Duration::from_millis(300)),
             resolve: Latest::default().debounce(Duration::from_millis(300)),
             game_running: false,
@@ -430,6 +511,8 @@ impl State {
             thumbs: HashMap::new(),
             class_icons: None,
             clock: 0.0,
+            downloads_due: None,
+            open_urls: vec![],
             msgs: channel(),
             waker: Arc::new(|| {}),
             unsaved: Arc::default(),
@@ -663,6 +746,7 @@ impl State {
                 ref inst, ref key, ..
             } if !self.is_current(inst) => {
                 self.installing.remove(key);
+                self.fetching.remove(key);
             }
             Msg::Booted {
                 settings,
@@ -731,6 +815,51 @@ impl State {
                 self.job = Job::Idle;
                 self.toast(Tone::Danger, "Update check failed", e);
             }
+            Msg::Downloads {
+                inst,
+                looked,
+                found,
+            } => {
+                self.downloads_due = Some(self.clock + DOWNLOADS_CHECK_SECS);
+                if self.current.as_deref() != Some(inst.as_str()) {
+                    return;
+                }
+                // Not in Downloads yet: now the browser fetches it. `id` is an addon's id, or a
+                // search result's install key.
+                for id in looked {
+                    if found.iter().any(|(f, _)| *f == id) {
+                        continue;
+                    }
+                    let url = self
+                        .addon(&id)
+                        .map(|a| &a.addon)
+                        .or(self.fetching.get(&id))
+                        .and_then(manual_url);
+                    let op = if self.addon(&id).is_some() {
+                        self.addon_mut(&id).and_then(|a| a.op.as_mut())
+                    } else {
+                        self.installing.get_mut(&id)
+                    };
+                    if let Some(Op::AwaitingDownload { opened, .. }) = op
+                        && !*opened
+                    {
+                        *opened = true;
+                        self.open_urls.extend(url);
+                    }
+                }
+                for (id, path) in found {
+                    if self
+                        .addon(&id)
+                        .is_some_and(|a| matches!(a.op, Some(Op::AwaitingDownload { .. })))
+                    {
+                        self.install_zip(&id, path, true);
+                    } else if matches!(self.installing.get(&id), Some(Op::AwaitingDownload { .. }))
+                        && let Some(record) = self.fetching.remove(&id)
+                    {
+                        self.install_new_zip(id, record, path, true);
+                    }
+                }
+            }
             Msg::Progress { id, done } => {
                 let op = if done >= 1.0 {
                     Op::Installing
@@ -765,6 +894,7 @@ impl State {
             },
             Msg::Installed { key, result, .. } => {
                 self.installing.remove(&key);
+                self.fetching.remove(&key);
                 match result {
                     Ok(addon) => {
                         self.toast(
@@ -1054,6 +1184,108 @@ impl State {
         });
     }
 
+    /// Installs a zip the user fetched by hand as the addon's update (F3.5); `remove` deletes it
+    /// afterwards (one Culm found in Downloads, not one the user picked).
+    fn install_zip(&mut self, id: &str, path: PathBuf, remove: bool) {
+        let (Some(inst), Some(a)) = (self.installation().cloned(), self.addon_mut(id)) else {
+            return;
+        };
+        if a.op
+            .as_ref()
+            .is_some_and(|op| op.busy() && !matches!(op, Op::AwaitingDownload { .. }))
+        {
+            return;
+        }
+        a.op = Some(Op::Installing);
+        let addon = a.addon.clone();
+        worker::spawn(self, "install-zip", move |b, post| {
+            post.send(Msg::Updated {
+                id: addon.id.clone(),
+                result: b
+                    .install_downloaded(&inst, &addon, &path, remove)
+                    .map_err(err),
+            });
+        });
+    }
+
+    /// Installs a zip the user fetched by hand as a new addon, `record` ([`manual::new_record`])
+    /// (F4.3); `remove` as in [`Self::install_zip`]. Lands as `Msg::Installed`.
+    fn install_new_zip(&mut self, key: String, record: Addon, path: PathBuf, remove: bool) {
+        let Some(inst) = self.installation().cloned() else {
+            return;
+        };
+        if self
+            .installing
+            .get(&key)
+            .is_some_and(|op| !matches!(op, Op::AwaitingDownload { .. }))
+        {
+            return;
+        }
+        self.installing.insert(key.clone(), Op::Installing);
+        worker::spawn(self, "install-zip", move |b, post| {
+            post.send(Msg::Installed {
+                result: b
+                    .install_downloaded(&inst, &record, &path, remove)
+                    .map_err(err),
+                inst: inst.id,
+                key,
+            });
+        });
+    }
+
+    /// Ends waits that ran out, and looks in Downloads for the awaited zips when due (F3.5,
+    /// F4.3). Returns when to look again.
+    fn look_for_downloads(&mut self) -> Option<f64> {
+        let clock = self.clock;
+        let mut waiting = vec![];
+        for a in &mut self.addons {
+            if let Some(Op::AwaitingDownload { until, .. }) = a.op {
+                if clock >= until {
+                    a.op = None;
+                } else if let Some(file) = a.addon.latest.clone() {
+                    waiting.push((a.addon.id.clone(), file));
+                }
+            }
+        }
+        let fetching = &mut self.fetching;
+        self.installing.retain(|key, op| match op {
+            Op::AwaitingDownload { until, .. } if clock >= *until => {
+                fetching.remove(key);
+                false
+            }
+            Op::AwaitingDownload { .. } => {
+                if let Some(file) = fetching.get(key).and_then(|r| r.latest.clone()) {
+                    waiting.push((key.clone(), file));
+                }
+                true
+            }
+            _ => true,
+        });
+        if waiting.is_empty() {
+            self.downloads_due = None;
+            return None;
+        }
+        let due = *self.downloads_due.get_or_insert(clock);
+        if clock < due {
+            return Some(due);
+        }
+        let inst = self.installation().map(|i| i.id.clone())?;
+        self.downloads_due = None;
+        worker::spawn(self, "downloads", move |b, post| {
+            let looked = waiting.iter().map(|(id, _)| id.clone()).collect();
+            let found = waiting
+                .into_iter()
+                .filter_map(|(id, file)| b.find_download(&file).map(|path| (id, path)))
+                .collect();
+            post.send(Msg::Downloads {
+                inst,
+                looked,
+                found,
+            });
+        });
+        None
+    }
+
     /// The popular list (every source) and, with a key, the category list; once per key.
     fn load_featured(&mut self) {
         if self.curseforge_ready() && !matches!(self.categories, Fetch::Loading | Fetch::Ready(_)) {
@@ -1286,6 +1518,9 @@ pub fn dispatch(s: &mut State, intent: Intent, tx: &mut Tx) {
                 s.settings.installation = Some(id);
                 s.save_settings();
                 s.addons.clear();
+                s.installing
+                    .retain(|_, op| !matches!(op, Op::AwaitingDownload { .. }));
+                s.fetching.clear();
                 s.selected = None;
                 s.confirm_remove = None;
                 s.maint.clear();
@@ -1371,6 +1606,71 @@ pub fn dispatch(s: &mut State, intent: Intent, tx: &mut Tx) {
                 let _ = tx.open_url(&url);
             }
         }
+        Intent::FetchByHand(id) => {
+            let clock = s.clock;
+            let Some(a) = s.addon_mut(&id) else {
+                return;
+            };
+            if a.op.as_ref().is_some_and(Op::busy) {
+                return;
+            }
+            if a.can_install_by_hand() {
+                // A copy may be in Downloads already: the first look decides on the browser.
+                a.op = Some(Op::AwaitingDownload {
+                    until: clock + AWAIT_DOWNLOAD_SECS,
+                    opened: false,
+                });
+                s.downloads_due = Some(clock);
+            } else if let Some(url) = a.manual_url() {
+                let _ = tx.open_url(&url);
+            }
+        }
+        Intent::StopWaiting(id) => {
+            if let Some(a) = s.addon_mut(&id)
+                && matches!(a.op, Some(Op::AwaitingDownload { .. }))
+            {
+                a.op = None;
+            } else if matches!(s.installing.get(&id), Some(Op::AwaitingDownload { .. })) {
+                s.installing.remove(&id);
+                s.fetching.remove(&id);
+            }
+        }
+        Intent::InstallFromFile(id) => {
+            let options = FileDialogOptions {
+                title: "Choose the downloaded zip".into(),
+                directory: s.backend.downloads_dir(),
+                ..Default::default()
+            }
+            .filter("Zip archives", &["zip"]);
+            tx.open_file(options, move |s: &mut State, picked, tx| match picked {
+                Ok(Some(path)) => dispatch(s, Intent::InstallZip(id.clone(), path), tx),
+                Ok(None) => {}
+                Err(e) => s.toast(Tone::Danger, "File picker unavailable", e.to_string()),
+            });
+        }
+        Intent::InstallZip(id, path) => s.install_zip(&id, path, false),
+        Intent::InstallNewFromFile(remote) => {
+            let options = FileDialogOptions {
+                title: "Choose the downloaded zip".into(),
+                directory: s.backend.downloads_dir(),
+                ..Default::default()
+            }
+            .filter("Zip archives", &["zip"]);
+            tx.open_file(options, move |s: &mut State, picked, tx| match picked {
+                Ok(Some(path)) => dispatch(s, Intent::InstallNewZip(remote.clone(), path), tx),
+                Ok(None) => {}
+                Err(e) => s.toast(Tone::Danger, "File picker unavailable", e.to_string()),
+            });
+        }
+        Intent::InstallNewZip(remote, path) => {
+            if s.is_installed(&remote) {
+                return;
+            }
+            match manual::new_record(&remote, s.settings.default_channel) {
+                Ok(record) => s.install_new_zip(install_key(&remote), record, path, false),
+                Err(e) => s.toast(Tone::Danger, "Install failed", err(e)),
+            }
+        }
         Intent::OpenFolder(id) => {
             let (Some(inst), Some(a)) = (s.installation(), s.addon(&id)) else {
                 return;
@@ -1447,8 +1747,28 @@ pub fn dispatch(s: &mut State, intent: Intent, tx: &mut Tx) {
             if s.installing.contains_key(&key) || s.is_installed(&remote) {
                 return;
             }
-            s.installing.insert(key.clone(), Op::Downloading(0.0));
             let channel = s.settings.default_channel;
+            if by_hand_file(&remote, channel).is_some() {
+                // Fetched by hand (F4.3): look in Downloads first, like an update (F3.5).
+                let Ok(record) = manual::new_record(&remote, channel) else {
+                    return;
+                };
+                if record.latest.as_ref().is_some_and(|f| f.check.is_some()) {
+                    s.installing.insert(
+                        key.clone(),
+                        Op::AwaitingDownload {
+                            until: s.clock + AWAIT_DOWNLOAD_SECS,
+                            opened: false,
+                        },
+                    );
+                    s.fetching.insert(key, record);
+                    s.downloads_due = Some(s.clock);
+                } else if let Some(url) = manual_url(&record) {
+                    let _ = tx.open_url(&url);
+                }
+                return;
+            }
+            s.installing.insert(key.clone(), Op::Downloading(0.0));
             worker::spawn(s, "install", move |b, post| {
                 let result = b.install(&inst, &remote, channel, &|done| {
                     post.send(Msg::Progress {
@@ -1617,6 +1937,12 @@ pub fn poll(s: &mut State, clock: f64, tx: &mut Tx) -> bool {
     changed |= s.take_search();
     changed |= s.take_link();
     changed |= crate::theme::textures_landed();
+    for url in std::mem::take(&mut s.open_urls) {
+        let _ = tx.open_url(&url);
+    }
+    if let Some(due) = s.look_for_downloads() {
+        tx.wake_at(due);
+    }
     let before = s.toasts.len();
     s.toasts.retain(|t| t.due > clock);
     changed |= s.toasts.len() != before;

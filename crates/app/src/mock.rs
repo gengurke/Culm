@@ -883,6 +883,7 @@ fn file(id: &str, version: &str, channel: Channel) -> RemoteFile {
         game_versions: vec!["1.60.1".into()],
         folders: vec![],
         dependencies: vec![],
+        check: None,
     }
 }
 
@@ -894,6 +895,14 @@ fn remote(row: &Row) -> RemoteAddon {
         .chain(extra.iter().copied())
         .map(String::from)
         .collect();
+    if name == "Chattynator" || name == "Hekili" {
+        // Its author allows downloads only through CurseForge's own app or website (F3.5, F4.3).
+        f.download_url.clear();
+        f.check = Some(addon_core::FileCheck {
+            size: 1,
+            sha1: "0".repeat(40),
+        });
+    }
     RemoteAddon {
         provider: "CurseForge".into(),
         external_id: id.clone(),
@@ -1158,6 +1167,30 @@ impl Backend for MockBackend {
         let mut installed = self.installed.lock().unwrap();
         if let Some(slot) = installed.iter_mut().find(|x| x.id == a.id) {
             *slot = a.clone();
+        }
+        Ok(a)
+    }
+
+    // Snapshots never watch a Downloads folder.
+    fn find_download(&self, _file: &RemoteFile) -> Option<PathBuf> {
+        None
+    }
+
+    fn downloads_dir(&self) -> Option<PathBuf> {
+        None
+    }
+
+    fn install_downloaded(
+        &self,
+        inst: &Installation,
+        addon: &Addon,
+        _path: &Path,
+        _remove: bool,
+    ) -> Result<Addon> {
+        let a = self.update(inst, addon, false, &|_| {})?;
+        let mut installed = self.installed.lock().unwrap();
+        if !installed.iter().any(|x| x.id == a.id) {
+            installed.push(a.clone());
         }
         Ok(a)
     }

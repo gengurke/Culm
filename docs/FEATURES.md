@@ -69,6 +69,21 @@ What the addon manager does, one short paragraph per feature. Ids are referenced
   stable files, etc. (`f3_1_check_updates_batches_per_provider_and_isolates_failures`)
 - **F3.4 Ignore** ✅ — Ignored addons are never checked or updated; can be un-ignored; stored. Git checkouts are ignored
   automatically. (e2e `f3_4_ignored_addon_is_not_offered_for_update`)
+- **F3.5 Updates only the source hands out** ✅ — When the newest file has no download link (the CurseForge author
+  allows downloads only through CurseForge's own app or website), the row's Update button carries an external-link
+  glyph (the reason in its tooltip) and, like the detail's "Get it on CurseForge", opens that file's download page
+  (`<addon page>/download/<file id>`), where the browser starts the download; other sources open the addon's page.
+  "Update all" leaves these out. The row then says "Waiting for download…" (Cancel stops it; it gives up after ten
+  minutes) while a worker looks in the Downloads folder (`rune::dirs`) once a second for a `.zip` with exactly the
+  size and SHA-1 CurseForge publishes (`manual::find_in`; unfinished `.part`/`.crdownload` files never match). The
+  first look runs before the browser opens: a copy already there is installed without a tab. Found, it is installed
+  like any update (validation, backup, rollback) and deleted with every identical copy (`Foo(1).zip`). Saved elsewhere: "Install from file…"
+  in the detail picks the zip, checks it the same way, installs it and leaves it in place. The size and hash stay in
+  memory only (#69). (core `f3_5_finds_only_the_exact_zip_in_downloads`,
+  `f3_5_installs_a_zip_fetched_by_hand_only_when_it_is_the_file`, `f3_5_curseforge_file_carries_its_size_and_sha1`,
+  e2e `f3_5_update_only_on_curseforge_installs_the_browser_download`,
+  `f3_5_a_zip_already_in_downloads_installs_without_the_browser`, `f3_5_waiting_can_be_cancelled_and_ends_by_itself`,
+  `f3_5_install_from_file_checks_the_zip_first`)
 
 ## F4 Get Addons (remote)
 - **F4.1 Search** ✅ — One field takes search text or an install link: a CurseForge addon URL, a WowUp Hub page
@@ -84,9 +99,15 @@ What the addon manager does, one short paragraph per feature. Ids are referenced
   (`f4_2_popular_lists_featured`, e2e `f4_8_a_result_on_two_sources_installs_from_the_picked_one`).
 - **F4.3 Install** ✅ — Installs a search result with the default channel; it appears in My Addons and takes the folders it
   installed from other records (records left without folders go). When the author allows downloads only in CurseForge's own app
-  (no `downloadUrl`), Install is greyed out with the reason in its tooltip and never builds a URL itself. (`f4_3_install_creates_record_and_replaces_existing_folders`,
-  `f4_3_install_takes_only_shared_folders_from_other_records`, `f4_3_no_download_url_means_the_author_said_no`, e2e `f4_1_search_and_f4_3_install_from_a_result`,
-  `f4_3_install_is_greyed_out_when_the_author_blocks_other_apps`)
+  or website (no `downloadUrl`), Culm never builds a URL itself: Install carries an external-link glyph and fetches the file
+  by hand like an F3.5 update (looks in Downloads first, else opens the file's download page, "Waiting for download…" with
+  Cancel on the card and in the detail, installs and deletes the zip once it lands; the detail adds "Install from file…").
+  Without the file's size and SHA-1 Install is greyed out with the reason in its tooltip.
+  (`f4_3_install_creates_record_and_replaces_existing_folders`, `f4_3_install_takes_only_shared_folders_from_other_records`,
+  `f4_3_no_download_url_means_the_author_said_no`, `f4_3_installs_a_new_addon_from_a_zip_fetched_by_hand`, e2e
+  `f4_1_search_and_f4_3_install_from_a_result`, `f4_3_install_only_on_curseforge_installs_the_browser_download`,
+  `f4_3_a_zip_already_in_downloads_installs_without_the_browser`, `f4_3_waiting_for_a_new_addon_can_be_cancelled`,
+  `f4_3_install_from_file_checks_the_zip_first`, `f4_3_install_is_greyed_out_when_culm_cannot_recognise_the_file`)
 - **F4.4 Install from URL** ✅ — The F4.1 field resolves a pasted CurseForge addon URL, WowUp Hub page or GitHub repo URL (releases with
   `release.json` or a `*-forever.zip`/plain zip asset) on a worker and installs it from its card or detail. Provider `from_url` done for CurseForge (slug search),
   GitHub (`owner/repo`, newest 5 non-draft releases, prerelease = Beta; plain-zip fallback skips zips tagged for other

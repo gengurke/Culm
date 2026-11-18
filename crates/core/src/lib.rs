@@ -8,6 +8,7 @@ pub mod html;
 pub mod http;
 pub mod install;
 pub mod maintenance;
+pub mod manual;
 pub mod model;
 pub mod providers;
 pub mod scan;
