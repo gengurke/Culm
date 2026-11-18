@@ -197,6 +197,24 @@ const SCENES: &[Scene] = &[
         loaded(s);
         s.selected = Some("questie".into());
     }),
+    // An update its author hands out only through CurseForge's own app or website (F3.5).
+    ("my-addons-app-only", |s| {
+        loaded(s);
+        s.selected = Some("chattynator".into());
+    }),
+    // Its download is open in the browser; Culm waits for the zip in Downloads (F3.5).
+    ("my-addons-awaiting-download", |s| {
+        loaded(s);
+        set_op(
+            s,
+            "chattynator",
+            Op::AwaitingDownload {
+                until: f64::MAX,
+                opened: true,
+            },
+        );
+        s.selected = Some("chattynator".into());
+    }),
     ("my-addons-scanning", |s| {
         loaded(s);
         s.addons.clear();
@@ -231,6 +249,57 @@ const SCENES: &[Scene] = &[
             state::Detail {
                 entry,
                 source: 1,
+                description,
+            }
+        });
+    }),
+    // Hekili's author allows downloads only through CurseForge: Install opens the browser (F4.3),
+    // and the selected result waits for the zip in Downloads.
+    ("get-addons-by-hand", |s| {
+        loaded(s);
+        s.screen = Screen::GetAddons;
+        s.categories = Fetch::Ready(mock::categories());
+        s.query.replace_text("e");
+        let found = mock::found(&s.search_filter(), true);
+        let pick = found
+            .entries
+            .iter()
+            .find(|e| e.preferred().name == "Hekili")
+            .cloned();
+        s.results = Fetch::Ready(found);
+        s.detail = pick.map(|entry| {
+            let description = Fetch::Ready(Some(mock::description(&entry.sources[0])));
+            state::Detail {
+                entry,
+                source: 0,
+                description,
+            }
+        });
+    }),
+    ("get-addons-awaiting-download", |s| {
+        loaded(s);
+        s.screen = Screen::GetAddons;
+        s.categories = Fetch::Ready(mock::categories());
+        s.query.replace_text("hek");
+        let found = mock::found(&s.search_filter(), true);
+        let pick = found
+            .entries
+            .iter()
+            .find(|e| e.preferred().name == "Hekili")
+            .cloned();
+        s.results = Fetch::Ready(found);
+        s.installing.insert(
+            "CurseForge:hekili".into(),
+            Op::AwaitingDownload {
+                until: f64::MAX,
+                opened: true,
+            },
+        );
+        s.detail = pick.map(|entry| {
+            let description = Fetch::Ready(Some(mock::description(&entry.sources[0])));
+            state::Detail {
+                entry,
+                source: 0,
                 description,
             }
         });

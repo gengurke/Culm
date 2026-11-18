@@ -4,8 +4,8 @@ use super::{FolderMatch, Provider, ScannedFolder, newest_per_channel};
 use crate::html;
 use crate::http;
 use crate::model::{
-    Category, Channel, Dependency, DependencyKind, Flavor, RemoteAddon, RemoteFile, SearchFilter,
-    Sort,
+    Category, Channel, Dependency, DependencyKind, FileCheck, Flavor, RemoteAddon, RemoteFile,
+    SearchFilter, Sort,
 };
 use anyhow::{Context, Result, bail};
 use serde::Deserialize;
@@ -312,6 +312,15 @@ fn to_file(f: &CfFile) -> RemoteFile {
                 },
             })
             .collect(),
+        check: f
+            .hashes
+            .iter()
+            .find(|h| h.algo == 1 && h.value.len() == 40)
+            .filter(|_| f.file_length > 0)
+            .map(|h| FileCheck {
+                size: f.file_length,
+                sha1: h.value.to_ascii_lowercase(),
+            }),
     }
 }
 
@@ -397,10 +406,20 @@ struct CfFile {
     release_type: u8,
     file_date: Option<String>,
     download_url: Option<String>,
+    file_length: u64,
+    hashes: Vec<Hash>,
     expose_as_alternative: Option<bool>,
     sortable_game_versions: Vec<SortableVersion>,
     dependencies: Vec<CfDependency>,
     modules: Vec<Module>,
+}
+
+#[derive(Deserialize, Default)]
+#[serde(default, rename_all = "camelCase")]
+struct Hash {
+    value: String,
+    /// 1 SHA-1, 2 MD5.
+    algo: u8,
 }
 
 #[derive(Deserialize, Default)]

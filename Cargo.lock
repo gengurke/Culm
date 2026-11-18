@@ -90,6 +90,7 @@ dependencies = [
  "rune",
  "rune-kit",
  "serde_json",
+ "sha1",
  "swash",
  "tempfile",
 ]
@@ -103,6 +104,7 @@ dependencies = [
  "image",
  "serde",
  "serde_json",
+ "sha1",
  "sha2",
  "tempfile",
  "ureq",
@@ -3060,6 +3062,17 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 3.0.10",
+]
+
+[[package]]
+name = "sha1"
+version = "0.10.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a978451301f4db1d02937a4ab3ccce137717b81826e79b7d49ffe3244a13c3b8"
+dependencies = [
+ "cfg-if",
+ "cpufeatures 0.2.17",
+ "digest",
 ]
 
 [[package]]

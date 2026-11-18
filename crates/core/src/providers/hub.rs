@@ -224,6 +224,7 @@ fn to_file(flavor: Flavor, r: &HubRelease) -> Option<RemoteFile> {
             .map(|f| f.folder_name.clone())
             .collect(),
         dependencies: vec![],
+        check: None,
     })
 }
 

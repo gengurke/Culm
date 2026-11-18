@@ -70,6 +70,18 @@ pub struct RemoteFile {
     /// Top-level folders the zip contains (CurseForge `modules[].name`), if known.
     pub folders: Vec<String>,
     pub dependencies: Vec<Dependency>,
+    /// What the source says the zip is, to recognise a copy fetched by hand (F3.5). In memory
+    /// only: CurseForge's terms forbid storing its API data (#69); the next update check refills it.
+    #[serde(skip)]
+    pub check: Option<FileCheck>,
+}
+
+/// A zip's size and SHA-1 as its source publishes them (CurseForge `fileLength`, `hashes`).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FileCheck {
+    pub size: u64,
+    /// Lowercase hex.
+    pub sha1: String,
 }
 
 /// An addon as known by a provider (search result, featured list, sync result).

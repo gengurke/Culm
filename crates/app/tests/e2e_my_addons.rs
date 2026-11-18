@@ -2,7 +2,7 @@
 //! the real UI and core over a temp Forever tree and a fake CurseForge (see `common`).
 
 mod common;
-use addon_app::state::{MaintCard, MaintPhase, Status};
+use addon_app::state::{MaintCard, MaintPhase, Op, Status};
 use addon_core::IgnoreReason;
 use common::*;
 use rune::ImageCache;
@@ -344,4 +344,210 @@ fn f5_1_remove_keeps_folders_another_addon_lists() {
     );
     let (after, _) = backend.scan(&inst).unwrap();
     assert!(after.iter().any(|a| a.name == "Homebrew") && !after.iter().any(|a| a.name == "Ace"));
+}
+
+/// A world where Ace 1.1 is out but its author allows downloads only through CurseForge's own app
+/// or website (no downloadUrl, F3.5), with the zip the browser would fetch.
+fn app_only_world() -> (World, Vec<u8>) {
+    use sha1::{Digest, Sha1};
+    let world = World::new().with_key("test-key");
+    let zip = addon_testkit::make_zip(&[
+        ("Ace/Ace.toc", toc("Ace", "1.1").as_bytes()),
+        ("Ace/New.lua", b"1.1"),
+    ]);
+    let mut ace11 = addon_testkit::cf_file(11, "1.1", 1, &["Ace"], 0);
+    ace11["downloadUrl"] = serde_json::Value::Null;
+    ace11["fileLength"] = serde_json::json!(zip.len());
+    let sha1: String = Sha1::digest(&zip)
+        .iter()
+        .map(|b| format!("{b:02x}"))
+        .collect();
+    ace11["hashes"] = serde_json::json!([{ "value": sha1, "algo": 1 }]);
+    let ace = addon_testkit::cf_mod_with_files(
+        1,
+        "Ace",
+        vec![ace11, addon_testkit::cf_file(10, "1.0", 1, &["Ace"], 0)],
+    );
+    let bee_files = |id, v| addon_testkit::cf_file(id, v, 1, &["Bee", "Bee_Options"], 0);
+    let bee = addon_testkit::cf_mod_with_files(
+        2,
+        "Bee",
+        vec![bee_files(21, "2.1"), bee_files(20, "2.0")],
+    );
+    // Bee's update downloads from the fake server, like the default world's.
+    let mods = addon_testkit::cf_envelope(serde_json::json!([ace, bee]))
+        .to_string()
+        .replace("https://edge.forgecdn.net", world.server.url());
+    world
+        .server
+        .json("POST", "/v1/mods", &serde_json::from_str(&mods).unwrap());
+    std::fs::create_dir_all(world.downloads()).unwrap();
+    (world, zip)
+}
+
+fn awaiting(app: &App, name: &str) -> bool {
+    app.state()
+        .addons
+        .iter()
+        .any(|a| a.addon.name == name && matches!(a.op, Some(Op::AwaitingDownload { .. })))
+}
+
+/// Lets the app run `secs` seconds of its clock (it looks in Downloads once a second).
+fn run(app: &mut App, secs: f64) {
+    for _ in 0..(secs * 60.0) as usize {
+        app.frame();
+    }
+}
+
+#[test]
+fn f3_5_update_only_on_curseforge_installs_the_browser_download() {
+    let (world, zip) = app_only_world();
+    let mut app = world.app();
+    app.wait_idle();
+    assert_eq!(app.status("Ace"), Status::AppOnly);
+    assert!(app.shows_in(&app.row("Ace", ""), "Update available"));
+    assert!(app.shows_in(&app.row("Ace", "open-source"), "Update"));
+    assert!(app.shows_in(&app.row("Ace", ""), "1.0 → 1.1"));
+    assert!(app.shows("Update all (1)"), "Update all leaves Ace out");
+
+    app.tap(&app.row("Ace", "open-source"));
+    assert!(awaiting(&app, "Ace"));
+    app.wait_until("Culm to look in Downloads first", |app| {
+        app.state()
+            .addons
+            .iter()
+            .any(|a| matches!(a.op, Some(Op::AwaitingDownload { opened: true, .. })))
+    });
+    assert_eq!(
+        app.rt.take_url_requests(),
+        ["https://www.curseforge.com/wow/addons/ace/download/11"],
+        "not there yet: opens the new file's download page"
+    );
+    assert!(app.shows_in(&app.row("Ace", ""), "Waiting for download"));
+
+    // Unfinished, or not exactly the file: ignored.
+    let downloads = world.downloads();
+    let mut wrong = zip.clone();
+    *wrong.last_mut().unwrap() ^= 1;
+    std::fs::write(downloads.join("Ace-1.1.zip"), &wrong).unwrap();
+    std::fs::write(downloads.join("Ace-1.1(1).zip.part"), &zip).unwrap();
+    run(&mut app, 3.0);
+    app.wait_until("the looks to finish", |app| awaiting(app, "Ace"));
+    assert!(
+        world
+            .read("Interface/AddOns/Ace/Ace.toc")
+            .contains("## Version: 1.0")
+    );
+
+    // The browser renames the finished download: Culm installs it and deletes the zip.
+    std::fs::rename(
+        downloads.join("Ace-1.1(1).zip.part"),
+        downloads.join("Ace-1.1(1).zip"),
+    )
+    .unwrap();
+    app.wait_until("Ace to update", |app| app.status("Ace") == Status::UpToDate);
+    assert!(app.shows("Updated Ace"));
+    assert!(
+        world
+            .read("Interface/AddOns/Ace/Ace.toc")
+            .contains("## Version: 1.1")
+    );
+    assert!(world.exists("Interface/AddOns/Ace/New.lua"));
+    assert!(
+        !downloads.join("Ace-1.1(1).zip").exists(),
+        "the zip is gone"
+    );
+    assert!(downloads.join("Ace-1.1.zip").exists(), "other files stay");
+}
+
+#[test]
+fn f3_5_a_zip_already_in_downloads_installs_without_the_browser() {
+    let (world, zip) = app_only_world();
+    let downloads = world.downloads();
+    std::fs::write(downloads.join("Ace-1.1.zip"), &zip).unwrap();
+    std::fs::write(downloads.join("Ace-1.1(1).zip"), &zip).unwrap();
+    std::fs::write(downloads.join("Notes.zip"), b"something else").unwrap();
+    let mut app = world.app();
+    app.wait_idle();
+    app.tap(&app.row("Ace", "open-source"));
+    app.wait_until("Ace to update", |app| app.status("Ace") == Status::UpToDate);
+    assert!(
+        app.rt.take_url_requests().is_empty(),
+        "no browser tab: the file was already there"
+    );
+    assert!(
+        world
+            .read("Interface/AddOns/Ace/Ace.toc")
+            .contains("## Version: 1.1")
+    );
+    assert!(!downloads.join("Ace-1.1.zip").exists());
+    assert!(
+        !downloads.join("Ace-1.1(1).zip").exists(),
+        "identical copies go too"
+    );
+    assert!(downloads.join("Notes.zip").exists(), "other files stay");
+}
+
+#[test]
+fn f3_5_waiting_can_be_cancelled_and_ends_by_itself() {
+    let (world, _) = app_only_world();
+    let mut app = world.app();
+    app.wait_idle();
+    app.tap(&app.row("Ace", "open-source"));
+    assert!(awaiting(&app, "Ace"));
+    app.tap(&app.row("Ace", "stop-waiting"));
+    assert_eq!(app.status("Ace"), Status::AppOnly);
+
+    app.tap(&app.row("Ace", "open-source"));
+    assert!(awaiting(&app, "Ace"));
+    app.rt.frame(601.0);
+    app.frame();
+    assert_eq!(
+        app.status("Ace"),
+        Status::AppOnly,
+        "gave up after ten minutes"
+    );
+}
+
+#[test]
+fn f3_5_install_from_file_checks_the_zip_first() {
+    let (world, zip) = app_only_world();
+    let mut app = world.app();
+    app.wait_idle();
+    app.tap(&app.row("Ace", ""));
+    app.wait_until("the detail panel", |app| {
+        app.has("detail/install-from-file")
+    });
+    let elsewhere = world.downloads().join("elsewhere");
+    std::fs::create_dir_all(&elsewhere).unwrap();
+    let wrong = elsewhere.join("Ace-1.0.zip");
+    std::fs::write(&wrong, b"not the update").unwrap();
+
+    app.tap("detail/install-from-file");
+    assert!(
+        app.rt.file_dialog().is_some(),
+        "a file dialog asks for the zip"
+    );
+    app.rt.resolve_file_dialog(Some(wrong.clone())).unwrap();
+    app.frame();
+    app.wait_idle();
+    assert!(app.shows("this file is not Ace 1.1"));
+    assert!(
+        world
+            .read("Interface/AddOns/Ace/Ace.toc")
+            .contains("## Version: 1.0")
+    );
+
+    let right = elsewhere.join("Ace-1.1.zip");
+    std::fs::write(&right, &zip).unwrap();
+    app.tap("detail/install-from-file");
+    app.rt.resolve_file_dialog(Some(right.clone())).unwrap();
+    app.frame();
+    app.wait_until("Ace to update", |app| app.status("Ace") == Status::UpToDate);
+    assert!(
+        world
+            .read("Interface/AddOns/Ace/Ace.toc")
+            .contains("## Version: 1.1")
+    );
+    assert!(right.exists(), "a file the user picked stays where it is");
 }

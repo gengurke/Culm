@@ -91,6 +91,7 @@ pub fn remote_file(id: &str, version: &str, channel: Channel, folders: &[&str]) 
         game_versions: vec!["1.60.1".into()],
         folders: folders.iter().map(|s| s.to_string()).collect(),
         dependencies: vec![],
+        check: None,
     }
 }
 

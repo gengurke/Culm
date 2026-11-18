@@ -5,9 +5,11 @@
 use crate::theme::ThemeId;
 use addon_core::discover::Entry;
 use addon_core::self_update::Release;
-use addon_core::{Addon, Category, Channel, Installation, RemoteAddon, SearchFilter, Sort};
+use addon_core::{
+    Addon, Category, Channel, Installation, RemoteAddon, RemoteFile, SearchFilter, Sort,
+};
 use anyhow::Result;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 /// User settings the backend needs (providers read the API key).
 #[derive(Debug, Clone, Default, PartialEq)]
@@ -143,6 +145,20 @@ pub trait Backend: Send + Sync {
         addon: &Addon,
         reinstall: bool,
         progress: &dyn Fn(f32),
+    ) -> Result<Addon>;
+    /// The zip of `file` the user downloaded by hand, if it sits in their Downloads folder with
+    /// exactly the size and SHA-1 its source publishes (F3.5).
+    fn find_download(&self, file: &RemoteFile) -> Option<PathBuf>;
+    /// Where downloads land, for the "Install from file" dialog to open in.
+    fn downloads_dir(&self) -> Option<PathBuf>;
+    /// Installs the zip at `path` as the addon's latest file, after checking it is exactly that
+    /// file; `remove` then deletes it and every identical copy in Downloads (F3.5).
+    fn install_downloaded(
+        &self,
+        inst: &Installation,
+        addon: &Addon,
+        path: &Path,
+        remove: bool,
     ) -> Result<Addon>;
     fn install(
         &self,

@@ -30,7 +30,7 @@ pub fn write(path: &Path, content: impl AsRef<[u8]>) {
 }
 
 /// `Foo_Options` requires `Foo`, so unmatched it still groups under `Foo` (F2.2).
-fn toc(title: &str, version: &str) -> String {
+pub fn toc(title: &str, version: &str) -> String {
     let deps = title
         .split_once('_')
         .map(|(parent, _)| format!("## RequiredDeps: {parent}\n"))
@@ -85,6 +85,11 @@ impl World {
         w.folder("Homebrew", "0.1");
         w.serve();
         w
+    }
+
+    /// The user's Downloads folder as the app sees it (F3.5).
+    pub fn downloads(&self) -> PathBuf {
+        self.tmp.path().join("downloads")
     }
 
     pub fn addons_dir(&self) -> PathBuf {
@@ -325,6 +330,7 @@ impl World {
             // Nothing served there unless a test adds a release (F8.4).
             app_releases_url: url,
             appimage: None,
+            downloads: Some(self.downloads()),
         }
     }
 

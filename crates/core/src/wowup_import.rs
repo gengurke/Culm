@@ -143,6 +143,7 @@ fn map_record(r: &Value) -> Option<Addon> {
             game_versions: vec![],
             folders: vec![],
             dependencies: vec![],
+            check: None,
         }),
         _ => None,
     };

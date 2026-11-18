@@ -1,7 +1,7 @@
 //! My Addons: toolbar, the installed list (virtual rows) and the selected addon's detail panel.
 
 use super::{band, band_note};
-use crate::backend::SortBy;
+use crate::backend::{SortBy, source_label};
 use crate::brand;
 use crate::icons;
 use crate::state::{AddonUi, Intent, Job, Op, Screen, State, Status, dispatch};
@@ -386,9 +386,10 @@ fn version_cell(a: &AddonUi) -> El {
         .clone()
         .unwrap_or_else(|| "—".into());
     match (&a.addon.latest, a.status()) {
-        (Some(latest), Status::UpdateAvailable | Status::Working | Status::Error)
-            if latest.version != installed =>
-        {
+        (
+            Some(latest),
+            Status::UpdateAvailable | Status::AppOnly | Status::Working | Status::Error,
+        ) if latest.version != installed => {
             let s = format!("{installed} → {}", latest.version);
             let start = installed.len() + " → ".len();
             rich(
@@ -414,30 +415,56 @@ fn status_mark(a: &AddonUi) -> (&'static str, Mark) {
     match a.status() {
         Status::UpToDate => ("Up to date", Mark::Good),
         Status::NotChecked => ("Not checked", Mark::Muted),
-        Status::UpdateAvailable => ("Update available", Mark::Update),
+        Status::UpdateAvailable | Status::AppOnly => ("Update available", Mark::Update),
         Status::Ignored if a.addon.ignored == Some(IgnoreReason::GitRepo) => {
             ("Git checkout", Mark::Off)
         }
         Status::Ignored => ("Ignored", Mark::Off),
         Status::Unknown => ("Unknown", Mark::Muted),
         Status::Error => ("Error", Mark::Bad),
+        Status::Working if matches!(a.op, Some(Op::AwaitingDownload { .. })) => {
+            ("Waiting for download", Mark::Busy)
+        }
         Status::Working => ("Working", Mark::Busy),
     }
+}
+
+/// The addon's source as people read it ("CurseForge").
+fn source(a: &AddonUi) -> &str {
+    source_label(a.addon.provider.as_deref().unwrap_or("its source"))
+}
+
+/// Why an update has to come from the source's own app or website.
+fn app_only_help(a: &AddonUi) -> String {
+    super::by_hand_help(source(a))
 }
 
 pub(crate) fn status_badge(a: &AddonUi) -> El {
     let (label, mark) = status_mark(a);
     let b = ui::tag(label, mark);
-    if a.status() == Status::NotChecked {
-        b.help("No update check has answered for this addon yet (CurseForge needs your API key).")
-    } else {
-        b
+    match a.status() {
+        Status::NotChecked => b.help(
+            "No update check has answered for this addon yet (CurseForge needs your API key).",
+        ),
+        Status::AppOnly => b.help(app_only_help(a)),
+        _ => b,
     }
 }
 
 fn status_cell(a: &AddonUi) -> El {
     let p = pal();
     match &a.op {
+        Some(Op::AwaitingDownload { .. }) => row()
+            .key(format!("addon/{}/awaiting", a.addon.id))
+            .gap(8.0)
+            .center_y()
+            .help(super::AWAITING_HELP)
+            .child(ui::spinner(12.0, p.accent))
+            .child(
+                text("Waiting for download…")
+                    .font(t().ty.small)
+                    .color(p.text_dim),
+            ),
         Some(Op::Downloading(done)) => col()
             .key(format!("addon/{}/progress", a.addon.id))
             .gap(6.0)
@@ -469,6 +496,18 @@ fn status_cell(a: &AddonUi) -> El {
 
 fn action_cell(a: &AddonUi) -> El {
     let id = a.addon.id.clone();
+    if matches!(a.op, Some(Op::AwaitingDownload { .. })) {
+        return ui::button(
+            format!("addon/{id}/stop-waiting"),
+            "Cancel",
+            Kind::Ghost,
+            None,
+            true,
+            move |s, tx| dispatch(s, Intent::StopWaiting(id.clone()), tx),
+        )
+        .help("Stop waiting for the download")
+        .h(28.0);
+    }
     match a.status() {
         Status::UpdateAvailable => ui::button(
             format!("addon/{id}/update"),
@@ -479,6 +518,26 @@ fn action_cell(a: &AddonUi) -> El {
             move |s, tx| dispatch(s, Intent::Update(id.clone()), tx),
         )
         .help("Download and install the newest version")
+        .h(28.0),
+        Status::AppOnly => ui::button(
+            format!("addon/{id}/open-source"),
+            "Update",
+            Kind::Secondary,
+            Some(&icons::EXTERNAL),
+            a.manual_url().is_some(),
+            move |s, tx| dispatch(s, Intent::FetchByHand(id.clone()), tx),
+        )
+        .help(app_only_help(a))
+        .h(28.0),
+        Status::Error if a.by_hand() => ui::button(
+            format!("addon/{id}/retry"),
+            "Retry",
+            Kind::Ghost,
+            Some(&icons::EXTERNAL),
+            a.manual_url().is_some(),
+            move |s, tx| dispatch(s, Intent::FetchByHand(id.clone()), tx),
+        )
+        .help(app_only_help(a))
         .h(28.0),
         Status::Error => ui::button(
             format!("addon/{id}/retry"),
@@ -537,6 +596,40 @@ fn detail(s: &State, a: &AddonUi) -> El {
                 move |s, tx| dispatch(s, Intent::Update(id.clone()), tx),
             )
             .help("Download and install the newest version")
+            .w_full(),
+        );
+    } else if a.by_hand() && !busy {
+        let fetch = id.clone();
+        actions = actions.child(
+            ui::button(
+                key("open-source"),
+                &format!("Get it on {}", source(a)),
+                Kind::Primary,
+                Some(&icons::EXTERNAL),
+                a.manual_url().is_some(),
+                move |s, tx| dispatch(s, Intent::FetchByHand(fetch.clone()), tx),
+            )
+            .help(app_only_help(a))
+            .w_full(),
+        );
+    }
+    let awaiting = matches!(a.op, Some(Op::AwaitingDownload { .. }));
+    if (a.by_hand() && !busy) || awaiting {
+        let pick = id.clone();
+        actions = actions.child(
+            ui::button(
+                key("install-from-file"),
+                "Install from file…",
+                if awaiting { Kind::Primary } else { Kind::Secondary },
+                Some(&icons::FOLDER),
+                a.can_install_by_hand(),
+                move |s, tx| dispatch(s, Intent::InstallFromFile(pick.clone()), tx),
+            )
+            .help(if a.can_install_by_hand() {
+                "Pick the zip you downloaded; Culm checks it is exactly the new version, then installs it"
+            } else {
+                "Check for updates first, so Culm can recognise the file"
+            })
             .w_full(),
         );
     }

@@ -79,6 +79,7 @@ impl GitHub {
                     game_versions: vec![],
                     folders: vec![],
                     dependencies: vec![],
+                    check: None,
                 })
             })
             .collect();
