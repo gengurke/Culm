@@ -59,6 +59,11 @@ publishes the release. Never mark a release "pre-release": the AppImage's zsync 
 
 ## Rune rules (from Rune's own guidance — see docs/research/rune.md)
 
+- Use Rune as it is meant to be used and follow its conventions, even while it is in development: Culm grows
+  with it. On a limit or bug, first check whether Rune already covers it or we use it wrong (its docs,
+  newer `dev` commits, its issues); if it is Rune's, propose an upstream issue.
+- No workarounds around Rune unasked: propose one to the user and build it only once agreed. Then keep it
+  small and in one place, marked `// shortcut: <Rune issue>, remove once fixed`, so it goes when Rune fixes it.
 - Rune is pinned to one `dev` commit in the root `Cargo.toml`. On a bump: same rev everywhere, re-copy
   Rune's root `[patch.crates-io]`, match `rust-toolchain.toml`, read Rune's CHANGELOG.
 - One `State` per window; `view(&State, &mut Cx<State>) -> El` is pure. Handlers mutate state.
