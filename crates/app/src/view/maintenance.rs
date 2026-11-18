@@ -6,7 +6,7 @@ use crate::icons;
 use crate::state::{Intent, MaintCard, MaintPhase, State, dispatch};
 use crate::theme::{self, pal, t};
 use crate::ui::{self, Kind};
-use rune::{El, Icon, ScrollSpec, col, icon, row, text};
+use rune::{El, Icon, col, icon, row, text};
 
 pub fn page(s: &State) -> El {
     let p = pal();
@@ -92,17 +92,14 @@ pub fn page(s: &State) -> El {
             },
             vec![],
         ))
-        .child(
+        .child(ui::scroll(
             col()
                 .key("maintenance/scroll")
                 .grow(1.0)
                 .min_h(0.0)
                 .w_full()
-                .scroll(ScrollSpec {
-                    stick_bottom: false,
-                })
                 .child(content),
-        )
+        ))
 }
 
 fn card(

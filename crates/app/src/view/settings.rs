@@ -7,7 +7,7 @@ use crate::state::{AppUpdate, Intent, State, dispatch};
 use crate::theme::{self, StyleExt, SurfaceExt, ThemeId, pal, t};
 use crate::ui::{self, Kind};
 use addon_core::Channel;
-use rune::{Cursor, El, ScrollSpec, Tx, col, el, icon, row, text};
+use rune::{Cursor, El, Tx, col, el, icon, row, text};
 
 pub fn page(s: &State) -> El {
     let p = pal();
@@ -239,17 +239,14 @@ pub fn page(s: &State) -> El {
             || vec![band_note("Providers, defaults and your game installations")],
             vec![],
         ))
-        .child(
+        .child(ui::scroll(
             col()
                 .key("settings/scroll")
                 .grow(1.0)
                 .min_h(0.0)
                 .w_full()
-                .scroll(ScrollSpec {
-                    stick_bottom: false,
-                })
                 .child(content),
-        )
+        ))
 }
 
 /// A picker card: a miniature window painted in that theme's own skin, its name and a line.

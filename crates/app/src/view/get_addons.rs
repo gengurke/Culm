@@ -13,7 +13,7 @@ use crate::ui::{self, Kind};
 use addon_core::discover::Entry;
 use addon_core::providers::{curseforge, github};
 use addon_core::{Category, Channel, RemoteAddon, Sort};
-use rune::{Align, Cursor, El, Icon, ScrollSpec, Side, Tx, col, el, icon, row, text};
+use rune::{Align, Cursor, El, Icon, Side, Tx, col, el, icon, row, text};
 
 /// CurseForge's "Class" category: its children are the game's classes.
 const CLASS: u32 = 1020;
@@ -278,18 +278,15 @@ pub fn page(s: &State) -> El {
         .grow(1.0)
         .min_h(0.0)
         .w_full()
-        .child(
+        .child(ui::scroll(
             col()
                 .key("get-addons/scroll")
                 .grow(1.0)
                 .min_w(0.0)
                 .h_full()
                 .min_h(0.0)
-                .scroll(ScrollSpec {
-                    stick_bottom: false,
-                })
                 .child(content),
-        );
+        ));
     if let Some(d) = &s.detail {
         body = body.child(detail(s, d));
     }
@@ -581,16 +578,13 @@ fn menu_panel(s: &State, menu: Menu) -> El {
         .min_h(0.0)
         .py(6.0)
         .skin(&t().skin.menu)
-        .child(
+        .child(ui::scroll(
             col()
                 .w_full()
                 .shrink()
                 .min_h(0.0)
-                .scroll(ScrollSpec {
-                    stick_bottom: false,
-                })
                 .child(col().w_full().children(items)),
-        )
+        ))
         .anchored_fit(anchor, Side::Bottom, Align::Start, 4.0)
 }
 
@@ -1020,16 +1014,7 @@ fn detail(s: &State, d: &Detail) -> El {
         .h_full()
         .min_h(0.0)
         .skin(&t().skin.detail)
-        .child(
-            col()
-                .grow(1.0)
-                .min_h(0.0)
-                .w_full()
-                .scroll(ScrollSpec {
-                    stick_bottom: false,
-                })
-                .child(body),
-        )
+        .child(ui::scroll(col().grow(1.0).min_h(0.0).w_full().child(body)))
 }
 
 /// The sources that have the addon, one radio row each (name, latest version, downloads); the
