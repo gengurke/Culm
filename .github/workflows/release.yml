@@ -27,7 +27,7 @@ jobs:
         id: version
         run: |
           cargo_version=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)
-          if [[ $GITHUB_REF_TYPE == tag ]]; then
+          if [[ $GITHUB_EVENT_NAME == push ]]; then
             tag=${GITHUB_REF_NAME#v}
             if [[ $tag != "$cargo_version" ]]; then
               echo "::error::Tag v$tag does not match Cargo.toml version $cargo_version"
@@ -54,9 +54,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - run: cargo build --release --locked
       - name: AppImage
-        run: |
-          packaging/appimage.sh target/release/culm "${{ needs.version.outputs.version }}" dist
-          rm -f dist/appimagetool-*.AppImage
+        run: packaging/appimage.sh target/release/culm "${{ needs.version.outputs.version }}" dist
       - uses: actions/upload-artifact@v4
         with:
           name: linux
@@ -100,7 +98,7 @@ jobs:
     needs: [test, version]
     runs-on: macos-latest
     env:
-      # Rune's oldest supported macOS; packaging/macos.sh writes the same into Info.plist.
+      # Rune's oldest supported macOS; packaging/macos.sh writes it into Info.plist as LSMinimumSystemVersion.
       MACOSX_DEPLOYMENT_TARGET: "13.0"
     steps:
       - uses: actions/checkout@v5
@@ -123,7 +121,8 @@ jobs:
           if-no-files-found: error
 
   publish:
-    if: github.ref_type == 'tag'
+    # Only a pushed tag publishes; a run started by hand never does, whatever ref it builds.
+    if: github.event_name == 'push'
     needs: [version, linux, windows, macos]
     runs-on: ubuntu-latest
     steps:

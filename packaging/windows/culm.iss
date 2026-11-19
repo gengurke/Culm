@@ -25,18 +25,12 @@ AppUpdatesURL=https://github.com/gengurke/Culm/releases
 LicenseFile=..\..\LICENSE
 PrivilegesRequired=lowest
 DefaultDirName={autopf}\Culm
-DefaultGroupName=Culm
-DisableProgramGroupPage=yes
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 SetupIconFile=..\..\crates\app\assets\icon\culm.ico
 UninstallDisplayIcon={app}\culm.exe
 UninstallDisplayName=Culm
-; Asks a running Culm to close before files are replaced (updates, uninstall).
-CloseApplications=yes
 WizardStyle=modern
-Compression=lzma2
-SolidCompression=yes
 OutputBaseFilename=Culm-{#Version}-windows-x64-setup
 
 [Languages]

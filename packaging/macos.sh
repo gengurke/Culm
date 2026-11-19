@@ -33,7 +33,8 @@ for size in 16 32 128 256 512; do
 done
 iconutil -c icns -o "$app/Contents/Resources/culm.icns" "$iconset"
 
-# LSMinimumSystemVersion matches the MACOSX_DEPLOYMENT_TARGET of the release build (Rune's minimum).
+# The oldest macOS the binaries were built for (set by the release workflow).
+min_macos=${MACOSX_DEPLOYMENT_TARGET:?set MACOSX_DEPLOYMENT_TARGET to the one the binaries were built with}
 cat > "$app/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -49,7 +50,7 @@ cat > "$app/Contents/Info.plist" <<PLIST
     <key>CFBundleVersion</key><string>$version</string>
     <key>CFBundleInfoDictionaryVersion</key><string>6.0</string>
     <key>LSApplicationCategoryType</key><string>public.app-category.utilities</string>
-    <key>LSMinimumSystemVersion</key><string>13.0</string>
+    <key>LSMinimumSystemVersion</key><string>$min_macos</string>
     <key>NSHighResolutionCapable</key><true/>
 </dict>
 </plist>
@@ -60,6 +61,10 @@ codesign --force --sign - "$app"
 codesign --verify --strict --verbose=2 "$app"
 
 ln -s /Applications "$work/dmg/Applications"
-rm -f "$out/$name"
-hdiutil create -volname "Culm $version" -srcfolder "$work/dmg" -fs HFS+ -format UDZO -ov "$out/$name"
+# hdiutil now and then fails with "Resource busy" on CI runners: try again.
+for try in 1 2 3; do
+    hdiutil create -volname "Culm $version" -srcfolder "$work/dmg" -fs HFS+ -format UDZO -ov "$out/$name" && break
+    [[ $try == 3 ]] && exit 1
+    sleep 5
+done
 echo "$out/$name"
