@@ -1,6 +1,5 @@
 mod common;
 use addon_core::maintenance::{self, Cleanup};
-use addon_core::wow;
 use common::*;
 
 #[test]
@@ -36,7 +35,7 @@ fn f6_1_clear_cache_removes_cache_dir() {
 fn f6_1_refuses_while_game_running() {
     let w = fake_wow();
     write(&w.inst.root.join("Cache/WDB/x.wdb"), "x");
-    assert!(!wow::is_game_running(&w.inst));
+    assert!(!addon_core::wow::is_game_running(&w.inst));
     // A Forever client running from another folder (say the user's real game) doesn't lock this one.
     let other = w.tmp.path().join("other/World of Warcraft/_forever_");
     std::fs::create_dir_all(&other).unwrap();
@@ -47,7 +46,7 @@ fn f6_1_refuses_while_game_running() {
         .spawn()
         .unwrap();
     std::thread::sleep(std::time::Duration::from_millis(100));
-    let other_locks = wow::is_game_running(&w.inst);
+    let other_locks = addon_core::wow::is_game_running(&w.inst);
     elsewhere.kill().unwrap();
     elsewhere.wait().unwrap();
     assert!(!other_locks, "another client's game must not lock this one");
@@ -62,7 +61,7 @@ fn f6_1_refuses_while_game_running() {
         .unwrap();
     let mut running = false;
     for _ in 0..50 {
-        running = wow::is_game_running(&w.inst);
+        running = addon_core::wow::is_game_running(&w.inst);
         if running {
             break;
         }
@@ -161,7 +160,10 @@ fn f6_1_only_touches_a_forever_client_folder() {
     // A Cache link is not followed into the folder it points at.
     let elsewhere = w.tmp.path().join("elsewhere");
     write(&elsewhere.join("precious.txt"), "keep");
+    #[cfg(unix)]
     std::os::unix::fs::symlink(&elsewhere, w.inst.root.join("Cache")).unwrap();
+    #[cfg(windows)]
+    std::os::windows::fs::symlink_dir(&elsewhere, w.inst.root.join("Cache")).unwrap();
     assert!(maintenance::clear_cache(&w.inst, false).is_err());
     assert!(elsewhere.join("precious.txt").exists());
 }
