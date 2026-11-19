@@ -88,7 +88,6 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
         strong: TextStyle::new(13.5, 650.0).lh(18.0),
         note: TextStyle::new(13.5, 400.0).family(BOOK).lh(19.0),
         eyebrow: TextStyle::new(10.5, 700.0).family(SERIF).tracking(1.5).lh(14.0),
-        wordmark: TextStyle::new(15.0, 700.0).family(SERIF).tracking(2.4).lh(20.0),
         ..BASE_TYPE
     };
     let under = Some(Border::sides([0.0, 0.0, 1.0, 0.0], p.divider));

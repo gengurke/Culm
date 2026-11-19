@@ -142,7 +142,6 @@ pub struct Type {
     pub caption: TextStyle,
     pub eyebrow: TextStyle,
     pub mono: TextStyle,
-    pub wordmark: TextStyle,
 }
 
 /// The Moonlit ladder; other themes start from it (`Type { hero: .., ..BASE_TYPE }`).
@@ -160,10 +159,6 @@ pub const BASE_TYPE: Type = Type {
     caption: TextStyle::new(11.0, 600.0).tracking(0.22).lh(14.0),
     eyebrow: TextStyle::new(10.5, 600.0).tracking(1.26).lh(14.0),
     mono: TextStyle::new(12.0, 400.0).family(Family::Mono).lh(16.0),
-    wordmark: TextStyle::new(15.0, 500.0)
-        .family(Family::Named("Cinzel"))
-        .tracking(2.7)
-        .lh(20.0),
 };
 
 /// Every face the app draws text in (`AppSpec::fonts`), bundled so text looks the same on every

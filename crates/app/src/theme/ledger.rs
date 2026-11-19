@@ -68,7 +68,6 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
         title: TextStyle::new(18.5, 500.0).family(SERIF).tracking(0.2).lh(24.0),
         heading: TextStyle::new(15.5, 500.0).family(SERIF).tracking(0.2).lh(20.0),
         eyebrow: TextStyle::new(10.5, 600.0).family(SERIF).tracking(1.4).lh(14.0),
-        wordmark: TextStyle::new(15.0, 600.0).family(SERIF).tracking(2.4).lh(20.0),
         ..BASE_TYPE
     };
     // The panel frame: a thin dark line outside a 1 pt lighter top edge (the in-game bevel).
