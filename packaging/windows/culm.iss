@@ -25,6 +25,8 @@ AppUpdatesURL=https://github.com/gengurke/Culm/releases
 LicenseFile=..\..\LICENSE
 PrivilegesRequired=lowest
 DefaultDirName={autopf}\Culm
+; The Start menu entry goes straight into Programs (no folder), so there is no folder to pick.
+DisableProgramGroupPage=yes
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 SetupIconFile=..\..\crates\app\assets\icon\culm.ico
