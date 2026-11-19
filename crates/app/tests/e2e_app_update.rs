@@ -17,8 +17,11 @@ fn asset(version: &str) -> String {
 fn f8_4_update_from_the_sidebar_replaces_the_appimage_and_restarts_it() {
     let world = World::new();
     let started = world.tmp.path().join("new-version-started");
-    // The new version records the descriptors it inherited.
-    let script = format!("#!/bin/sh\nls /proc/self/fd > '{}'\n", started.display());
+    // The new version records the descriptors it inherited (Linux has `/proc`), then that it started.
+    let script = format!(
+        "#!/bin/sh\n{{ ls /proc/self/fd 2>/dev/null; echo started; }} > '{0}.part'\nmv '{0}.part' '{0}'\n",
+        started.display()
+    );
     serve_app_release(
         &world.server,
         REPO,
