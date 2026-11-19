@@ -1,4 +1,4 @@
-# Pushing a tag v<version> builds Culm for Linux (AppImage), Windows (installer + portable zip) and macOS (.dmg) and
+# Pushing a tag v<version> builds Culm for Linux (AppImage), Windows (installer) and macOS (.dmg) and
 # publishes a GitHub release (F8.3, F8.5). Started by hand (Actions → Release → Run workflow) it only builds the same
 # files from the chosen branch and keeps them as workflow artifacts, to try the packaging without a release.
 # Release steps: move CHANGELOG "Unreleased" to the new version, bump Cargo.toml, add a <release> line to
@@ -74,7 +74,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - run: cargo build --release --locked
       # PowerShell, not bash: Git Bash would rewrite ISCC's "/D…" and "/O…" switches as paths.
-      - name: Installer (Inno Setup) and portable zip
+      - name: Installer (Inno Setup)
         shell: pwsh
         run: |
           $version = "${{ needs.version.outputs.version }}"
@@ -82,11 +82,6 @@ jobs:
           if (-not (Test-Path $iscc)) { choco install innosetup --no-progress -y }
           & $iscc "/DVersion=$version" "/DExe=$PWD\target\release\culm.exe" "/O$PWD\dist" packaging\windows\culm.iss
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
-          New-Item -ItemType Directory dist\portable\Culm | Out-Null
-          Copy-Item target\release\culm.exe dist\portable\Culm\
-          Copy-Item LICENSE dist\portable\Culm\LICENSE.txt
-          Compress-Archive -Path dist\portable\Culm -DestinationPath "dist\Culm-$version-windows-x64-portable.zip"
-          Remove-Item -Recurse dist\portable
           Get-ChildItem dist
       - uses: actions/upload-artifact@v4
         with:
@@ -108,8 +103,6 @@ jobs:
           rustup target add aarch64-apple-darwin x86_64-apple-darwin
       - uses: Swatinem/rust-cache@v2
       - run: cargo build --release --locked --target aarch64-apple-darwin --target x86_64-apple-darwin
-      - name: Packaging dependencies
-        run: brew install librsvg
       - name: Universal Culm.app in a .dmg
         run: |
           packaging/macos.sh target/aarch64-apple-darwin/release/culm target/x86_64-apple-darwin/release/culm \

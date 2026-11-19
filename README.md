@@ -34,8 +34,7 @@ update information). The AppImage also updates itself from inside the app.
 ### Windows 10/11
 
 Run `Culm-<version>-windows-x64-setup.exe`. It installs Culm for your user only (no admin rights), adds it to the
-Start menu (a desktop icon if you tick it) and to "Installed apps" for uninstalling. No installer wanted: unpack
-`Culm-<version>-windows-x64-portable.zip` anywhere and start `culm.exe`.
+Start menu (a desktop icon if you tick it) and to "Installed apps" for uninstalling.
 
 Culm isn't code-signed yet, so the first start shows "Windows protected your PC": click **More info → Run anyway**.
 
@@ -44,8 +43,8 @@ Culm isn't code-signed yet, so the first start shows "Windows protected your PC"
 Open `Culm-<version>-macos.dmg` and drag Culm onto Applications.
 
 Culm isn't notarized by Apple yet, so the first start is blocked ("Apple could not verify…"): click **Done**, open
-**System Settings → Privacy & Security**, scroll down to the message about Culm and click **Open Anyway**. You do
-this once; later starts and updates in the same place open normally.
+**System Settings → Privacy & Security**, scroll down to the message about Culm and click **Open Anyway**. Each
+newly downloaded version may ask for this once again.
 
 On Windows and macOS Culm checks for a new version when it starts; its "Update to x.y.z" button opens the release
 page, where you download it the same way (the installer and the .dmg replace the old version).

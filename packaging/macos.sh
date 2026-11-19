@@ -3,7 +3,8 @@
 #
 #   packaging/macos.sh <arm64 culm> <x86_64 culm> <version> <output dir>
 #
-# Runs on macOS. Needs: lipo, iconutil, codesign, hdiutil (Xcode command line tools) and rsvg-convert (librsvg).
+# Runs on macOS. Needs: lipo, codesign, hdiutil, plutil (Xcode command line tools). The icon is the committed
+# crates/app/assets/icon/culm.icns (packaging/icons.sh).
 # The app is signed ad hoc (`codesign -s -`, which Apple Silicon needs to run it at all), not with a Developer ID:
 # people allow it once in System Settings → Privacy & Security → "Open Anyway".
 set -euo pipefail
@@ -25,13 +26,7 @@ mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
 lipo -create -output "$app/Contents/MacOS/culm" "$arm" "$intel"
 lipo -info "$app/Contents/MacOS/culm"
 
-iconset="$work/culm.iconset"
-mkdir "$iconset"
-for size in 16 32 128 256 512; do
-    rsvg-convert -w "$size" -h "$size" "$here/culm.svg" -o "$iconset/icon_${size}x${size}.png"
-    rsvg-convert -w $((size * 2)) -h $((size * 2)) "$here/culm.svg" -o "$iconset/icon_${size}x${size}@2x.png"
-done
-iconutil -c icns -o "$app/Contents/Resources/culm.icns" "$iconset"
+cp "$here/../crates/app/assets/icon/culm.icns" "$app/Contents/Resources/culm.icns"
 
 # The oldest macOS the binaries were built for (set by the release workflow).
 min_macos=${MACOSX_DEPLOYMENT_TARGET:?set MACOSX_DEPLOYMENT_TARGET to the one the binaries were built with}

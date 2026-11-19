@@ -7,7 +7,7 @@ or break. New changes go under "Unreleased"; a release turns that heading into i
 ## [Unreleased]
 
 ### Added
-- Culm for Windows and macOS: a Windows installer (per user, no admin rights) or a portable zip, and a macOS .dmg for
+- Culm for Windows and macOS: a Windows installer (per user, no admin rights) and a macOS .dmg for
   Apple Silicon and Intel Macs. They are not code-signed yet: the README says how to allow the first start.
   They check for a new version when they start; "Update to x.y.z" opens the release page.
 

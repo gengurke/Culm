@@ -233,7 +233,7 @@ in the theme's tones, gilded on the active chip, around a disc showing the origi
   `SHA256SUMS` (no checksum, no install), makes it executable and moves it over the AppImage in one step; "Restart for
   x.y.z" starts the new file and quits; the new process gets no inherited descriptors, so the old image's mount (the
   AppImage runtime keeps it through fd 1023) ends with the old process. A failed or damaged download leaves the running version alone and can be retried.
-  The Windows and macOS builds also check at every start but can't replace themselves: their "Update to x.y.z"
+  The Windows and macOS release builds also check at every start but can't replace themselves: their "Update to x.y.z"
   opens the release page. Other builds (from source) check only when "Check for updates" is pressed and link the
   release page the same way.
   `ADDONS_APP_RELEASES_URL` points the check elsewhere. (`f8_4_latest_release_picks_the_fitting_asset`,
@@ -243,15 +243,15 @@ in the theme's tones, gilded on the active chip, around a disc showing the origi
   `f8_4_a_windows_or_macos_build_checks_at_start_and_links_the_release`, `f8_4_check_says_when_the_app_is_up_to_date`)
 - **F8.5 Windows and macOS packages** ✅ — The same tag builds, besides the AppImage:
   - **Windows** (x64, MSVC, C runtime linked in): `culm.exe` carries the icon and version info (`crates/app/build.rs`,
-    `assets/icon/culm.ico`) and opens no console window. `packaging/windows/culm.iss` (Inno Setup) makes
+    `assets/icon/culm.ico`; `packaging/icons.sh` makes it and `culm.icns` from `packaging/culm.svg`) and opens no console window. `packaging/windows/culm.iss` (Inno Setup) makes
     `Culm-<version>-windows-x64-setup.exe`: per-user install without admin rights into `%LOCALAPPDATA%\Programs\Culm`,
     Start menu entry, optional desktop icon, uninstaller (leaves settings and addon records), installs over an older
-    version. `Culm-<version>-windows-x64-portable.zip` holds the bare `culm.exe`.
+    version.
   - **macOS** (13+): `packaging/macos.sh` joins the arm64 and x86_64 builds with `lipo` into a universal `Culm.app`
-    (bundle id `dev.culm.app` from `brand.rs`, `.icns` from `packaging/culm.svg`), signs it ad hoc and packs it into
+    (bundle id `dev.culm.app` from `brand.rs`, the committed `culm.icns`), signs it ad hoc and packs it into
     `Culm-<version>-macos.dmg` with an Applications link.
   - Neither is signed with a paid certificate yet: Windows SmartScreen needs "More info → Run anyway" once, macOS
-    "Open Anyway" in Privacy & Security once (README, release notes). Checked by the workflow run, not by tests.
+    "Open Anyway" in Privacy & Security once per downloaded version (README, release notes). Checked by the workflow run, not by tests.
 
 ## App wiring ✅
 `crates/app/src/core_backend.rs` implements `backend::Backend` over the core: data/cache dirs from `rune::dirs::AppDirs`

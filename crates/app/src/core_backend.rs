@@ -43,7 +43,7 @@ pub struct Config {
     /// The AppImage this process runs from (`$APPIMAGE`); None: the app can't update itself.
     pub appimage: Option<PathBuf>,
     /// Ask GitHub for a new version at every start even without an AppImage (which always does): the Windows
-    /// and macOS builds have no other way to hear of one; they link the release page.
+    /// and macOS release builds have no other way to hear of one; they link the release page.
     pub checks_updates: bool,
     /// The user's Downloads folder, watched for updates fetched by hand (F3.5).
     pub downloads: Option<PathBuf>,
@@ -87,7 +87,11 @@ impl Config {
                 .unwrap_or_else(|_| self_update::DEFAULT_API_BASE.into()),
             // Set by the AppImage runtime to the image's own path.
             appimage: std::env::var_os("APPIMAGE").map(PathBuf::from),
-            checks_updates: cfg!(any(windows, target_os = "macos")),
+            // Release builds only: a `cargo run` asks when told, like a source build on Linux.
+            checks_updates: cfg!(all(
+                any(windows, target_os = "macos"),
+                not(debug_assertions)
+            )),
             downloads: dirs.downloads().map(Path::to_path_buf),
         })
     }
