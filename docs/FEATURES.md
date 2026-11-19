@@ -262,3 +262,9 @@ tinted line in a thin ring: no coloured side stripes. Toasts are framed alerts; 
 alternatives (`ADDONS_TOAST_STYLE=0..5`, scene `toasts`). The sidebar wordmark is "Culm" over "Addon Manager" in Inter. Every scroll area (`ui::scroll`) has a thin overlay scroll bar: hidden at rest, shown while the pointer is over it or it
 scrolls, a 3 pt pill in the theme's `border_strong` that widens to 6 pt in its `accent` under the pointer (`ui_every_page_scrolls_with_a_thin_scroll_bar`).
 Every scene has a `<scene>@<theme>` variant (`--snap x.png --scene settings@hearthwood`).
+The header band (with the sidebar's brand block beside it) moves the window on every OS: drag its empty parts, double-press
+to maximize (macOS: the system's titlebar double-click setting) (`.window_drag()`). On Windows and macOS it is the window's
+titlebar (`App::titlebar`, `addon_app::app`): Windows gets Rune's minimize, maximize and close buttons over its right end in
+the theme's text colour (`Cx::caption_color`), macOS the traffic lights at its left; band and brand keep clear of them
+(`Cx::chrome_insets`). Linux keeps the native frame until Rune draws its own there (#16)
+(`ui_the_header_band_is_the_titlebar`).

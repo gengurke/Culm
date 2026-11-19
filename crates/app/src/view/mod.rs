@@ -12,11 +12,21 @@ use crate::state::{AppUpdate, Intent, Job, Screen, State, dispatch};
 use crate::theme::{self, StyleExt, SurfaceExt, pal, t};
 use crate::theme::{BandDeco, Surface};
 use crate::ui::{self, Kind};
-use rune::{Cursor, Cx, El, Icon, Tx, col, el, icon, row, text};
+use rune::{ChromeInsets, Cursor, Cx, El, Icon, Tx, col, el, icon, row, text};
+use std::cell::Cell;
+
+thread_local! {
+    /// What the window's own controls take of the titlebar this run (`Cx::chrome_insets`), read by
+    /// the band and the sidebar's brand block, which together are the titlebar.
+    static CHROME: Cell<ChromeInsets> = Cell::new(ChromeInsets::default());
+}
 
 pub fn view(s: &State, cx: &mut Cx<State>) -> El {
     theme::begin(s);
     cx.help_look(ui::help_look());
+    CHROME.with(|c| c.set(cx.chrome_insets()));
+    // The Windows caption buttons sit on the band, which takes the frame's palette.
+    cx.caption_color(theme::framed(|| pal().text));
     let page = match (s.screen, s.installation()) {
         (Screen::Settings, _) => settings::page(s),
         (_, None) if s.job == Job::Booting || s.job == Job::Scanning => loading_page(s),
@@ -47,7 +57,9 @@ fn band_in_frame(title: &str, meta: Vec<El>, actions: Vec<El>) -> El {
         .key("band")
         .w_full()
         .h(theme::BAND_H)
-        .px(theme::PAD)
+        .pl(theme::PAD)
+        .pr(theme::PAD + CHROME.with(Cell::get).trailing)
+        .window_drag()
         .gap(14.0)
         .center_y()
         .skin(&th.skin.band);
@@ -135,7 +147,9 @@ fn sidebar(s: &State) -> El {
     let brand_block = row()
         .key("brand")
         .h(theme::BAND_H)
-        .px(20.0)
+        .pl(20.0 + CHROME.with(Cell::get).leading)
+        .pr(20.0)
+        .window_drag()
         .gap(10.0)
         .center_y()
         .child(el().size(40.0, 40.0).center().child(ui::brand_mark(32.0)))
