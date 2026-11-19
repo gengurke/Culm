@@ -61,6 +61,8 @@ the import already knew about; CurseForge addons show "Not checked".
 
 `RUNE_DIRS_ROOT=/some/dir` moves all of them (handy for a test run). Imported files are only read, never written.
 
+No telemetry. What Culm sends to which service: [docs/PRIVACY.md](docs/PRIVACY.md).
+
 ## Tests
 
 ```sh
