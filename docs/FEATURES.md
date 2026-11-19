@@ -175,7 +175,8 @@ in the theme's tones, gilded on the active chip, around a disc showing the origi
   record lists. (`f5_1_remove_deletes_folders`, e2e `f5_1_remove_asks_then_deletes_the_folders`,
   `f5_1_remove_keeps_folders_another_addon_lists`)
 - **F5.2 Reinstall** ✅ — Re-downloads the latest release for the channel over the addon. (`f5_2_reinstall_restores_modified_files`)
-- **F5.3 Open links** ✅ — Website (`open_url`) and the addon's folder (`xdg-open`). (`f5_3_open_website`)
+- **F5.3 Open links** ✅ — Website (`open_url`) and the addon's folder in the file manager (`explorer` on Windows, `open` on macOS,
+  `xdg-open` on Linux). (`f5_3_open_website`)
 
 ## F6 Maintenance
 - **F6.1 Clear cache** ✅ — Deletes the client's `Cache` folder (or just `Cache/WDB`). All F6 tools refuse while a `Wow.exe` of this
@@ -216,7 +217,8 @@ in the theme's tones, gilded on the active chip, around a disc showing the origi
 ## F8 Releases
 - **F8.1 Versioning** ✅ — SemVer, 0.x while in beta; user-visible changes go into `CHANGELOG.md` under "Unreleased".
 - **F8.2 CI** ✅ — `.github/workflows/ci.yml` runs `cargo fmt --check`, `cargo clippy --all-targets -D warnings` and
-  `cargo test` on Linux for every push and pull request.
+  `cargo test` on Linux, Windows and macOS for every push and pull request (fmt once, on Linux), then saves headless
+  `--snap` screenshots of a few scenes per OS as the `screenshots-<OS>` workflow artifact.
   `.github/workflows/deny.yml` runs `cargo deny check` (`deny.toml`: security advisories, licences compatible with
   GPL-3.0-or-later, only crates.io and Rune's git repo as sources) on every push, pull request and weekly.
 - **F8.3 Linux AppImage** ✅ — Pushing a tag `v<version>` (it must match `Cargo.toml`) runs `.github/workflows/release.yml`:

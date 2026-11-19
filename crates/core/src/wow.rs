@@ -112,13 +112,22 @@ pub fn installation_from_path(p: &Path) -> Result<Installation> {
 }
 
 fn make_installation(client: &Path, version: Option<String>) -> Installation {
-    let root = std::fs::canonicalize(client).unwrap_or_else(|_| client.to_path_buf());
+    let root = std::fs::canonicalize(client).map_or_else(|_| client.to_path_buf(), plain);
     Installation {
         id: format!("{:016x}", fnv1a64(root.to_string_lossy().as_bytes())),
         label: "WoW Forever".to_string(),
         flavor: Flavor::Forever,
         root,
         version,
+    }
+}
+
+/// `p` without the `\\?\` prefix `canonicalize` puts on Windows paths: such a path takes no `/`
+/// in joins, and Explorer can't open it.
+fn plain(p: PathBuf) -> PathBuf {
+    match p.to_str().and_then(|s| s.strip_prefix(r"\\?\")) {
+        Some(rest) if !rest.starts_with("UNC\\") => PathBuf::from(rest),
+        _ => p,
     }
 }
 
