@@ -110,7 +110,7 @@ fn f7_3_every_theme_renders_every_screen() {
 }
 
 /// Every role's style in a type ladder.
-fn styles(ty: &Type) -> [(&'static str, TextStyle); 14] {
+fn styles(ty: &Type) -> [(&'static str, TextStyle); 13] {
     [
         ("display", ty.display),
         ("hero", ty.hero),
@@ -125,7 +125,6 @@ fn styles(ty: &Type) -> [(&'static str, TextStyle); 14] {
         ("caption", ty.caption),
         ("eyebrow", ty.eyebrow),
         ("mono", ty.mono),
-        ("wordmark", ty.wordmark),
     ]
 }
 

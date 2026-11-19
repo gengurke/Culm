@@ -74,7 +74,6 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
         title: TextStyle::new(19.0, 700.0).family(SERIF).tracking(0.5).lh(24.0),
         heading: TextStyle::new(15.5, 700.0).family(SERIF).tracking(0.5).lh(20.0),
         eyebrow: TextStyle::new(10.5, 700.0).family(SERIF).tracking(1.8).lh(14.0),
-        wordmark: TextStyle::new(15.0, 700.0).family(SERIF).tracking(2.6).lh(20.0),
         // Buttons, tabs and segments in small caps, like engraved plaques.
         label: TextStyle::new(13.5, 600.0).family(SERIF).features("'smcp' 1").tracking(0.4).lh(16.0),
         ..BASE_TYPE
