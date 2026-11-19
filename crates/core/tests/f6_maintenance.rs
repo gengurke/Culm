@@ -162,6 +162,7 @@ fn f6_1_only_touches_a_forever_client_folder() {
     write(&elsewhere.join("precious.txt"), "keep");
     #[cfg(unix)]
     std::os::unix::fs::symlink(&elsewhere, w.inst.root.join("Cache")).unwrap();
+    // Needs admin rights or Developer Mode on Windows (CI runners have them).
     #[cfg(windows)]
     std::os::windows::fs::symlink_dir(&elsewhere, w.inst.root.join("Cache")).unwrap();
     assert!(maintenance::clear_cache(&w.inst, false).is_err());
