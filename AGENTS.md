@@ -60,6 +60,8 @@ Build dependencies (Fedora): `sudo dnf install libxkbcommon-devel wayland-devel`
 - Several agents may work on this machine at once: edit only in your own git worktree, never in the main checkout.
   No `git stash` (shared by all worktrees), no `git add -A`/`commit -a`, don't touch other branches, and never
   merge or push `master` unless the user asks.
+- After the merge, clean up: remove your worktree, the local and remote branch, and any leftovers of the change
+  (scratch builds, temp files).
 
 ## Releases
 
