@@ -42,7 +42,13 @@ fn main() -> anyhow::Result<()> {
         for a in &local {
             println!("   - {} {:?}", a.name, a.folders);
         }
-        for dir in wowup_import::default_wowup_dirs() {
+        // Linux only: the app finds WowUp's folders through Rune's dirs.
+        let home = std::env::home_dir().unwrap_or_default();
+        let wowup = ["WowUpCf", "WowUp"].map(|n| home.join(".config").join(n));
+        for dir in wowup
+            .into_iter()
+            .filter(|d| d.join("addons.json").is_file())
+        {
             let imported = wowup_import::import_wowup(&dir, inst)?;
             println!(
                 "   WowUp import from {}: {} addons",

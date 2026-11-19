@@ -27,7 +27,8 @@ What the addon manager does, one short paragraph per feature. Ids are referenced
   its md5 fingerprints (F4.7, no key needed)
   and to other providers via TOC ids (`X-Curse-Project-ID`; the WowInterface provider exists but is disabled for now because its files carry no game-version info). Unmatched addons are "Unknown" and ignored for updates;
   git checkouts are ignored as such. CurseForge `POST /v1/fingerprints/1` maps matched files' `modules[].name` to folders. (`f2_3_fingerprint_match_maps_modules_to_folders`, `f2_3_wowinterface_matches_toc_ids`, `f2_3_fingerprint_matches_golden_value`, `f2_3_unmatched_are_unknown_and_provider_errors_are_reported`)
-- **F2.4 WowUp import** ✅ — Imports addon records (`~/.config/WowUpCf`, `~/.config/WowUp`) of the WowUp installation in the same
+- **F2.4 WowUp import** ✅ — Imports addon records (WowUp's config folders `WowUpCf`, `WowUp` via `rune::dirs`: `~/.config` on Linux,
+  `%APPDATA%` on Windows, `~/Library/Application Support` on macOS) of the WowUp installation in the same
   client folder, so switching from WowUp keeps provider links without rescanning online. Runs automatically on the first
   scan of an installation (and from Settings). A folder belongs to one record: when WowUp lists it under two addons
   (Questie also lists QuestieTrace), the record with fewer folders keeps it.
