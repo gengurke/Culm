@@ -3,7 +3,6 @@ use addon_core::{Channel, install, store};
 use common::*;
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::os::unix::fs::PermissionsExt;
 
 /// Serves zips by URL and records requests.
 struct Server {
@@ -173,9 +172,16 @@ fn f3_2_swap_failure_restores_backups() {
         &[("a.lua", "keep me")],
     );
     w.add_folder("Z_Locked", "Z_Locked.toc", "## Title: Z\n", &[]);
-    // Moving a directory to another parent needs write permission on it: this backup step fails.
+    // This backup step fails: moving a directory needs write permission on it (Unix), and none
+    // with a file open inside can move (Windows).
     let locked = w.addons().join("Z_Locked");
-    std::fs::set_permissions(&locked, std::fs::Permissions::from_mode(0o555)).unwrap();
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(&locked, std::fs::Permissions::from_mode(0o555)).unwrap();
+    }
+    #[cfg(windows)]
+    let open_inside = std::fs::File::open(locked.join("Z_Locked.toc")).unwrap();
     let addon = addon_core::Addon {
         folders: vec!["A_First".into(), "Z_Locked".into()],
         ..install::install_remote(
@@ -200,7 +206,13 @@ fn f3_2_swap_failure_restores_backups() {
     let res = install::install_file(&w.inst, &addon, &file, &|_| {
         Ok(install::in_memory(zip.clone()))
     });
-    std::fs::set_permissions(&locked, std::fs::Permissions::from_mode(0o755)).unwrap();
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(&locked, std::fs::Permissions::from_mode(0o755)).unwrap();
+    }
+    #[cfg(windows)]
+    drop(open_inside);
     let err = res.unwrap_err();
     assert!(format!("{err:#}").contains("backing up"), "{err:#}");
     assert_eq!(read(&w, "A_First/a.lua"), "keep me");

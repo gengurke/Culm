@@ -2,7 +2,7 @@
 
 Researched 2026-11-15 from `https://github.com/anomalyco/rune`, branch `dev`.
 
-**Pinned rev: `bd4d42b12c0101660c939063b608edbd2a086686`** (dev HEAD, 2026-11-14 16:27 -0600, "Layers: a window at rest gives back the backdrop copies…", PR #1002).
+**Pinned rev: `8fbc395190dbff430db9d9fc515bb6ac8cc7d13d`** (dev HEAD, 2026-11-19 21:55 +0100, "Merge pull request #1240 from anomalyco/overlay-keys-x11-windows"; bumped from `bd4d42b1`).
 
 Main sources in the repo: `README.md`, `AGENTS.md`, `crates/rune/README.md` (the ~3000-line framework guide), `crates/rune-kit/README.md`, `examples/hello`, `examples/todo`, `examples/background`, `CHANGELOG.md`, and the root `Cargo.toml` (`[patch.crates-io]`).
 
@@ -71,18 +71,19 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-rune     = { git = "https://github.com/anomalyco/rune", rev = "bd4d42b12c0101660c939063b608edbd2a086686" }
-rune-kit = { git = "https://github.com/anomalyco/rune", rev = "bd4d42b12c0101660c939063b608edbd2a086686" }
+rune     = { git = "https://github.com/anomalyco/rune", rev = "8fbc395190dbff430db9d9fc515bb6ac8cc7d13d" }
+rune-kit = { git = "https://github.com/anomalyco/rune", rev = "8fbc395190dbff430db9d9fc515bb6ac8cc7d13d" }
 # optional: features = ["markdown"] on rune-kit for addon descriptions/changelogs
 # optional: rune features = ["native-file-dialog"] for the folder picker, ["tooling"] for headless flags in release
 
 # Cargo does not inherit [patch] from dependencies: mirror Rune's root [patch.crates-io] at the SAME rev.
 [patch.crates-io]
-winit             = { git = "https://github.com/anomalyco/rune", rev = "bd4d42b12c0101660c939063b608edbd2a086686" }
-parley_engine     = { git = "https://github.com/anomalyco/rune", rev = "bd4d42b12c0101660c939063b608edbd2a086686" }
-wgpu-hal          = { git = "https://github.com/anomalyco/rune", rev = "bd4d42b12c0101660c939063b608edbd2a086686" }
-accesskit_windows = { git = "https://github.com/anomalyco/rune", rev = "bd4d42b12c0101660c939063b608edbd2a086686" }
-accesskit_macos   = { git = "https://github.com/anomalyco/rune", rev = "bd4d42b12c0101660c939063b608edbd2a086686" }
+winit             = { git = "https://github.com/anomalyco/rune", rev = "8fbc395190dbff430db9d9fc515bb6ac8cc7d13d" }
+parley_engine     = { git = "https://github.com/anomalyco/rune", rev = "8fbc395190dbff430db9d9fc515bb6ac8cc7d13d" }
+wgpu-hal          = { git = "https://github.com/anomalyco/rune", rev = "8fbc395190dbff430db9d9fc515bb6ac8cc7d13d" }
+accesskit_windows = { git = "https://github.com/anomalyco/rune", rev = "8fbc395190dbff430db9d9fc515bb6ac8cc7d13d" }
+sctk-adwaita      = { git = "https://github.com/anomalyco/rune", rev = "8fbc395190dbff430db9d9fc515bb6ac8cc7d13d" }
+accesskit_macos   = { git = "https://github.com/anomalyco/rune", rev = "8fbc395190dbff430db9d9fc515bb6ac8cc7d13d" }
 
 # Rune's own choice: full debuginfo made a test build use 18-23 GB RAM.
 [profile.dev]
