@@ -425,8 +425,9 @@ fn ui_the_header_band_is_the_titlebar() {
 
     // Its own content keeps clear of the window's controls (macOS traffic lights at the leading
     // edge, Windows caption buttons at the trailing edge).
+    let wordmark = target(&rt, "brand/wordmark");
     let mut insets = ChromeInsets::default();
-    (insets.leading, insets.trailing, insets.height) = (78.0, 138.0, BAND_H);
+    (insets.leading, insets.trailing, insets.height) = (76.0, 138.0, BAND_H);
     rt.set_chrome_insets(insets);
     rt.frame(1.0 / 60.0);
     let els = rt.elements();
@@ -437,8 +438,14 @@ fn ui_the_header_band_is_the_titlebar() {
     assert!(
         els.iter()
             .filter(|e| e.parent == Some(brand))
-            .all(|e| e.target[0] >= 78.0 && e.target[0] + e.target[2] <= SIDEBAR_W),
-        "the brand mark clears the traffic lights and stays in the sidebar"
+            .all(|e| e.target[0] >= 76.0),
+        "the brand mark clears the traffic lights"
+    );
+    let moved = target(&rt, "brand/wordmark");
+    assert_eq!(moved[2], wordmark[2], "the wordmark is not cut");
+    assert!(
+        moved[0] + moved[2] <= SIDEBAR_W,
+        "the wordmark stays in the sidebar"
     );
     let actions = target(&rt, "my-addons/update-all");
     assert!(

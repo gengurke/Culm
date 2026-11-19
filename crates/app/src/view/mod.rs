@@ -12,19 +12,11 @@ use crate::state::{AppUpdate, Intent, Job, Screen, State, dispatch};
 use crate::theme::{self, StyleExt, SurfaceExt, pal, t};
 use crate::theme::{BandDeco, Surface};
 use crate::ui::{self, Kind};
-use rune::{ChromeInsets, Cursor, Cx, El, Icon, Tx, col, el, icon, row, text};
-use std::cell::Cell;
-
-thread_local! {
-    /// What the window's own controls take of the titlebar this run (`Cx::chrome_insets`), read by
-    /// the band and the sidebar's brand block, which together are the titlebar.
-    static CHROME: Cell<ChromeInsets> = Cell::new(ChromeInsets::default());
-}
+use rune::{Cursor, Cx, El, Icon, Tx, col, el, icon, row, text};
 
 pub fn view(s: &State, cx: &mut Cx<State>) -> El {
-    theme::begin(s);
+    theme::begin(s, cx.chrome_insets());
     cx.help_look(ui::help_look());
-    CHROME.with(|c| c.set(cx.chrome_insets()));
     // The Windows caption buttons sit on the band, which takes the frame's palette.
     cx.caption_color(theme::framed(|| pal().text));
     let page = match (s.screen, s.installation()) {
@@ -58,7 +50,7 @@ fn band_in_frame(title: &str, meta: Vec<El>, actions: Vec<El>) -> El {
         .w_full()
         .h(theme::BAND_H)
         .pl(theme::PAD)
-        .pr(theme::PAD + CHROME.with(Cell::get).trailing)
+        .pr(theme::PAD + theme::chrome().trailing)
         .window_drag()
         .gap(14.0)
         .center_y()
@@ -147,7 +139,8 @@ fn sidebar(s: &State) -> El {
     let brand_block = row()
         .key("brand")
         .h(theme::BAND_H)
-        .pl(20.0 + CHROME.with(Cell::get).leading)
+        // The traffic lights' inset ends at the zoom button; the mark's own box adds a little air.
+        .pl((theme::chrome().leading + 4.0).max(20.0))
         .pr(20.0)
         .window_drag()
         .gap(10.0)
