@@ -1,0 +1,21 @@
+# THIRD-PARTY-LICENSES.md must match the dependencies (#52, F7.6). Out of date? Run packaging/third-party-licences.sh.
+name: Licences
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  licences:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Rust toolchain (from rust-toolchain.toml)
+        run: rustup toolchain install
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-about@0.9.3
+      - run: packaging/third-party-licences.sh
+      - name: Committed file is current
+        run: git diff --exit-code THIRD-PARTY-LICENSES.md || { echo "::error::Run packaging/third-party-licences.sh and commit THIRD-PARTY-LICENSES.md"; exit 1; }

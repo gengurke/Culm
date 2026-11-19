@@ -6,6 +6,9 @@ or break. New changes go under "Unreleased"; a release turns that heading into i
 
 ## [Unreleased]
 
+### Added
+- Settings → About → Licences lists the open-source code and fonts Culm is built from, with their licences.
+
 ### Changed
 - An update whose author only allows downloads through CurseForge's own app or website no longer fails: its Update button starts the download in your browser, and Culm installs the file as soon as it is in your Downloads folder, then deletes it (and any duplicate copy). If the file is already in Downloads, it is installed right away without opening the browser. Saved it somewhere else? "Install from file…" in the details. Culm only installs a file that is exactly the new version. "Update all" skips these.
 - New addons with the same restriction (e.g. Platynator) are no longer greyed out in Get Addons: Install fetches them the same way, through your browser and Downloads folder.

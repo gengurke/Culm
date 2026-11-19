@@ -193,10 +193,26 @@ pub fn page(s: &State) -> El {
     let about = section("About").child(setting_row(
         brand::APP_NAME,
         "An addon manager for World of Warcraft: Forever. Free software under the GNU GPL v3 or later.",
-        text(brand::version_label())
-            .key("settings/version")
-            .font(t().ty.mono)
-            .color(p.text_dim),
+        row()
+            .gap(16.0)
+            .center_y()
+            .child(
+                text(brand::version_label())
+                    .key("settings/version")
+                    .font(t().ty.mono)
+                    .color(p.text_dim),
+            )
+            .child(
+                ui::button(
+                    "settings/licences",
+                    "Licences",
+                    Kind::Ghost,
+                    None,
+                    true,
+                    |s, tx| dispatch(s, Intent::OpenUrl(brand::licences_url()), tx),
+                )
+                .help("Open the licences of the code and fonts Culm is built from"),
+            ),
     ))
     .child(updates)
     .child(

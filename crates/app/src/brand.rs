@@ -20,3 +20,11 @@ pub fn version_label() -> String {
         stage => format!("v{v} · {stage}"),
     }
 }
+
+/// The third-party licences of this version (`THIRD-PARTY-LICENSES.md` at its release tag, #52).
+pub fn licences_url() -> String {
+    format!(
+        "https://github.com/{REPO}/blob/v{}/THIRD-PARTY-LICENSES.md",
+        env!("CARGO_PKG_VERSION")
+    )
+}

@@ -212,6 +212,10 @@ in the theme's tones, gilded on the active chip, around a disc showing the origi
 - **F7.4 Name and folders** ✅ — The app is Culm (`brand.rs`: name, tagline, app id `dev.culm.app`).
 - **F7.5 About** ✅ — Settings → About shows the version from `Cargo.toml` and, until 1.0, the release stage
   (`brand::STAGE`, "v0.1.0 · Beta"). (`f7_5_about_shows_the_version_and_release_stage`)
+- **F7.6 Third-party licences** ✅ — `THIRD-PARTY-LICENSES.md` lists every Rust crate's licence and the bundled fonts'
+  OFL texts, written by `packaging/third-party-licences.sh` (cargo-about, `about.toml`); `.github/workflows/licences.yml`
+  fails when it is out of date. Settings → About → Licences opens it at this version's tag.
+  (`f7_6_about_links_the_third_party_licences`)
 
 ## F8 Releases
 - **F8.1 Versioning** ✅ — SemVer, 0.x while in beta; user-visible changes go into `CHANGELOG.md` under "Unreleased".
