@@ -1,4 +1,4 @@
-# Format, lint and test on every push and pull request (F8.2). Linux only for now; macOS and Windows join with #4.
+# Format, lint and test on every push and pull request, on Linux, Windows and macOS (F8.2).
 name: CI
 
 on:
@@ -13,14 +13,38 @@ concurrency:
 
 jobs:
   test:
-    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@v5
       - name: Build dependencies
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libxkbcommon-dev libwayland-dev
+        if: runner.os == 'Linux'
+        # mesa-vulkan-drivers: lavapipe, the software GPU the screenshots render on.
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libxkbcommon-dev libwayland-dev mesa-vulkan-drivers
       - name: Rust toolchain (from rust-toolchain.toml)
         run: rustup toolchain install
       - uses: Swatinem/rust-cache@v2
-      - run: cargo fmt --all --check
+      - if: runner.os == 'Linux'
+        run: cargo fmt --all --check
       - run: cargo clippy --all-targets --locked -- -D warnings
       - run: cargo test --locked
+      # Headless screenshots (mock data) to see how each OS renders without a machine at hand.
+      - name: Screenshots
+        run: |
+          cargo build --locked
+          mkdir -p snaps
+          for scene in my-addons get-addons-detail settings maintenance my-addons@grimoire; do
+            target/debug/culm --snap "snaps/$scene.png" --size 1280x800 --scene "$scene"
+          done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: screenshots-${{ runner.os }}
+          path: snaps/
+          if-no-files-found: warn
