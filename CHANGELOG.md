@@ -8,6 +8,7 @@ or break. New changes go under "Unreleased"; a release turns that heading into i
 
 ### Added
 - Settings → About links a privacy note: which services Culm talks to and what it sends (no telemetry).
+- Windows and macOS: maintenance tools (clear cache, clean backups, back up settings) wait while the game is running, as on Linux.
 
 ### Changed
 - An update whose author only allows downloads through CurseForge's own app or website no longer fails: its Update button starts the download in your browser, and Culm installs the file as soon as it is in your Downloads folder, then deletes it (and any duplicate copy). If the file is already in Downloads, it is installed right away without opening the browser. Saved it somewhere else? "Install from file…" in the details. Culm only installs a file that is exactly the new version. "Update all" skips these.
