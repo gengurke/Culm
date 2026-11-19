@@ -30,6 +30,8 @@ fn f6_1_clear_cache_removes_cache_dir() {
     );
 }
 
+// shortcut: the game check reads Linux's /proc; Windows and macOS join with #2.
+#[cfg(target_os = "linux")]
 #[test]
 fn f6_1_refuses_while_game_running() {
     let w = fake_wow();
