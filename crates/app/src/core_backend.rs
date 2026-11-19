@@ -606,10 +606,18 @@ impl Backend for CoreBackend {
     }
 
     fn open_folder(&self, path: &Path) -> Result<()> {
-        let mut child = std::process::Command::new("xdg-open")
+        // Rune's `open_url` takes web links only, so the file manager is asked the OS's own way.
+        let opener = if cfg!(windows) {
+            "explorer"
+        } else if cfg!(target_os = "macos") {
+            "open"
+        } else {
+            "xdg-open"
+        };
+        let mut child = std::process::Command::new(opener)
             .arg(path)
             .spawn()
-            .context("running xdg-open")?;
+            .with_context(|| format!("running {opener}"))?;
         // Reap it in the background so it doesn't linger as a zombie.
         std::thread::spawn(move || child.wait());
         Ok(())
