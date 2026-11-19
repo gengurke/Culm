@@ -65,8 +65,11 @@ fn f1_1_detects_windows_installs_on_every_drive_and_in_the_profile() {
     let roots = wow::search_roots("windows", &home, &[c, d]);
     let found = found_roots(&roots);
     for want in &installs {
-        let want = std::fs::canonicalize(want).unwrap();
-        assert!(found.contains(&want), "{want:?} not in {found:?}");
+        let rel = want.strip_prefix(tmp.path()).unwrap();
+        assert!(
+            found.iter().any(|f| f.ends_with(rel)),
+            "{rel:?} not in {found:?}"
+        );
     }
     assert_eq!(found.len(), installs.len(), "{found:?}");
 }

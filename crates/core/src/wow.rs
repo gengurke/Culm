@@ -13,10 +13,11 @@ pub fn default_search_roots() -> Vec<PathBuf> {
     let Some(home) = std::env::home_dir() else {
         return vec![];
     };
+    // Drives aren't probed here (this runs on the UI thread, and an offline network drive can
+    // stall): `detect_installations` skips missing ones on its worker.
     let disks: Vec<PathBuf> = if cfg!(windows) {
         ('C'..='Z')
             .map(|d| PathBuf::from(format!("{d}:\\")))
-            .filter(|d| d.is_dir())
             .collect()
     } else {
         vec![PathBuf::from("/")]
@@ -33,13 +34,15 @@ pub fn search_roots(os: &str, home: &Path, disks: &[PathBuf]) -> Vec<PathBuf> {
         // `detect_installations`); people also pick `<drive>\World of Warcraft` or a `Games` folder.
         "windows" => disks
             .iter()
-            .chain([&home.to_path_buf()])
-            .flat_map(|d| [d.clone(), d.join("Games")])
+            .map(PathBuf::as_path)
+            .chain([home])
+            .flat_map(|d| [d.to_path_buf(), d.join("Games")])
             .collect(),
         // The installer's default is `/Applications/World of Warcraft`.
         "macos" => disks
             .iter()
-            .chain([&home.to_path_buf()])
+            .map(PathBuf::as_path)
+            .chain([home])
             .map(|d| d.join("Applications"))
             .collect(),
         _ => wine_prefixes(home),
