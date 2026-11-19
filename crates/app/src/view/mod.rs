@@ -221,13 +221,13 @@ pub(crate) fn app_update(s: &State, key: &str) -> Option<El> {
         .help("Download the new version over this one (checked before it's used); a restart starts it"),
         AppUpdate::Available(r) | AppUpdate::Failed { release: r, .. } => ui::button(
             key,
-            &format!("Get {}", r.version),
+            &format!("Update to {}", r.version),
             Kind::Primary,
             Some(&icons::EXTERNAL),
             true,
             |s, tx| dispatch(s, Intent::InstallAppUpdate, tx),
         )
-        .help("Open the release page: this copy can't update itself"),
+        .help("Open the release page to download it: this copy can't replace itself"),
         AppUpdate::Downloading { release, done } => text(format!(
             "Downloading {}… {}%",
             release.version,

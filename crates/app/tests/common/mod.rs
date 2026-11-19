@@ -330,6 +330,7 @@ impl World {
             // Nothing served there unless a test adds a release (F8.4).
             app_releases_url: url,
             appimage: None,
+            checks_updates: false,
             downloads: Some(self.downloads()),
         }
     }

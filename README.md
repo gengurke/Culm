@@ -16,15 +16,39 @@ how it is tested: [docs/FEATURES.md](docs/FEATURES.md).
 | **Client maintenance** (Hearthwood theme) | **Themes:** Hearthwood, Emberglow, Ledger, Grimoire |
 | ![Maintenance, Hearthwood theme](docs/screenshots/maintenance-hearthwood.png) | ![The other themes](docs/screenshots/themes.png) |
 
-## Install (Linux)
+## Install
 
-1. Download `Culm-<version>-x86_64.AppImage` from the [latest release](https://github.com/gengurke/Culm/releases/latest).
+Everything is on the [latest release](https://github.com/gengurke/Culm/releases/latest) page. What changed in each
+version: [CHANGELOG.md](CHANGELOG.md).
+
+### Linux
+
+1. Download `Culm-<version>-x86_64.AppImage`.
 2. Make it executable and start it: `chmod +x Culm-*.AppImage && ./Culm-*.AppImage`
    (or right-click → Properties → "Allow executing as program").
 
 Recommended: open it with [Gear Lever](https://flathub.org/apps/it.mijorus.gearlever). It adds Culm to your app
 menu and updates it with one click; AppImageUpdate and AppImageLauncher work too (the AppImage carries zsync
-update information). What changed in each version: [CHANGELOG.md](CHANGELOG.md).
+update information). The AppImage also updates itself from inside the app.
+
+### Windows 10/11
+
+Run `Culm-<version>-windows-x64-setup.exe`. It installs Culm for your user only (no admin rights), adds it to the
+Start menu (a desktop icon if you tick it) and to "Installed apps" for uninstalling. No installer wanted: unpack
+`Culm-<version>-windows-x64-portable.zip` anywhere and start `culm.exe`.
+
+Culm isn't code-signed yet, so the first start shows "Windows protected your PC": click **More info → Run anyway**.
+
+### macOS 13 or newer (Apple Silicon and Intel)
+
+Open `Culm-<version>-macos.dmg` and drag Culm onto Applications.
+
+Culm isn't notarized by Apple yet, so the first start is blocked ("Apple could not verify…"): click **Done**, open
+**System Settings → Privacy & Security**, scroll down to the message about Culm and click **Open Anyway**. You do
+this once; later starts and updates in the same place open normally.
+
+On Windows and macOS Culm checks for a new version when it starts; its "Update to x.y.z" button opens the release
+page, where you download it the same way (the installer and the .dmg replace the old version).
 
 ## Build and run
 

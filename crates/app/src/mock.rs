@@ -1327,6 +1327,10 @@ impl Backend for MockBackend {
         false
     }
 
+    fn checks_app_updates(&self) -> bool {
+        false
+    }
+
     fn install_app_release(
         &self,
         _release: &addon_core::self_update::Release,
