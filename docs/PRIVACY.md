@@ -25,5 +25,6 @@ import) but sends none of it anywhere, apart from the folder fingerprints above.
 
 Culm writes the errors you see and its crashes to a small log file on your computer. Settings → About →
 "Copy debug info" copies its last errors with Culm's version, your system and your game folders to the clipboard,
-for you to paste into a bug report; your home folder is shortened to `~` and the CurseForge key is never included.
+for you to paste into a bug report; your home folder is shortened to `~`, your user name is left out of paths and
+the CurseForge key is never included.
 Nothing is sent by itself.

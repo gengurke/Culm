@@ -16,7 +16,8 @@ or break. New changes go under "Unreleased"; a release turns that heading into i
 - Windows and macOS: switching from WowUp keeps your addons' sources, as on Linux (Culm reads WowUp's settings there too).
 - Windows and macOS: maintenance tools (clear cache, clean backups, back up settings) wait while the game is running, as on Linux.
 - Settings → About → "Copy debug info" copies what helps fix a problem (version, system, game folders, last errors and
-  crashes) for a bug report. Culm now keeps a small log file of errors and crashes; your home folder shows as ~ and the CurseForge key stays out of both.
+  crashes) for a bug report, and "Report a bug" opens the form. Culm now keeps a small log file of errors and crashes;
+  your user name and the CurseForge key stay out of both.
 - Windows and macOS: Culm finds WoW Forever in its usual install folders (Battle.net's default on any drive, `/Applications` on macOS).
 
 ### Changed

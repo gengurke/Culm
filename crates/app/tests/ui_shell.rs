@@ -369,8 +369,10 @@ fn f7_5_about_links_the_privacy_note() {
 }
 
 #[test]
-fn f7_7_copy_debug_info_leaves_out_the_key_and_the_home_folder() {
+fn f7_7_copy_debug_info_leaves_out_the_key_and_the_user_name() {
+    use std::path::{MAIN_SEPARATOR as SEP, Path};
     let home = rune::dirs::home().expect("a home folder");
+    let user = home.file_name().unwrap().to_str().unwrap().to_string();
     let key = "cf-secret-key-123";
     let mut s = fresh();
     loaded(&mut s);
@@ -379,7 +381,17 @@ fn f7_7_copy_debug_info_leaves_out_the_key_and_the_home_folder() {
         .join("Games")
         .join("World of Warcraft")
         .join("_forever_");
+    // A game on a second drive, mounted under the user name (KDE, GNOME).
+    let mut drive = s.installations[0].clone();
+    drive.id = "drive".into();
+    drive.root = Path::new(&SEP.to_string())
+        .join("run")
+        .join("media")
+        .join(&user)
+        .join("Games");
+    s.installations.push(drive);
     let home = home.display().to_string();
+    // The error log is process-wide and keeps the last 10 entries: no other test here shows that many errors.
     s.toast(
         Tone::Danger,
         "Could not update Questie",
@@ -391,13 +403,15 @@ fn f7_7_copy_debug_info_leaves_out_the_key_and_the_home_folder() {
     rt.use_clipboard(&clipboard);
     rt.frame(0.0);
     tap(&mut rt, "nav/settings");
-    let tip = rt
-        .elements()
-        .into_iter()
-        .find(|e| e.key.as_deref() == Some("settings/copy-debug-info"))
-        .and_then(|e| e.help)
-        .unwrap_or_default();
-    assert!(tip.starts_with("Copy Culm's version"), "{tip}");
+    let tip = |rt: &Runtime<State>, key: &str| {
+        rt.elements()
+            .into_iter()
+            .find(|e| e.key.as_deref() == Some(key))
+            .and_then(|e| e.help)
+            .unwrap_or_default()
+    };
+    assert!(tip(&rt, "settings/copy-debug-info").starts_with("Copy Culm's version"));
+    assert!(tip(&rt, "settings/report-bug").starts_with("Open the bug report form"));
     tap(&mut rt, "settings/copy-debug-info");
     let text = clipboard
         .text()
@@ -408,16 +422,21 @@ fn f7_7_copy_debug_info_leaves_out_the_key_and_the_home_folder() {
         "{text}"
     );
     for part in [
-        "System: ",
-        "Rune: ",
-        "WoW Forever",
-        "~",
-        "Could not update Questie",
+        "System: ".to_string(),
+        format!(
+            "WoW Forever (Forever 1.60.1.70938): ~{SEP}Games{SEP}World of Warcraft{SEP}_forever_"
+        ),
+        format!("{SEP}run{SEP}media{SEP}<user>{SEP}Games"),
+        "error: Could not update Questie: ~/Games/x.zip: rejected key (hidden)".to_string(),
     ] {
-        assert!(text.contains(part), "no {part:?} in {text}");
+        assert!(text.contains(&part), "no {part:?} in {text}");
     }
     assert!(!text.contains(key), "the key leaked: {text}");
     assert!(!text.contains(&home), "the home folder leaked: {text}");
+    assert!(
+        !text.contains(&format!("{SEP}{user}")),
+        "the user name leaked: {text}"
+    );
     assert!(shows(&rt, "Debug info copied"));
 }
 

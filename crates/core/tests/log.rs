@@ -3,7 +3,7 @@
 use addon_core::log;
 
 #[test]
-fn f7_7_log_rotates_keeps_recent_errors_hides_home_and_records_crashes() {
+fn f7_7_log_rotates_keeps_recent_errors_hides_the_user_and_records_crashes() {
     let tmp = tempfile::tempdir().unwrap();
     let home = tmp.path().join("home").join("someone");
     let file = tmp.path().join("logs").join("culm.log");
@@ -30,6 +30,7 @@ fn f7_7_log_rotates_keeps_recent_errors_hides_home_and_records_crashes() {
         "Install failed: {}/AddOns is read-only",
         home.display()
     ));
+    log::error("Not found: /run/media/someone/Games, /run/media/someoneelse");
     let crashed = std::thread::Builder::new()
         .name("worker".into())
         .spawn(|| panic!("worker gave up"))
@@ -43,6 +44,10 @@ fn f7_7_log_rotates_keeps_recent_errors_hides_home_and_records_crashes() {
         "{text}"
     );
     assert!(!text.contains(&home.display().to_string()), "{text}");
+    assert!(
+        text.contains(" error: Not found: /run/media/<user>/Games, /run/media/someoneelse\n"),
+        "the user name is hidden as a whole path segment: {text}"
+    );
     assert!(text.contains(" crash: worker gave up at "), "{text}");
     assert!(
         text.contains("log.rs:"),
@@ -53,6 +58,19 @@ fn f7_7_log_rotates_keeps_recent_errors_hides_home_and_records_crashes() {
         "a backtrace follows: {text}"
     );
     let recent = log::recent_errors();
-    assert_eq!(recent.len(), 3);
-    assert!(recent[2].contains("crash: worker gave up"));
+    assert_eq!(recent.len(), 4);
+    assert!(recent[3].contains("crash: worker gave up"));
+
+    // A long run keeps the file small: past the limit it moves aside while writing.
+    let line = "x".repeat(1000);
+    for _ in 0..300 {
+        log::error(&line);
+    }
+    assert!(std::fs::metadata(&file).unwrap().len() < log::MAX_BYTES);
+    let old = std::fs::read_to_string(file.with_extension("old.log")).unwrap();
+    assert!(
+        old.contains("crash: worker gave up"),
+        "the earlier part moved aside"
+    );
+    assert_eq!(log::recent_errors().len(), log::RECENT);
 }

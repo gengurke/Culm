@@ -1,4 +1,3 @@
-//! The Rune commit Culm is built on (`RUNE_REV`, for "Copy debug info"), from the workspace's `Cargo.lock`.
 //! Windows: the icon Explorer and the Start menu show for culm.exe, and its version info (Properties → Details).
 //! The icon `assets/icon/culm.ico` is made from `packaging/culm.svg` by `packaging/icons.sh`.
 
@@ -9,14 +8,6 @@ mod brand;
 fn main() {
     println!("cargo:rerun-if-changed=assets/icon/culm.ico");
     println!("cargo:rerun-if-changed=src/brand.rs");
-    println!("cargo:rerun-if-changed=../../Cargo.lock");
-    let lock = std::fs::read_to_string("../../Cargo.lock").unwrap_or_default();
-    let rev = lock
-        .lines()
-        .find_map(|l| l.strip_prefix("source = \"git+https://github.com/anomalyco/rune?"))
-        .and_then(|l| l.split_once('#'))
-        .map_or("unknown", |(_, sha)| sha.trim_end_matches('"'));
-    println!("cargo:rustc-env=RUNE_REV={}", &rev[..rev.len().min(12)]);
     if std::env::var("CARGO_CFG_TARGET_OS").as_deref() != Ok("windows") {
         return;
     }
