@@ -220,6 +220,8 @@ in the theme's tones, gilded on the active chip, around a disc showing the origi
 - **F8.2 CI** ✅ — `.github/workflows/ci.yml` runs `cargo fmt --check`, `cargo clippy --all-targets -D warnings` and
   `cargo test` on Linux, Windows and macOS for every push and pull request (fmt once, on Linux), then saves headless
   `--snap` screenshots of a few scenes per OS as the `screenshots-<OS>` workflow artifact.
+  `.github/workflows/deny.yml` runs `cargo deny check` (`deny.toml`: security advisories, licences compatible with
+  GPL-3.0-or-later, only crates.io and Rune's git repo as sources) on every push, pull request and weekly.
 - **F8.3 Linux AppImage** ✅ — Pushing a tag `v<version>` (it must match `Cargo.toml`) runs `.github/workflows/release.yml`:
   tests, a release build on Ubuntu 22.04 (glibc 2.35, so older distros run it), `packaging/appimage.sh` packs
   `Culm-<version>-x86_64.AppImage` with the desktop entry, icons and AppStream metadata, and embeds the update
