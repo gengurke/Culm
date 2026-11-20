@@ -231,23 +231,38 @@ in the theme's tones, gilded on the active chip, around a disc showing the origi
   `.github/workflows/deny.yml` runs `cargo deny check` (`deny.toml`: security advisories, licences compatible with
   GPL-3.0-or-later, only crates.io and Rune's git repo as sources) on every push, pull request and weekly.
 - **F8.3 Linux AppImage** ✅ — Pushing a tag `v<version>` (it must match `Cargo.toml`) runs `.github/workflows/release.yml`:
-  tests, a release build on Ubuntu 22.04 (glibc 2.35, so older distros run it), `packaging/appimage.sh` packs
+  tests, then a release build on Ubuntu 22.04 (glibc 2.35, so older distros run it), `packaging/appimage.sh` packs
   `Culm-<version>-x86_64.AppImage` with the desktop entry, icons and AppStream metadata, and embeds the update
-  information `gh-releases-zsync|gengurke|Culm|latest|Culm-*-x86_64.AppImage.zsync`. The release carries the AppImage,
-  its `.zsync` and `SHA256SUMS`, with notes from the CHANGELOG section. Releases are never marked "pre-release":
-  zsync's `latest` skips those, and the beta shows in the version instead.
+  information `gh-releases-zsync|gengurke|Culm|latest|Culm-*-x86_64.AppImage.zsync`. The release carries every
+  platform's files (F8.5), `SHA256SUMS` over all of them, and notes from the CHANGELOG section plus the install steps
+  in `packaging/release-install.md`. Releases are never marked "pre-release": zsync's `latest` skips those, and the
+  beta shows in the version instead. Run by hand (`workflow_dispatch`), the workflow builds every package from a
+  branch as workflow artifacts and publishes nothing.
 - **F8.4 Updates itself** ✅ — Run as an AppImage (`$APPIMAGE`), Culm asks GitHub for its newest release once per start
   (`self_update::latest`, no other data sent); a newer one shows a toast and an "Update to x.y.z" button in the sidebar and
   under Settings → About. Update downloads the asset next to the AppImage, checks it against the release's
   `SHA256SUMS` (no checksum, no install), makes it executable and moves it over the AppImage in one step; "Restart for
   x.y.z" starts the new file and quits; the new process gets no inherited descriptors, so the old image's mount (the
   AppImage runtime keeps it through fd 1023) ends with the old process. A failed or damaged download leaves the running version alone and can be retried.
-  Other builds check only when "Check for updates" is pressed and link the release page ("Get x.y.z").
+  The Windows and macOS release builds also check at every start but can't replace themselves: their "Update to x.y.z"
+  opens the release page. Other builds (from source) check only when "Check for updates" is pressed and link the
+  release page the same way.
   `ADDONS_APP_RELEASES_URL` points the check elsewhere. (`f8_4_latest_release_picks_the_fitting_asset`,
   `f8_4_update_replaces_the_file_and_keeps_it_executable`, `f8_4_damaged_download_leaves_the_app_alone`,
   `f8_4_release_without_checksums_is_refused`, e2e `f8_4_update_from_the_sidebar_replaces_the_appimage_and_restarts_it`,
   `f8_4_damaged_update_keeps_the_running_version`, `f8_4_a_copy_that_cant_update_itself_asks_only_when_told_and_links_the_release`,
-  `f8_4_check_says_when_the_app_is_up_to_date`)
+  `f8_4_a_windows_or_macos_build_checks_at_start_and_links_the_release`, `f8_4_check_says_when_the_app_is_up_to_date`)
+- **F8.5 Windows and macOS packages** ✅ — The same tag builds, besides the AppImage:
+  - **Windows** (x64, MSVC, C runtime linked in): `culm.exe` carries the icon and version info (`crates/app/build.rs`,
+    `assets/icon/culm.ico`; `packaging/icons.sh` makes it and `culm.icns` from `packaging/culm.svg`) and opens no console window. `packaging/windows/culm.iss` (Inno Setup) makes
+    `Culm-<version>-windows-x64-setup.exe`: per-user install without admin rights into `%LOCALAPPDATA%\Programs\Culm`,
+    Start menu entry, optional desktop icon, uninstaller (leaves settings and addon records), installs over an older
+    version.
+  - **macOS** (13+): `packaging/macos.sh` joins the arm64 and x86_64 builds with `lipo` into a universal `Culm.app`
+    (bundle id `dev.culm.app` from `brand.rs`, the committed `culm.icns`), signs it ad hoc and packs it into
+    `Culm-<version>-macos.dmg` with an Applications link.
+  - Neither is signed with a paid certificate yet: Windows SmartScreen needs "More info → Run anyway" once, macOS
+    "Open Anyway" in Privacy & Security once per downloaded version (README, release notes). Checked by the workflow run, not by tests.
 
 ## App wiring ✅
 `crates/app/src/core_backend.rs` implements `backend::Backend` over the core: data/cache dirs from `rune::dirs::AppDirs`

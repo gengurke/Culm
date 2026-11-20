@@ -1,4 +1,6 @@
-# Pushing a tag v<version> builds the Linux AppImage and publishes a GitHub release (F8.3).
+# Pushing a tag v<version> builds Culm for Linux (AppImage), Windows (installer) and macOS (.dmg) and
+# publishes a GitHub release (F8.3, F8.5). Started by hand (Actions → Release → Run workflow) it only builds the same
+# files from the chosen branch and keeps them as workflow artifacts, to try the packaging without a release.
 # Release steps: move CHANGELOG "Unreleased" to the new version, bump Cargo.toml, add a <release> line to
 # packaging/dev.culm.app.metainfo.xml, commit, `git tag v0.2.0`, push the tag.
 name: Release
@@ -6,6 +8,7 @@ name: Release
 on:
   push:
     tags: ["v*"]
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -14,25 +17,34 @@ jobs:
   test:
     uses: ./.github/workflows/ci.yml
 
-  appimage:
-    needs: test
-    # The oldest supported runner: the AppImage links glibc from here, so it runs on this and anything newer.
-    runs-on: ubuntu-22.04
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
     steps:
       - uses: actions/checkout@v5
       - name: Version from the tag must match Cargo.toml
         id: version
         run: |
-          tag=${GITHUB_REF_NAME#v}
           cargo_version=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)
-          if [[ $tag != "$cargo_version" ]]; then
-            echo "::error::Tag v$tag does not match Cargo.toml version $cargo_version"
-            exit 1
+          if [[ $GITHUB_EVENT_NAME == push ]]; then
+            tag=${GITHUB_REF_NAME#v}
+            if [[ $tag != "$cargo_version" ]]; then
+              echo "::error::Tag v$tag does not match Cargo.toml version $cargo_version"
+              exit 1
+            fi
+            grep -q "^## \[$tag\]" CHANGELOG.md || { echo "::error::CHANGELOG.md has no section for $tag"; exit 1; }
+            grep -q "<release version=\"$tag\"" packaging/dev.culm.app.metainfo.xml \
+              || { echo "::error::packaging/dev.culm.app.metainfo.xml has no <release> for $tag"; exit 1; }
           fi
-          grep -q "^## \[$tag\]" CHANGELOG.md || { echo "::error::CHANGELOG.md has no section for $tag"; exit 1; }
-          grep -q "<release version=\"$tag\"" packaging/dev.culm.app.metainfo.xml \
-            || { echo "::error::packaging/dev.culm.app.metainfo.xml has no <release> for $tag"; exit 1; }
-          echo "version=$tag" >> "$GITHUB_OUTPUT"
+          echo "version=$cargo_version" >> "$GITHUB_OUTPUT"
+
+  linux:
+    needs: [test, version]
+    # The oldest supported runner: the AppImage links glibc from here, so it runs on this and anything newer.
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v5
       - name: Build and packaging dependencies
         run: |
           sudo apt-get update
@@ -42,30 +54,94 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - run: cargo build --release --locked
       - name: AppImage
-        run: packaging/appimage.sh target/release/culm "${{ steps.version.outputs.version }}" dist
+        run: packaging/appimage.sh target/release/culm "${{ needs.version.outputs.version }}" dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux
+          path: dist/Culm-*
+          if-no-files-found: error
+
+  windows:
+    needs: [test, version]
+    runs-on: windows-latest
+    env:
+      # Links the C runtime into culm.exe: no Visual C++ Redistributable needed on the user's machine.
+      RUSTFLAGS: -C target-feature=+crt-static
+    steps:
+      - uses: actions/checkout@v5
+      - name: Rust toolchain (from rust-toolchain.toml)
+        run: rustup toolchain install
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo build --release --locked
+      # PowerShell, not bash: Git Bash would rewrite ISCC's "/D…" and "/O…" switches as paths.
+      - name: Installer (Inno Setup)
+        shell: pwsh
+        run: |
+          $version = "${{ needs.version.outputs.version }}"
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { choco install innosetup --no-progress -y }
+          & $iscc "/DVersion=$version" "/DExe=$PWD\target\release\culm.exe" "/O$PWD\dist" packaging\windows\culm.iss
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          Get-ChildItem dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: dist/Culm-*
+          if-no-files-found: error
+
+  macos:
+    needs: [test, version]
+    runs-on: macos-latest
+    env:
+      # Rune's oldest supported macOS; packaging/macos.sh writes it into Info.plist as LSMinimumSystemVersion.
+      MACOSX_DEPLOYMENT_TARGET: "13.0"
+    steps:
+      - uses: actions/checkout@v5
+      - name: Rust toolchain (from rust-toolchain.toml), both Mac architectures
+        run: |
+          rustup toolchain install
+          rustup target add aarch64-apple-darwin x86_64-apple-darwin
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo build --release --locked --target aarch64-apple-darwin --target x86_64-apple-darwin
+      - name: Universal Culm.app in a .dmg
+        run: |
+          packaging/macos.sh target/aarch64-apple-darwin/release/culm target/x86_64-apple-darwin/release/culm \
+            "${{ needs.version.outputs.version }}" dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos
+          path: dist/Culm-*
+          if-no-files-found: error
+
+  publish:
+    # Only a pushed tag publishes; a run started by hand never does, whatever ref it builds.
+    if: github.event_name == 'push'
+    needs: [version, linux, windows, macos]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
       - name: Checksums
         working-directory: dist
-        run: sha256sum Culm-*.AppImage Culm-*.AppImage.zsync > SHA256SUMS
+        run: sha256sum Culm-* > SHA256SUMS && cat SHA256SUMS
       - name: Release notes from CHANGELOG.md
         run: |
-          awk -v v="${{ steps.version.outputs.version }}" '
+          awk -v v="${{ needs.version.outputs.version }}" '
             $0 ~ "^## \\[" v "\\]" { on = 1; next }
             on && /^## \[/ { exit }
             on && /^\[.*\]: / { exit }
             on { print }
-          ' CHANGELOG.md > dist/notes.md
-          cat >> dist/notes.md <<'NOTES'
-
-          ### Install
-          Download the `.AppImage`, make it executable (`chmod +x Culm-*.AppImage`) and start it. With
-          [Gear Lever](https://flathub.org/apps/it.mijorus.gearlever) it gets a menu entry and updates itself.
-          NOTES
+          ' CHANGELOG.md > notes.md
+          cat packaging/release-install.md >> notes.md
       # Never a "pre-release": the zsync update info asks for `latest`, which skips those. The beta shows in the version.
       - name: Publish
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "$GITHUB_REF_NAME" \
-            --title "Culm ${{ steps.version.outputs.version }} (Beta)" \
-            --notes-file dist/notes.md \
-            dist/Culm-*.AppImage dist/Culm-*.AppImage.zsync dist/SHA256SUMS
+            --title "Culm ${{ needs.version.outputs.version }} (Beta)" \
+            --notes-file notes.md \
+            dist/Culm-* dist/SHA256SUMS

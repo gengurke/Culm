@@ -199,6 +199,8 @@ pub trait Backend: Send + Sync {
     fn app_release(&self) -> Result<Option<Release>>;
     /// Whether this build can replace itself (it runs as an AppImage); otherwise updates are by hand.
     fn self_updating(&self) -> bool;
+    /// Whether to look for a new version at every start, not only when told.
+    fn checks_app_updates(&self) -> bool;
     /// Replace the app's own file with `release` (checked against its checksums); `progress` 0..=1.
     fn install_app_release(&self, release: &Release, progress: &dyn Fn(f32)) -> Result<()>;
     /// Start the (updated) app as a new process; the caller quits.

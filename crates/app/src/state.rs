@@ -766,8 +766,8 @@ impl State {
                 if self.current.is_some() {
                     self.start_scan();
                 }
-                // Only a build that can update itself asks on its own (one GitHub request per start).
-                if self.backend.self_updating() {
+                // One GitHub request per start, only from builds without another way to hear of a new version.
+                if self.backend.checks_app_updates() {
                     self.check_app_update(false);
                 }
             }

@@ -42,6 +42,9 @@ pub struct Config {
     pub app_releases_url: String,
     /// The AppImage this process runs from (`$APPIMAGE`); None: the app can't update itself.
     pub appimage: Option<PathBuf>,
+    /// Ask GitHub for a new version at every start even without an AppImage (which always does): the Windows
+    /// and macOS release builds have no other way to hear of one; they link the release page.
+    pub checks_updates: bool,
     /// The user's Downloads folder, watched for updates fetched by hand (F3.5).
     pub downloads: Option<PathBuf>,
 }
@@ -90,6 +93,11 @@ impl Config {
                 .unwrap_or_else(|_| self_update::DEFAULT_API_BASE.into()),
             // Set by the AppImage runtime to the image's own path.
             appimage: std::env::var_os("APPIMAGE").map(PathBuf::from),
+            // Release builds only: a `cargo run` asks when told, like a source build on Linux.
+            checks_updates: cfg!(all(
+                any(windows, target_os = "macos"),
+                not(debug_assertions)
+            )),
             downloads: dirs.downloads().map(Path::to_path_buf),
         })
     }
@@ -104,6 +112,7 @@ pub struct CoreBackend {
     class_icon_sources: Vec<String>,
     app_releases_url: String,
     appimage: Option<PathBuf>,
+    checks_updates: bool,
     downloads: Option<PathBuf>,
     prefs: Mutex<Prefs>,
     /// Serializes load-modify-save of the stored lists (workers run concurrently).
@@ -134,6 +143,7 @@ impl CoreBackend {
             class_icon_sources: c.class_icon_sources,
             app_releases_url: c.app_releases_url,
             appimage: c.appimage,
+            checks_updates: c.checks_updates,
             downloads: c.downloads,
             prefs: Mutex::new(c.prefs),
             store: Mutex::new(()),
@@ -673,6 +683,10 @@ impl Backend for CoreBackend {
 
     fn self_updating(&self) -> bool {
         self.appimage.is_some()
+    }
+
+    fn checks_app_updates(&self) -> bool {
+        self.appimage.is_some() || self.checks_updates
     }
 
     fn install_app_release(&self, release: &Release, progress: &dyn Fn(f32)) -> Result<()> {

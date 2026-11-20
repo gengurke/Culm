@@ -168,7 +168,7 @@ pub fn page(s: &State) -> El {
             AppUpdate::UpToDate => "You have the newest version.".to_string(),
             AppUpdate::Failed { error, .. } => format!("The last update failed: {error}"),
             AppUpdate::Ready(_) => "The new version starts with the next start.".to_string(),
-            _ if s.backend.self_updating() => {
+            _ if s.backend.checks_app_updates() => {
                 "Checks GitHub for a new version when it starts.".to_string()
             }
             _ => "This copy updates by hand: the check finds the new version for you.".to_string(),
