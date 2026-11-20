@@ -18,6 +18,10 @@ sha2 = "0.10"
 sha1 = "0.10"
 zip = { version = "9.5.1", default-features = false, features = ["deflate"] }
 
+# Lists running programs on Windows and macOS for the game check (Linux reads /proc itself).
+[target.'cfg(not(target_os = "linux"))'.dependencies]
+sysinfo = { version = "0.40", default-features = false, features = ["system"] }
+
 [dev-dependencies]
 addon-testkit = { path = "../testkit" }
 tempfile = "3.27.0"

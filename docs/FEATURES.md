@@ -5,9 +5,14 @@ What the addon manager does, one short paragraph per feature. Ids are referenced
 
 ## F1 Installations
 - **F1.1 Auto-detect** ✅ — Finds WoW Forever clients (`_forever_` folders whose `.build.info` row has
-  product `wowf`) in Wine/Proton/Faugus/Lutris/Bottles prefixes and `~/Games` (one `read_dir` per parent, no disk walk).
+  product `wowf`) in the usual places per OS (`wow::search_roots`, one `read_dir` per parent, no disk walk): on Linux
+  Wine/Proton/Faugus/Lutris/Bottles/Steam prefixes and `~/Games`; on Windows every drive's `Program Files (x86)`,
+  `Program Files`, root and `Games` folder (Battle.net's default is `C:\Program Files (x86)\World of Warcraft`) and the
+  user profile; on macOS `/Applications` and `~/Applications`.
   Reads the client version (e.g. `1.60.1.70938`). Detected clients are stored with the manual ones and the first
-  is selected on start. (`f1_1_detects_forever_install_from_build_info`, e2e `f1_1_detected_installation_is_selected_and_scanned`)
+  is selected on start. (`f1_1_detects_forever_install_from_build_info`,
+  `f1_1_detects_windows_installs_on_every_drive_and_in_the_profile`, `f1_1_detects_macos_installs_in_applications`,
+  `f1_1_detects_linux_installs_in_wine_prefixes`, e2e `f1_1_detected_installation_is_selected_and_scanned`)
 - **F1.2 Add manually** ✅ — Pick any folder (WoW root, `_forever_`, `Interface/AddOns`, or `Wow.exe`); it is
   normalized to the `_forever_` client folder and validated; onboarding offers the folder picker when nothing was found.
   (`f1_2_normalizes_manual_paths`, e2e `f1_2_installation_added_from_folder_picker_is_remembered`)
@@ -27,7 +32,8 @@ What the addon manager does, one short paragraph per feature. Ids are referenced
   its md5 fingerprints (F4.7, no key needed)
   and to other providers via TOC ids (`X-Curse-Project-ID`; the WowInterface provider exists but is disabled for now because its files carry no game-version info). Unmatched addons are "Unknown" and ignored for updates;
   git checkouts are ignored as such. CurseForge `POST /v1/fingerprints/1` maps matched files' `modules[].name` to folders. (`f2_3_fingerprint_match_maps_modules_to_folders`, `f2_3_wowinterface_matches_toc_ids`, `f2_3_fingerprint_matches_golden_value`, `f2_3_unmatched_are_unknown_and_provider_errors_are_reported`)
-- **F2.4 WowUp import** ✅ — Imports addon records (`~/.config/WowUpCf`, `~/.config/WowUp`) of the WowUp installation in the same
+- **F2.4 WowUp import** ✅ — Imports addon records (WowUp's config folders `WowUpCf`, `WowUp` via `rune::dirs`: `~/.config` on Linux,
+  `%APPDATA%` on Windows, `~/Library/Application Support` on macOS) of the WowUp installation in the same
   client folder, so switching from WowUp keeps provider links without rescanning online. Runs automatically on the first
   scan of an installation (and from Settings). A folder belongs to one record: when WowUp lists it under two addons
   (Questie also lists QuestieTrace), the record with fewer folders keeps it.
@@ -179,9 +185,11 @@ in the theme's tones, gilded on the active chip, around a disc showing the origi
   `xdg-open` on Linux). (`f5_3_open_website`)
 
 ## F6 Maintenance
-- **F6.1 Clear cache** ✅ — Deletes the client's `Cache` folder (or just `Cache/WDB`). All F6 tools refuse while a `Wow.exe` of this
-  client runs (its working directory or an open file is inside the client folder; a `_forever_` command line counts only
-  when `/proc` can't tell, so a game of another client never locks this one), act only on a `_forever_` client folder and never follow a `Cache` link; the UI asks first.
+- **F6.1 Clear cache** ✅ — Deletes the client's `Cache` folder (or just `Cache/WDB`). All F6 tools refuse while the game of this
+  client runs, and a game of another client never locks this one. Linux (Wine): a `Wow.exe` whose working directory or
+  an open file is inside the client folder (a `_forever_` command line counts only when `/proc` can't tell). Windows and
+  macOS: a program started from inside the client folder (via `sysinfo`); one named like the game whose path can't be
+  read, or no process list at all, keeps maintenance locked. They act only on a `_forever_` client folder and never follow a `Cache` link; the UI asks first.
   (`f6_1_clear_cache_removes_cache_dir`, `f6_1_refuses_while_game_running`, `f6_1_only_touches_a_forever_client_folder`,
   e2e `f6_1_clear_cache_asks_then_deletes_the_cache`, `f6_1_maintenance_locked_while_game_runs`)
 - **F6.2 Clean backups** ✅ — Deletes `WTF/**/*.lua.bak` and `WTF/*.old` leftovers. (`f6_2_clean_backup_files`)
@@ -212,13 +220,16 @@ in the theme's tones, gilded on the active chip, around a disc showing the origi
   `f7_3_every_theme_keeps_text_readable`)
 - **F7.4 Name and folders** ✅ — The app is Culm (`brand.rs`: name, tagline, app id `dev.culm.app`).
 - **F7.5 About** ✅ — Settings → About shows the version from `Cargo.toml` and, until 1.0, the release stage
-  (`brand::STAGE`, "v0.1.0 · Beta"). (`f7_5_about_shows_the_version_and_release_stage`)
+  (`brand::STAGE`, "v0.1.0 · Beta"), and links the privacy note `docs/PRIVACY.md` (what Culm sends where, no
+  telemetry). (`f7_5_about_shows_the_version_and_release_stage`, `f7_5_about_links_the_privacy_note`)
 
 ## F8 Releases
 - **F8.1 Versioning** ✅ — SemVer, 0.x while in beta; user-visible changes go into `CHANGELOG.md` under "Unreleased".
 - **F8.2 CI** ✅ — `.github/workflows/ci.yml` runs `cargo fmt --check`, `cargo clippy --all-targets -D warnings` and
   `cargo test` on Linux, Windows and macOS for every push and pull request (fmt once, on Linux), then saves headless
   `--snap` screenshots of a few scenes per OS as the `screenshots-<OS>` workflow artifact.
+  `.github/workflows/deny.yml` runs `cargo deny check` (`deny.toml`: security advisories, licences compatible with
+  GPL-3.0-or-later, only crates.io and Rune's git repo as sources) on every push, pull request and weekly.
 - **F8.3 Linux AppImage** ✅ — Pushing a tag `v<version>` (it must match `Cargo.toml`) runs `.github/workflows/release.yml`:
   tests, then a release build on Ubuntu 22.04 (glibc 2.35, so older distros run it), `packaging/appimage.sh` packs
   `Culm-<version>-x86_64.AppImage` with the desktop entry, icons and AppStream metadata, and embeds the update
@@ -277,3 +288,9 @@ tinted line in a thin ring: no coloured side stripes. Toasts are framed alerts; 
 alternatives (`ADDONS_TOAST_STYLE=0..5`, scene `toasts`). The sidebar wordmark is "Culm" over "Addon Manager" in Inter. Every scroll area (`ui::scroll`) has a thin overlay scroll bar: hidden at rest, shown while the pointer is over it or it
 scrolls, a 3 pt pill in the theme's `border_strong` that widens to 6 pt in its `accent` under the pointer (`ui_every_page_scrolls_with_a_thin_scroll_bar`).
 Every scene has a `<scene>@<theme>` variant (`--snap x.png --scene settings@hearthwood`).
+The header band (with the sidebar's brand block beside it) moves the window on every OS: drag its empty parts, double-press
+to maximize (macOS: the system's titlebar double-click setting) (`.window_drag()`). On Windows and macOS it is the window's
+titlebar (`App::titlebar`, `addon_app::app`): Windows gets Rune's minimize, maximize and close buttons over its right end in
+the theme's text colour (`Cx::caption_color`), macOS the traffic lights at its left; band and brand keep clear of them
+(`Cx::chrome_insets`). Linux keeps the native frame until Rune draws its own there (#16)
+(`ui_the_header_band_is_the_titlebar`).

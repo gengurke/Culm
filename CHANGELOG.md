@@ -10,10 +10,15 @@ or break. New changes go under "Unreleased"; a release turns that heading into i
 - Culm for Windows and macOS: a Windows installer (per user, no admin rights) and a macOS .dmg for
   Apple Silicon and Intel Macs. They are not code-signed yet: the README says how to allow the first start.
   They check for a new version when they start; "Update to x.y.z" opens the release page.
+- Settings → About links a privacy note: which services Culm talks to and what it sends (no telemetry).
+- Windows and macOS: switching from WowUp keeps your addons' sources, as on Linux (Culm reads WowUp's settings there too).
+- Windows and macOS: maintenance tools (clear cache, clean backups, back up settings) wait while the game is running, as on Linux.
+- Windows and macOS: Culm finds WoW Forever in its usual install folders (Battle.net's default on any drive, `/Applications` on macOS).
 
 ### Changed
 - An update whose author only allows downloads through CurseForge's own app or website no longer fails: its Update button starts the download in your browser, and Culm installs the file as soon as it is in your Downloads folder, then deletes it (and any duplicate copy). If the file is already in Downloads, it is installed right away without opening the browser. Saved it somewhere else? "Install from file…" in the details. Culm only installs a file that is exactly the new version. "Update all" skips these.
 - New addons with the same restriction (e.g. Platynator) are no longer greyed out in Get Addons: Install fetches them the same way, through your browser and Downloads folder.
+- Drag the header band to move the window, double-click it to maximize. On Windows and macOS it replaces the system title bar: the window buttons sit in the band (on Windows in the theme's colours). Linux keeps the system title bar for now.
 - Updated the Rune UI framework: a notched mouse wheel scrolls smoothly on Windows and Linux, and on GNOME (Wayland) the window's bottom corners are rounded like its title bar.
 
 ## [0.1.2] - 2026-11-17

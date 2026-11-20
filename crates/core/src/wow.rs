@@ -8,12 +8,49 @@ use std::path::{Path, PathBuf};
 const CLIENT_DIR: &str = "_forever_";
 const PRODUCT: &str = "wowf";
 
-/// Wine/Proton prefixes (and similar) worth probing, derived from `$HOME`. Cheap: at most one
-/// `read_dir` per glob-like parent, no recursive walks.
+/// Where Forever clients usually live on this OS: the home folder, plus every drive on Windows.
 pub fn default_search_roots() -> Vec<PathBuf> {
-    let Some(home) = std::env::var_os("HOME").map(PathBuf::from) else {
+    let Some(home) = std::env::home_dir() else {
         return vec![];
     };
+    // Drives aren't probed here (this runs on the UI thread, and an offline network drive can
+    // stall): `detect_installations` skips missing ones on its worker.
+    let disks: Vec<PathBuf> = if cfg!(windows) {
+        ('C'..='Z')
+            .map(|d| PathBuf::from(format!("{d}:\\")))
+            .collect()
+    } else {
+        vec![PathBuf::from("/")]
+    };
+    search_roots(std::env::consts::OS, &home, &disks)
+}
+
+/// The folders [`detect_installations`] probes on `os` (`std::env::consts::OS`), given the home
+/// folder and the disks' roots. Each may hold `World of Warcraft` (or be a Wine prefix). Cheap: at
+/// most one `read_dir` per prefix parent on Linux, no recursive walks.
+pub fn search_roots(os: &str, home: &Path, disks: &[PathBuf]) -> Vec<PathBuf> {
+    match os {
+        // Battle.net installs to `<drive>\Program Files (x86)\World of Warcraft` (probed by
+        // `detect_installations`); people also pick `<drive>\World of Warcraft` or a `Games` folder.
+        "windows" => disks
+            .iter()
+            .map(PathBuf::as_path)
+            .chain([home])
+            .flat_map(|d| [d.to_path_buf(), d.join("Games")])
+            .collect(),
+        // The installer's default is `/Applications/World of Warcraft`.
+        "macos" => disks
+            .iter()
+            .map(PathBuf::as_path)
+            .chain([home])
+            .map(|d| d.join("Applications"))
+            .collect(),
+        _ => wine_prefixes(home),
+    }
+}
+
+/// Wine/Proton prefixes (and similar) worth probing on Linux, derived from the home folder.
+fn wine_prefixes(home: &Path) -> Vec<PathBuf> {
     let mut roots = vec![home.join(".wine"), home.join("Games")];
     // Parents whose children are prefixes (one level), with an optional suffix inside each child.
     let parents: [(PathBuf, &str); 7] = [
@@ -159,15 +196,50 @@ pub fn read_build_version(wow_root: &Path) -> Option<String> {
         .filter(|v| !v.is_empty())
 }
 
-/// True if a `Wow.exe` process belongs to this installation (see [`runs_in`]); a game running
-/// from another client folder doesn't count.
-// shortcut: Linux /proc only and heuristic (Wine passes Windows paths); on other OSes this is
-// always false. Upgrade if users report maintenance running while the game is open.
+/// True if the game of this installation runs; a game running from another client folder doesn't
+/// count. Linux reads `/proc` (Wine games, see [`runs_in`]); Windows and macOS ask the OS which
+/// programs run from inside the client folder.
 pub fn is_game_running(inst: &Installation) -> bool {
+    let root = std::fs::canonicalize(&inst.root).map_or_else(|_| inst.root.clone(), plain);
+    #[cfg(target_os = "linux")]
+    return wine_game_running(&root);
+    #[cfg(not(target_os = "linux"))]
+    return native_game_running(&root);
+}
+
+/// Windows and macOS: a program started from inside the client folder (`Wow.exe`, the macOS app
+/// bundle). One that looks like the game but whose path we may not read counts too: we can't tell,
+/// so maintenance stays locked rather than guess.
+#[cfg(not(target_os = "linux"))]
+fn native_game_running(root: &Path) -> bool {
+    use sysinfo::{ProcessRefreshKind, ProcessesToUpdate, System, UpdateKind};
+    let exe_only = ProcessRefreshKind::nothing().with_exe(UpdateKind::Always);
+    let Ok(mut sys) = System::new() else {
+        return true;
+    };
+    // Not even this process seen: the OS didn't tell.
+    if sys.refresh_processes_specifics(ProcessesToUpdate::All, true, exe_only) == 0 {
+        return true;
+    }
+    // Paths compare case-insensitively, as both file systems usually do.
+    let lower = |p: &Path| PathBuf::from(p.to_string_lossy().to_lowercase());
+    let root = lower(root);
+    sys.processes().values().any(|p| match p.exe() {
+        Some(exe) => lower(exe).starts_with(&root),
+        None => {
+            let name = p.name().to_string_lossy().to_lowercase();
+            name == "wow.exe" || name.starts_with("world of warcraft")
+        }
+    })
+}
+
+/// Linux: a `Wow.exe` process (under Wine) that belongs to the client at `root` (see [`runs_in`]).
+// shortcut: heuristic, Wine passes Windows paths. Upgrade if users report maintenance running while the game is open.
+#[cfg(target_os = "linux")]
+fn wine_game_running(root: &Path) -> bool {
     let Ok(rd) = std::fs::read_dir("/proc") else {
         return false;
     };
-    let root = std::fs::canonicalize(&inst.root).unwrap_or_else(|_| inst.root.clone());
     rd.flatten()
         .filter(|e| {
             e.file_name()
@@ -187,7 +259,7 @@ pub fn is_game_running(inst: &Installation) -> bool {
             let argv0 = cmd.split('\0').next().unwrap_or("");
             let is_wow = comm.trim().eq_ignore_ascii_case("wow.exe")
                 || argv0.rsplit('/').next() == Some("wow.exe");
-            is_wow && runs_in(&dir, &root, &cmd)
+            is_wow && runs_in(&dir, root, &cmd)
         })
 }
 
@@ -195,6 +267,7 @@ pub fn is_game_running(inst: &Installation) -> bool {
 /// working directory (Wine sets it to the client's Unix path) or an open file is inside `root`.
 /// Only when neither can be read (another user's process) does a `_forever_` command line count,
 /// so we stay on the safe side without letting every Forever client lock every other one.
+#[cfg(target_os = "linux")]
 fn runs_in(dir: &Path, root: &Path, cmd: &str) -> bool {
     let cwd = std::fs::read_link(dir.join("cwd"));
     if cwd.as_ref().is_ok_and(|cwd| cwd.starts_with(root)) {

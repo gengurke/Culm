@@ -15,8 +15,10 @@ use crate::ui::{self, Kind};
 use rune::{Cursor, Cx, El, Icon, Tx, col, el, icon, row, text};
 
 pub fn view(s: &State, cx: &mut Cx<State>) -> El {
-    theme::begin(s);
+    theme::begin(s, cx.chrome_insets());
     cx.help_look(ui::help_look());
+    // The Windows caption buttons sit on the band, which takes the frame's palette.
+    cx.caption_color(theme::framed(|| pal().text));
     let page = match (s.screen, s.installation()) {
         (Screen::Settings, _) => settings::page(s),
         (_, None) if s.job == Job::Booting || s.job == Job::Scanning => loading_page(s),
@@ -47,7 +49,9 @@ fn band_in_frame(title: &str, meta: Vec<El>, actions: Vec<El>) -> El {
         .key("band")
         .w_full()
         .h(theme::BAND_H)
-        .px(theme::PAD)
+        .pl(theme::PAD)
+        .pr(theme::PAD + theme::chrome().trailing)
+        .window_drag()
         .gap(14.0)
         .center_y()
         .skin(&th.skin.band);
@@ -135,7 +139,10 @@ fn sidebar(s: &State) -> El {
     let brand_block = row()
         .key("brand")
         .h(theme::BAND_H)
-        .px(20.0)
+        // The traffic lights' inset ends at the zoom button; the mark's own box adds a little air.
+        .pl((theme::chrome().leading + 4.0).max(20.0))
+        .pr(20.0)
+        .window_drag()
         .gap(10.0)
         .center_y()
         .child(el().size(40.0, 40.0).center().child(ui::brand_mark(32.0)))
