@@ -47,6 +47,13 @@ pub fn spec() -> AppSpec<State> {
     }
 }
 
+/// The app: the window from `spec`, its header band drawn as the titlebar (`view::band`). Where Rune
+/// replaces the native titlebar (Windows, macOS) the window's controls sit over the band; elsewhere
+/// the native frame stays.
+pub fn app() -> rune::App<State> {
+    rune::App::new(spec()).titlebar(rune::Titlebar::new(theme::BAND_H))
+}
+
 /// A headless runtime over `state` with the app's fonts and poll wired, for tests.
 pub fn runtime(state: State, size: (f32, f32)) -> Runtime<State> {
     let text = TextSystem::new(theme::FONTS, theme::FAMILIES);

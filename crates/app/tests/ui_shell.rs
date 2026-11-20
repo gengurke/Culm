@@ -3,8 +3,9 @@
 
 use addon_app::mock::MockBackend;
 use addon_app::state::{MaintCard, Status};
+use addon_app::theme::{BAND_H, SIDEBAR_W};
 use addon_app::{Op, Screen, State, loaded, runtime};
-use rune::{Key, KeyEvent, Mods, Runtime};
+use rune::{ChromeInsets, Key, KeyEvent, Mods, Runtime, TitlebarAction};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
@@ -354,6 +355,20 @@ fn f7_5_about_shows_the_version_and_release_stage() {
 }
 
 #[test]
+fn f7_5_about_links_the_privacy_note() {
+    let mut rt = app(loaded);
+    tap(&mut rt, "nav/settings");
+    assert!(shows(&rt, "No telemetry."));
+    let tip = rt
+        .elements()
+        .into_iter()
+        .find(|e| e.key.as_deref() == Some("settings/privacy"))
+        .and_then(|e| e.help)
+        .unwrap_or_default();
+    assert!(tip.starts_with("Open the privacy note"), "{tip}");
+}
+
+#[test]
 fn f2_1_an_empty_installation_says_so_instead_of_a_filter_miss() {
     let mut rt = app(|s| {
         loaded(s);
@@ -388,6 +403,69 @@ fn ui_every_page_scrolls_with_a_thin_scroll_bar() {
             "{screen:?}: no scroll bar in {area}"
         );
     }
+}
+
+#[test]
+fn ui_the_header_band_is_the_titlebar() {
+    let mut rt = app(loaded);
+    let target = |rt: &Runtime<State>, key: &str| {
+        rt.elements()
+            .into_iter()
+            .find(|e| e.key.as_deref() == Some(key))
+            .unwrap_or_else(|| panic!("no element keyed {key}"))
+            .target
+    };
+    let press = |rt: &mut Runtime<State>, (x, y): (f32, f32)| {
+        rt.pointer_move(x, y);
+        rt.pointer_down(x, y);
+        let action = rt.take_titlebar_action();
+        rt.pointer_up(x, y);
+        rt.frame(1.0 / 60.0);
+        action
+    };
+    let band = target(&rt, "band");
+    let empty = (band[0] + band[2] * 0.6, band[1] + band[3] / 2.0);
+    // Its empty parts and the sidebar's brand block move the window; a double press maximizes.
+    assert_eq!(press(&mut rt, empty), Some(TitlebarAction::Drag));
+    assert_eq!(press(&mut rt, empty), Some(TitlebarAction::DoubleClick));
+    let brand = target(&rt, "brand");
+    assert_eq!(
+        press(&mut rt, (brand[0] + 4.0, brand[1] + brand[3] / 2.0)),
+        Some(TitlebarAction::Drag)
+    );
+    // Buttons on it keep their presses.
+    let update_all = rt.find("my-addons/update-all").expect("Update all");
+    assert_eq!(press(&mut rt, update_all), None);
+
+    // Its own content keeps clear of the window's controls (macOS traffic lights at the leading
+    // edge, Windows caption buttons at the trailing edge).
+    let wordmark = target(&rt, "brand/wordmark");
+    let mut insets = ChromeInsets::default();
+    (insets.leading, insets.trailing, insets.height) = (76.0, 138.0, BAND_H);
+    rt.set_chrome_insets(insets);
+    rt.frame(1.0 / 60.0);
+    let els = rt.elements();
+    let brand = els
+        .iter()
+        .position(|e| e.key.as_deref() == Some("brand"))
+        .unwrap();
+    assert!(
+        els.iter()
+            .filter(|e| e.parent == Some(brand))
+            .all(|e| e.target[0] >= 76.0),
+        "the brand mark clears the traffic lights"
+    );
+    let moved = target(&rt, "brand/wordmark");
+    assert_eq!(moved[2], wordmark[2], "the wordmark is not cut");
+    assert!(
+        moved[0] + moved[2] <= SIDEBAR_W,
+        "the wordmark stays in the sidebar"
+    );
+    let actions = target(&rt, "my-addons/update-all");
+    assert!(
+        actions[0] + actions[2] <= SIZE.0 - 138.0,
+        "Update all clears the caption buttons"
+    );
 }
 
 #[test]

@@ -6,6 +6,8 @@ pub const TAGLINE: &str = "Addon Manager";
 pub const STAGE: &str = "Beta";
 /// Where releases are published ("owner/name" on GitHub); the app checks it for its own updates (F8.4).
 pub const REPO: &str = "gengurke/Culm";
+/// What Culm sends where (Settings → About → Privacy).
+pub const PRIVACY_URL: &str = "https://github.com/gengurke/Culm/blob/master/docs/PRIVACY.md";
 /// Used for XDG dirs, prefs, Wayland app_id and single-instance lock.
 pub const APP_ID: &str = "dev.culm.app";
 /// Shown at the bottom of Settings → About.

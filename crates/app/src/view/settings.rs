@@ -215,6 +215,19 @@ pub fn page(s: &State) -> El {
             ),
     ))
     .child(updates)
+    .child(setting_row(
+        "Privacy",
+        "No telemetry. Culm only contacts the addon sites you use, and GitHub for its own updates.",
+        ui::button(
+            "settings/privacy",
+            "What Culm sends",
+            Kind::Ghost,
+            None,
+            true,
+            |s, tx| dispatch(s, Intent::OpenUrl(brand::PRIVACY_URL.into()), tx),
+        )
+        .help("Open the privacy note: which services Culm talks to and what it sends"),
+    ))
     .child(
         text(brand::DISCLAIMER)
             .key("settings/disclaimer")

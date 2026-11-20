@@ -1,9 +1,11 @@
 # Culm
 
-An addon manager for **World of Warcraft: Forever** on Linux, written in Rust on the
+An addon manager for **World of Warcraft: Forever** on Linux, Windows and macOS, written in Rust on the
 [Rune](https://github.com/anomalyco/rune) GUI framework.
 
-**Status:** beta (0.x): usable, but expect rough edges and changes. Linux first; Windows and macOS later. Detects Forever clients in Wine/Proton/Faugus/Lutris/Bottles prefixes, imports
+**Status:** beta (0.x): usable, but expect rough edges and changes. Linux first; Windows and macOS are new, built and
+tested by CI but barely tried by hand yet (feedback welcome). Detects Forever clients in Wine/Proton/Faugus/Lutris/Bottles
+prefixes and the usual Windows and macOS install folders, imports
 existing addon records, scans and groups `Interface/AddOns`, updates/installs/removes addons from CurseForge,
 WowUp Hub, GitHub (WowInterface is implemented but disabled: no game-version info for Forever), and has client maintenance (cache, WTF leftovers, WTF backups). What exactly works and
 how it is tested: [docs/FEATURES.md](docs/FEATURES.md).
@@ -28,10 +30,18 @@ update information). What changed in each version: [CHANGELOG.md](CHANGELOG.md).
 
 ## Build and run
 
+Install [Rust](https://rustup.rs) (the repo's `rust-toolchain.toml` picks the version) and the build dependencies:
+
+| OS | Build dependencies |
+|---|---|
+| Fedora | `sudo dnf install libxkbcommon-devel wayland-devel` |
+| Debian, Ubuntu | `sudo apt install libxkbcommon-dev libwayland-dev` |
+| Windows | Visual Studio Build Tools with "Desktop development with C++" (rustup offers to install them) |
+| macOS | Xcode Command Line Tools: `xcode-select --install` |
+
 ```sh
-sudo dnf install libxkbcommon-devel wayland-devel   # Fedora build deps
 cargo build --release
-target/release/culm
+target/release/culm      # target\release\culm.exe on Windows
 ```
 
 The first build takes a few minutes (Rune is big).
@@ -52,14 +62,18 @@ the import already knew about; CurseForge addons show "Not checked".
 
 ## Where data lives
 
-| What | Where |
-|---|---|
-| Installations, addon lists per installation, class icons (downloaded once) | `~/.local/share/dev.culm.app/` (`installations.json`, `addons/<id>.json`, `class-icons/`) |
-| WTF backups | `~/.local/share/dev.culm.app/wtf-backups/<installation id>/` |
-| Settings (API key, default channel) | `~/.config/dev.culm.app/` |
-| Thumbnail cache | `~/.cache/dev.culm.app/` |
+| What | Linux | Windows | macOS |
+|---|---|---|---|
+| Data: installations, addon lists, class icons, WTF backups | `~/.local/share/dev.culm.app/` | `%APPDATA%\dev.culm.app\` | `~/Library/Application Support/dev.culm.app/` |
+| Settings (API key, default channel) | `~/.config/dev.culm.app/` | `%APPDATA%\dev.culm.app\` | `~/Library/Application Support/dev.culm.app/` |
+| Thumbnail cache (safe to delete) | `~/.cache/dev.culm.app/` | `%LOCALAPPDATA%\dev.culm.app\Cache\` | `~/Library/Caches/dev.culm.app/` |
+
+In the data folder: `installations.json`, `addons/<id>.json` (one list per installation), `class-icons/` and
+`wtf-backups/<installation id>/`.
 
 `RUNE_DIRS_ROOT=/some/dir` moves all of them (handy for a test run). Imported files are only read, never written.
+
+No telemetry. What Culm sends to which service: [docs/PRIVACY.md](docs/PRIVACY.md).
 
 ## Tests
 
@@ -72,7 +86,7 @@ cargo clippy --all-targets
 - `crates/app/tests/e2e_*.rs`: the real UI driven headlessly (Rune `Runtime`) over the real core and the same fakes.
 - `crates/app/tests/ui_shell.rs`: UI-only checks over the mock backend.
 
-Test names carry the feature id from `docs/FEATURES.md` (`f3_2_...`). Contributor notes: `AGENTS.md`.
+Test names carry the feature id from `docs/FEATURES.md` (`f3_2_...`). How to contribute: [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Inspiration and thanks
 

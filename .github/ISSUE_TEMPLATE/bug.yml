@@ -1,0 +1,49 @@
+name: Bug report
+description: Something in Culm doesn't work as it should.
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open …
+        2. Click …
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Culm version
+      description: Shown in Settings → About.
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: Operating system and desktop
+      placeholder: Fedora 43, KDE Plasma (Wayland) / Windows 11 / macOS 15
+    validations:
+      required: true
+  - type: dropdown
+    id: install
+    attributes:
+      label: How did you install Culm?
+      options:
+        - Download from the Releases page
+        - Built from source
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: debug
+    attributes:
+      label: Debug info
+      description: If your version has Settings → About → "Copy debug info", paste it here. Screenshots help too.
+      render: text
