@@ -21,8 +21,10 @@ pub enum Msg {
         inst: String,
         result: Result<Warned<Vec<Addon>>, String>,
     },
+    /// `only`: the one addon checked (F3.3); None for a full check.
     Checked {
         inst: String,
+        only: Option<String>,
         result: Result<Warned<Vec<Addon>>, String>,
     },
     /// Download progress 0..=1 of an addon id (update) or a result's install key (install).

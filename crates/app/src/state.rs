@@ -79,6 +79,8 @@ pub enum Op {
         until: f64,
         opened: bool,
     },
+    /// Only this addon is being checked for updates (its channel changed, F3.3).
+    Checking,
     Downloading(f32),
     Installing,
     Removing,
@@ -731,6 +733,13 @@ impl State {
         self.current.as_deref() == Some(inst)
     }
 
+    /// Clears the per-addon check mark of `id` (F3.3).
+    fn end_check_of(&mut self, id: &str) {
+        if let Some(a) = self.addon_mut(id).filter(|a| a.op == Some(Op::Checking)) {
+            a.op = None;
+        }
+    }
+
     /// Lands one worker result.
     pub fn apply(&mut self, msg: Msg) {
         match msg {
@@ -785,14 +794,21 @@ impl State {
             }
             Msg::Checked {
                 result: Ok((addons, warnings)),
+                only,
                 ..
             } => {
-                self.job = Job::Idle;
+                match &only {
+                    Some(id) => self.end_check_of(id),
+                    None => self.job = Job::Idle,
+                }
                 for fresh in addons {
                     if let Some(a) = self.addon_mut(&fresh.id) {
                         let a = &mut a.addon;
-                        (a.latest, a.name, a.author, a.summary) =
-                            (fresh.latest, fresh.name, fresh.author, fresh.summary);
+                        // A check started before a channel change answers for the old channel.
+                        if a.channel == fresh.channel {
+                            a.latest = fresh.latest;
+                        }
+                        (a.name, a.author, a.summary) = (fresh.name, fresh.author, fresh.summary);
                         (a.url, a.thumbnail_url) = (fresh.url, fresh.thumbnail_url);
                     }
                 }
@@ -803,7 +819,9 @@ impl State {
                         .collect(),
                 );
                 self.warn(warnings);
-                if let n @ 1.. = self.update_count() {
+                if only.is_none()
+                    && let n @ 1.. = self.update_count()
+                {
                     self.toast(
                         Tone::Info,
                         format!("{n} update{} available", if n == 1 { "" } else { "s" }),
@@ -811,8 +829,15 @@ impl State {
                     );
                 }
             }
-            Msg::Checked { result: Err(e), .. } => {
-                self.job = Job::Idle;
+            Msg::Checked {
+                result: Err(e),
+                only,
+                ..
+            } => {
+                match &only {
+                    Some(id) => self.end_check_of(id),
+                    None => self.job = Job::Idle,
+                }
                 self.toast(Tone::Danger, "Update check failed", e);
             }
             Msg::Downloads {
@@ -1152,10 +1177,28 @@ impl State {
         };
         self.job = Job::CheckingUpdates;
         let addons: Vec<Addon> = self.addons.iter().map(|a| a.addon.clone()).collect();
+        self.spawn_check(inst, addons, None);
+    }
+
+    /// Checks only the addon `id` (after its channel changed, F3.3).
+    fn check_one(&mut self, id: &str) {
+        let (Some(inst), Some(a)) = (self.installation().cloned(), self.addon_mut(id)) else {
+            return;
+        };
+        if a.op.as_ref().is_some_and(Op::busy) {
+            return;
+        }
+        a.op = Some(Op::Checking);
+        let addons = vec![a.addon.clone()];
+        self.spawn_check(inst, addons, Some(id.to_string()));
+    }
+
+    fn spawn_check(&mut self, inst: Installation, addons: Vec<Addon>, only: Option<String>) {
         worker::spawn(self, "check", move |b, post| {
             post.send(Msg::Checked {
                 result: b.check_updates(&inst, &addons).map_err(err),
                 inst: inst.id,
+                only,
             })
         });
     }
@@ -1595,10 +1638,7 @@ pub fn dispatch(s: &mut State, intent: Intent, tx: &mut Tx) {
             if let Some(a) = s.addon_mut(&id) {
                 a.addon.channel = channel;
                 s.save_addon(&id);
-                // shortcut: rechecks every addon; a per-addon check can come with the real core.
-                if s.job == Job::Idle {
-                    s.start_check();
-                }
+                s.check_one(&id);
             }
         }
         Intent::OpenWebsite(id) => {

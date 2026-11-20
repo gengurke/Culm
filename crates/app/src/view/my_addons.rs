@@ -479,6 +479,11 @@ fn status_cell(a: &AddonUi) -> El {
                     ),
             )
             .child(ui::progress_line(*done, 2.0)),
+        Some(Op::Checking) => row()
+            .gap(8.0)
+            .center_y()
+            .child(ui::spinner(12.0, p.accent))
+            .child(text("Checking…").font(t().ty.small).color(p.text_dim)),
         Some(Op::Installing) => row()
             .gap(8.0)
             .center_y()
