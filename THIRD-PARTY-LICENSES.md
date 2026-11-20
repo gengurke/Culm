@@ -3789,6 +3789,33 @@ DEALINGS IN THE SOFTWARE.
 
 ### MIT License
 
+Used by: winapi 0.3.9
+
+~~~~text
+Copyright (c) 2015-2018 The winapi-rs Developers
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+~~~~
+
+### MIT License
+
 Used by: httparse 1.10.1
 
 ~~~~text
@@ -6022,6 +6049,39 @@ DEALINGS IN THE SOFTWARE.
 
 ### MIT License
 
+Used by: winresource 0.1.34
+
+~~~~text
+Copyright 2016 Max Resch
+
+Permission is hereby granted, free of charge, to any
+person obtaining a copy of this software and associated
+documentation files (the "Software"), to deal in the
+Software without restriction, including without
+limitation the rights to use, copy, modify, merge,
+publish, distribute, sublicense, and/or sell copies of
+the Software, and to permit persons to whom the Software
+is furnished to do so, subject to the following
+conditions:
+
+The above copyright notice and this permission notice
+shall be included in all copies or substantial portions
+of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF
+ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
+TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT
+SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
+IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+DEALINGS IN THE SOFTWARE.
+
+~~~~
+
+### MIT License
+
 Used by: synstructure 0.14.0
 
 ~~~~text
@@ -6990,7 +7050,7 @@ SOFTWARE.
 
 ### MIT License
 
-Used by: rune 0.0.1, accesskit_macos 0.27.2, accesskit_windows 0.35.2, rune-core 0.0.1, rune-edit 0.0.1, rune-gpu 0.0.1, rune-highlights 0.0.1, rune-image 0.0.1, rune-kit 0.0.1, rune-media 0.0.1, rune-spell 0.0.1, rune-taffy 0.0.1, rune-text 0.0.1, accesskit 0.25.2, accesskit_atspi_common 0.21.1, accesskit_consumer 0.39.2, accesskit_unix 0.24.1, block2 0.5.1, block2 0.6.2, dispatch2 0.3.1, dispatch 0.2.0, dpi 0.1.2, jni-macros 0.22.4, jni-sys-macros 0.4.1, jni 0.22.4, libm 0.2.16, ndk-context 0.1.1, ndk-sys 0.6.0+11769913, ndk 0.9.0, objc-sys 0.3.5, objc2-app-kit 0.2.2, objc2-app-kit 0.3.2, objc2-av-foundation 0.3.2, objc2-core-foundation 0.3.2, objc2-core-graphics 0.3.2, objc2-core-media 0.3.2, objc2-core-text 0.3.2, objc2-core-video 0.3.2, objc2-encode 4.1.0, objc2-foundation 0.2.2, objc2-foundation 0.3.2, objc2-io-surface 0.3.2, objc2-metal 0.3.2, objc2-quartz-core 0.3.2, objc2-ui-kit 0.2.2, objc2 0.5.3, objc2 0.6.5, profiling 1.0.18, r-efi 5.3.0, r-efi 6.0.0, taffy 0.15.1, wasmparser 0.245.1, windows-collections 0.3.2, windows-core 0.62.2, windows-future 0.3.2, windows-implement 0.60.2, windows-interface 0.59.3, windows-link 0.2.1, windows-numerics 0.3.1, windows-result 0.4.1, windows-strings 0.5.1, windows-sys 0.52.0, windows-sys 0.59.0, windows-sys 0.61.2, windows-targets 0.52.6, windows-threading 0.2.1, windows 0.62.2, windows_aarch64_gnullvm 0.52.6, windows_aarch64_msvc 0.52.6, windows_i686_gnu 0.52.6, windows_i686_gnullvm 0.52.6, windows_i686_msvc 0.52.6, windows_x86_64_gnu 0.52.6, windows_x86_64_gnullvm 0.52.6, windows_x86_64_msvc 0.52.6
+Used by: rune 0.0.1, accesskit_macos 0.27.2, accesskit_windows 0.35.2, rune-core 0.0.1, rune-edit 0.0.1, rune-gpu 0.0.1, rune-highlights 0.0.1, rune-image 0.0.1, rune-kit 0.0.1, rune-media 0.0.1, rune-spell 0.0.1, rune-taffy 0.0.1, rune-text 0.0.1, accesskit 0.25.2, accesskit_atspi_common 0.21.1, accesskit_consumer 0.39.2, accesskit_unix 0.24.1, block2 0.5.1, block2 0.6.2, dispatch2 0.3.1, dispatch 0.2.0, dpi 0.1.2, jni-macros 0.22.4, jni-sys-macros 0.4.1, jni 0.22.4, libm 0.2.16, ndk-context 0.1.1, ndk-sys 0.6.0+11769913, ndk 0.9.0, objc-sys 0.3.5, objc2-app-kit 0.2.2, objc2-app-kit 0.3.2, objc2-av-foundation 0.3.2, objc2-core-foundation 0.3.2, objc2-core-graphics 0.3.2, objc2-core-media 0.3.2, objc2-core-text 0.3.2, objc2-core-video 0.3.2, objc2-encode 4.1.0, objc2-foundation 0.2.2, objc2-foundation 0.3.2, objc2-io-kit 0.3.2, objc2-io-surface 0.3.2, objc2-metal 0.3.2, objc2-quartz-core 0.3.2, objc2-ui-kit 0.2.2, objc2 0.5.3, objc2 0.6.5, profiling 1.0.18, r-efi 5.3.0, r-efi 6.0.0, taffy 0.15.1, wasmparser 0.245.1, winapi-i686-pc-windows-gnu 0.4.0, winapi-x86_64-pc-windows-gnu 0.4.0, windows-collections 0.3.2, windows-core 0.62.2, windows-future 0.3.2, windows-implement 0.60.2, windows-interface 0.59.3, windows-link 0.2.1, windows-numerics 0.3.1, windows-result 0.4.1, windows-strings 0.5.1, windows-sys 0.52.0, windows-sys 0.59.0, windows-sys 0.61.2, windows-targets 0.52.6, windows-threading 0.2.1, windows 0.62.2, windows_aarch64_gnullvm 0.52.6, windows_aarch64_msvc 0.52.6, windows_i686_gnu 0.52.6, windows_i686_gnullvm 0.52.6, windows_i686_msvc 0.52.6, windows_x86_64_gnu 0.52.6, windows_x86_64_gnullvm 0.52.6, windows_x86_64_msvc 0.52.6
 
 ~~~~text
 MIT License
@@ -7483,6 +7543,31 @@ SOFTWARE.
 
 ### MIT License
 
+Used by: ntapi 0.4.3
+
+~~~~text
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"),to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE 
+SOFTWARE.
+
+~~~~
+
+### MIT License
+
 Used by: android_system_properties 0.1.6
 
 ~~~~text
@@ -7679,6 +7764,36 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
+
+~~~~
+
+### MIT License
+
+Used by: sysinfo 0.40.4
+
+~~~~text
+The MIT License (MIT)
+
+Copyright (c) 2015 Guillaume Gomez
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
 
 ~~~~
 
