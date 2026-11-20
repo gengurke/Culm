@@ -212,7 +212,8 @@ in the theme's tones, gilded on the active chip, around a disc showing the origi
   `f7_3_every_theme_keeps_text_readable`)
 - **F7.4 Name and folders** ✅ — The app is Culm (`brand.rs`: name, tagline, app id `dev.culm.app`).
 - **F7.5 About** ✅ — Settings → About shows the version from `Cargo.toml` and, until 1.0, the release stage
-  (`brand::STAGE`, "v0.1.0 · Beta"). (`f7_5_about_shows_the_version_and_release_stage`)
+  (`brand::STAGE`, "v0.1.0 · Beta"), and links the privacy note `docs/PRIVACY.md` (what Culm sends where, no
+  telemetry). (`f7_5_about_shows_the_version_and_release_stage`, `f7_5_about_links_the_privacy_note`)
 
 ## F8 Releases
 - **F8.1 Versioning** ✅ — SemVer, 0.x while in beta; user-visible changes go into `CHANGELOG.md` under "Unreleased".

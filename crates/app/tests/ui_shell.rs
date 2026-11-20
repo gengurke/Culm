@@ -355,6 +355,20 @@ fn f7_5_about_shows_the_version_and_release_stage() {
 }
 
 #[test]
+fn f7_5_about_links_the_privacy_note() {
+    let mut rt = app(loaded);
+    tap(&mut rt, "nav/settings");
+    assert!(shows(&rt, "No telemetry."));
+    let tip = rt
+        .elements()
+        .into_iter()
+        .find(|e| e.key.as_deref() == Some("settings/privacy"))
+        .and_then(|e| e.help)
+        .unwrap_or_default();
+    assert!(tip.starts_with("Open the privacy note"), "{tip}");
+}
+
+#[test]
 fn f2_1_an_empty_installation_says_so_instead_of_a_filter_miss() {
     let mut rt = app(|s| {
         loaded(s);
