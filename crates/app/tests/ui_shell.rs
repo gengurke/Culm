@@ -467,3 +467,16 @@ fn ui_the_header_band_is_the_titlebar() {
         "Update all clears the caption buttons"
     );
 }
+
+#[test]
+fn f7_6_about_links_the_third_party_licences() {
+    let mut rt = app(loaded);
+    tap(&mut rt, "nav/settings");
+    let tip = rt
+        .elements()
+        .into_iter()
+        .find(|e| e.key.as_deref() == Some("settings/licences"))
+        .and_then(|e| e.help)
+        .unwrap_or_default();
+    assert!(tip.starts_with("Open the licences"), "{tip}");
+}

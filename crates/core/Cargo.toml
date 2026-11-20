@@ -4,6 +4,7 @@ description = "UI-free core of the addon manager: WoW installs, TOC, fingerprint
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+publish = false
 
 [dependencies]
 serde.workspace = true

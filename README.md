@@ -134,6 +134,8 @@ version. It is distributed WITHOUT ANY WARRANTY; see [LICENSE](LICENSE) for the 
 
 Fonts: Inter, JetBrains Mono, Cinzel, Marcellus and EB Garamond are bundled under the SIL Open Font License 1.1; see
 `crates/app/assets/fonts` (each family's `OFL.txt` beside it).
+All third-party licences (Rust crates and fonts): [THIRD-PARTY-LICENSES.md](THIRD-PARTY-LICENSES.md), also under
+Settings → About → Licences.
 
 World of Warcraft is a trademark of Blizzard Entertainment. Culm is a community project, not affiliated with or
 endorsed by Blizzard.

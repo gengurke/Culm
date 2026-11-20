@@ -4,6 +4,7 @@ description = "Rune desktop UI of the addon manager."
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+publish = false
 
 # The product name is not final: change it here and in src/brand.rs only.
 [lib]
