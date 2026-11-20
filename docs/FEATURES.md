@@ -5,9 +5,14 @@ What the addon manager does, one short paragraph per feature. Ids are referenced
 
 ## F1 Installations
 - **F1.1 Auto-detect** ✅ — Finds WoW Forever clients (`_forever_` folders whose `.build.info` row has
-  product `wowf`) in Wine/Proton/Faugus/Lutris/Bottles prefixes and `~/Games` (one `read_dir` per parent, no disk walk).
+  product `wowf`) in the usual places per OS (`wow::search_roots`, one `read_dir` per parent, no disk walk): on Linux
+  Wine/Proton/Faugus/Lutris/Bottles/Steam prefixes and `~/Games`; on Windows every drive's `Program Files (x86)`,
+  `Program Files`, root and `Games` folder (Battle.net's default is `C:\Program Files (x86)\World of Warcraft`) and the
+  user profile; on macOS `/Applications` and `~/Applications`.
   Reads the client version (e.g. `1.60.1.70938`). Detected clients are stored with the manual ones and the first
-  is selected on start. (`f1_1_detects_forever_install_from_build_info`, e2e `f1_1_detected_installation_is_selected_and_scanned`)
+  is selected on start. (`f1_1_detects_forever_install_from_build_info`,
+  `f1_1_detects_windows_installs_on_every_drive_and_in_the_profile`, `f1_1_detects_macos_installs_in_applications`,
+  `f1_1_detects_linux_installs_in_wine_prefixes`, e2e `f1_1_detected_installation_is_selected_and_scanned`)
 - **F1.2 Add manually** ✅ — Pick any folder (WoW root, `_forever_`, `Interface/AddOns`, or `Wow.exe`); it is
   normalized to the `_forever_` client folder and validated; onboarding offers the folder picker when nothing was found.
   (`f1_2_normalizes_manual_paths`, e2e `f1_2_installation_added_from_folder_picker_is_remembered`)
@@ -222,6 +227,8 @@ in the theme's tones, gilded on the active chip, around a disc showing the origi
 - **F8.2 CI** ✅ — `.github/workflows/ci.yml` runs `cargo fmt --check`, `cargo clippy --all-targets -D warnings` and
   `cargo test` on Linux, Windows and macOS for every push and pull request (fmt once, on Linux), then saves headless
   `--snap` screenshots of a few scenes per OS as the `screenshots-<OS>` workflow artifact.
+  `.github/workflows/deny.yml` runs `cargo deny check` (`deny.toml`: security advisories, licences compatible with
+  GPL-3.0-or-later, only crates.io and Rune's git repo as sources) on every push, pull request and weekly.
 - **F8.3 Linux AppImage** ✅ — Pushing a tag `v<version>` (it must match `Cargo.toml`) runs `.github/workflows/release.yml`:
   tests, a release build on Ubuntu 22.04 (glibc 2.35, so older distros run it), `packaging/appimage.sh` packs
   `Culm-<version>-x86_64.AppImage` with the desktop entry, icons and AppStream metadata, and embeds the update
