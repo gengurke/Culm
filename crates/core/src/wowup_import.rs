@@ -5,19 +5,7 @@ use crate::model::{
 };
 use anyhow::{Context, Result};
 use serde_json::Value;
-use std::path::{Path, PathBuf};
-
-/// WowUp's config dirs that exist (CurseForge edition first).
-pub fn default_wowup_dirs() -> Vec<PathBuf> {
-    let Some(home) = std::env::var_os("HOME").map(PathBuf::from) else {
-        return vec![];
-    };
-    ["WowUpCf", "WowUp"]
-        .iter()
-        .map(|n| home.join(".config").join(n))
-        .filter(|d| d.join("addons.json").is_file())
-        .collect()
-}
+use std::path::Path;
 
 fn read_json(path: &Path) -> Result<Value> {
     let bytes = std::fs::read(path).with_context(|| format!("reading {}", path.display()))?;

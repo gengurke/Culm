@@ -77,7 +77,13 @@ impl Config {
             cache_dir: dirs.cache().to_path_buf(),
             prefs: Prefs::open(brand::APP_ID),
             search_roots: wow::default_search_roots(),
-            wowup_dirs: wowup_import::default_wowup_dirs(),
+            // WowUp (an Electron app) keeps its settings in its own config folder: `%APPDATA%`,
+            // `~/Library/Application Support` or `~/.config`. CurseForge edition first.
+            wowup_dirs: ["WowUpCf", "WowUp"]
+                .map(|id| dirs.sibling(id).config().to_path_buf())
+                .into_iter()
+                .filter(|d| d.join("addons.json").is_file())
+                .collect(),
             providers,
             class_icon_sources,
             app_releases_url: std::env::var("ADDONS_APP_RELEASES_URL")
@@ -590,7 +596,7 @@ impl Backend for CoreBackend {
 
     fn import_wowup(&self, inst: &Installation) -> Result<usize> {
         if self.wowup_dirs.is_empty() {
-            bail!("No WowUp settings found (~/.config/WowUpCf or ~/.config/WowUp)");
+            bail!("No WowUp settings found (its WowUpCf or WowUp settings folder)");
         }
         let records = self.wowup_records(inst)?;
         if records.is_empty() {

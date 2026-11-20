@@ -1,0 +1,17 @@
+# Dependency audit (F8.2): security advisories, licences, crate sources; rules in deny.toml.
+# Also runs weekly, so a new advisory shows up without a code change.
+name: Dependencies
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  schedule:
+    - cron: "0 6 * * 1"
+
+jobs:
+  deny:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: EmbarkStudios/cargo-deny-action@v2
