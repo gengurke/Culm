@@ -1,5 +1,6 @@
 mod common;
 use addon_core::maintenance::{self, Cleanup};
+use addon_core::wow;
 use common::*;
 
 #[test]
@@ -29,39 +30,48 @@ fn f6_1_clear_cache_removes_cache_dir() {
     );
 }
 
-// shortcut: the game check reads Linux's /proc; Windows and macOS join with #2.
-#[cfg(target_os = "linux")]
+/// The fake game: this test binary, copied as `Wow.exe`, runs only this (ignored) test.
+#[test]
+#[ignore]
+fn fake_game() {
+    std::thread::sleep(std::time::Duration::from_secs(30));
+}
+
+fn start_fake_game(exe: &std::path::Path, cwd: &std::path::Path) -> std::process::Child {
+    std::fs::create_dir_all(exe.parent().unwrap()).unwrap();
+    std::fs::copy(std::env::current_exe().unwrap(), exe).unwrap();
+    std::process::Command::new(exe)
+        .args(["--exact", "fake_game", "--ignored"])
+        .current_dir(cwd)
+        .stdout(std::process::Stdio::null())
+        .spawn()
+        .unwrap()
+}
+
 #[test]
 fn f6_1_refuses_while_game_running() {
     let w = fake_wow();
     write(&w.inst.root.join("Cache/WDB/x.wdb"), "x");
-    assert!(!addon_core::wow::is_game_running(&w.inst));
+    assert!(!wow::is_game_running(&w.inst));
     // A Forever client running from another folder (say the user's real game) doesn't lock this one.
     let other = w.tmp.path().join("other/World of Warcraft/_forever_");
-    std::fs::create_dir_all(&other).unwrap();
-    std::fs::copy("/bin/sleep", other.join("Wow.exe")).unwrap();
-    let mut elsewhere = std::process::Command::new(other.join("Wow.exe"))
-        .arg("30")
-        .current_dir(&other)
-        .spawn()
-        .unwrap();
-    std::thread::sleep(std::time::Duration::from_millis(100));
-    let other_locks = addon_core::wow::is_game_running(&w.inst);
+    let mut elsewhere = start_fake_game(&other.join("Wow.exe"), &other);
+    std::thread::sleep(std::time::Duration::from_millis(300));
+    let other_locks = wow::is_game_running(&w.inst);
     elsewhere.kill().unwrap();
     elsewhere.wait().unwrap();
     assert!(!other_locks, "another client's game must not lock this one");
-    // A fake "Wow.exe" (a copy of sleep) running in the client folder.
-    let bin = w.tmp.path().join("bin/Wow.exe");
-    std::fs::create_dir_all(bin.parent().unwrap()).unwrap();
-    std::fs::copy("/bin/sleep", &bin).unwrap();
-    let mut child = std::process::Command::new(&bin)
-        .arg("30")
-        .current_dir(&w.inst.root)
-        .spawn()
-        .unwrap();
+    // The game in this client folder. Under Wine (Linux) its program lies outside, in the prefix,
+    // and only its working directory is the client folder.
+    let exe = if cfg!(target_os = "linux") {
+        w.tmp.path().join("bin/Wow.exe")
+    } else {
+        w.inst.root.join("Wow.exe")
+    };
+    let mut child = start_fake_game(&exe, &w.inst.root);
     let mut running = false;
-    for _ in 0..50 {
-        running = addon_core::wow::is_game_running(&w.inst);
+    for _ in 0..100 {
+        running = wow::is_game_running(&w.inst);
         if running {
             break;
         }
