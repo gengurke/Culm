@@ -439,6 +439,12 @@ fn app_with_images(world: &World) -> App {
     app
 }
 
+/// Every class icon has reached the app, so its icon worker is done asking.
+fn all_icons(app: &App) -> bool {
+    let n = app.state().class_icons.as_ref().map_or(0, |m| m.len());
+    n == addon_core::class_icons::CLASSES.len()
+}
+
 fn icon_requests(world: &World) -> usize {
     let all = world.server.requests();
     all.iter().filter(|r| r.path.starts_with("/icons/")).count()
@@ -471,6 +477,8 @@ fn f4_6_class_chips_show_the_original_icons() {
     );
     let cached = world.tmp.path().join("data/class-icons/warrior.jpg");
     assert!(cached.exists(), "kept in the data dir");
+    // Dropping the app doesn't stop its worker: count only once it has fetched every icon.
+    app.wait_until("every class icon", all_icons);
     let asked = icon_requests(&world);
     drop(app);
 
@@ -479,6 +487,7 @@ fn f4_6_class_chips_show_the_original_icons() {
     app.wait_idle();
     app.tap("nav/get-addons");
     app.wait_until("the cached icon", |a| a.has("class-icon/warrior"));
+    app.wait_until("every cached icon", all_icons);
     assert_eq!(icon_requests(&world), asked, "no network");
 }
 
