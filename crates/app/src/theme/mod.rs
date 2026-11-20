@@ -10,7 +10,7 @@ mod texture;
 use crate::state::{Screen, State};
 use rune::color::hex;
 use rune::tok::{Family, TextStyle};
-use rune::{Color, El, Icon, Image, Shadow, el, icon};
+use rune::{ChromeInsets, Color, El, Icon, Image, Shadow, el, icon};
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -418,6 +418,7 @@ thread_local! {
     // Per thread, not per process: tests run many windows on parallel threads.
     static CURRENT: Cell<ThemeId> = Cell::new(ThemeId::default());
     static FRAMED: Cell<bool> = const { Cell::new(false) };
+    static CHROME: Cell<ChromeInsets> = Cell::new(ChromeInsets::default());
     static TEXTURES: RefCell<HashMap<Tex, Image>> = RefCell::new(HashMap::new());
 }
 
@@ -428,6 +429,12 @@ pub fn t() -> &'static Theme {
         Some(frame) if FRAMED.with(Cell::get) => frame,
         _ => th,
     }
+}
+
+/// What the window's own controls take of the titlebar this run (`Cx::chrome_insets`): the header
+/// band and the sidebar's brand block keep clear of them.
+pub fn chrome() -> ChromeInsets {
+    CHROME.with(Cell::get)
 }
 
 pub fn pal() -> &'static Pal {
@@ -460,10 +467,11 @@ pub fn contrast(fg: Color, bg: Color, under: Color) -> f32 {
     (a.max(b) + 0.05) / (a.min(b) + 0.05)
 }
 
-/// Starts a view: makes the stored theme current and makes sure the textures it shows exist
+/// Starts a view: makes the stored theme and the window's `chrome` insets current and makes sure the textures it shows exist
 /// (every theme's on Settings, for the picker). Without an image cache surfaces keep their fill.
-pub fn begin(s: &State) {
+pub fn begin(s: &State, chrome: ChromeInsets) {
     CURRENT.with(|c| c.set(s.settings.theme));
+    CHROME.with(|c| c.set(chrome));
     let Some(cache) = s.images.as_ref() else {
         return;
     };
