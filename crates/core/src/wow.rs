@@ -8,12 +8,49 @@ use std::path::{Path, PathBuf};
 const CLIENT_DIR: &str = "_forever_";
 const PRODUCT: &str = "wowf";
 
-/// Wine/Proton prefixes (and similar) worth probing, derived from `$HOME`. Cheap: at most one
-/// `read_dir` per glob-like parent, no recursive walks.
+/// Where Forever clients usually live on this OS: the home folder, plus every drive on Windows.
 pub fn default_search_roots() -> Vec<PathBuf> {
-    let Some(home) = std::env::var_os("HOME").map(PathBuf::from) else {
+    let Some(home) = std::env::home_dir() else {
         return vec![];
     };
+    // Drives aren't probed here (this runs on the UI thread, and an offline network drive can
+    // stall): `detect_installations` skips missing ones on its worker.
+    let disks: Vec<PathBuf> = if cfg!(windows) {
+        ('C'..='Z')
+            .map(|d| PathBuf::from(format!("{d}:\\")))
+            .collect()
+    } else {
+        vec![PathBuf::from("/")]
+    };
+    search_roots(std::env::consts::OS, &home, &disks)
+}
+
+/// The folders [`detect_installations`] probes on `os` (`std::env::consts::OS`), given the home
+/// folder and the disks' roots. Each may hold `World of Warcraft` (or be a Wine prefix). Cheap: at
+/// most one `read_dir` per prefix parent on Linux, no recursive walks.
+pub fn search_roots(os: &str, home: &Path, disks: &[PathBuf]) -> Vec<PathBuf> {
+    match os {
+        // Battle.net installs to `<drive>\Program Files (x86)\World of Warcraft` (probed by
+        // `detect_installations`); people also pick `<drive>\World of Warcraft` or a `Games` folder.
+        "windows" => disks
+            .iter()
+            .map(PathBuf::as_path)
+            .chain([home])
+            .flat_map(|d| [d.to_path_buf(), d.join("Games")])
+            .collect(),
+        // The installer's default is `/Applications/World of Warcraft`.
+        "macos" => disks
+            .iter()
+            .map(PathBuf::as_path)
+            .chain([home])
+            .map(|d| d.join("Applications"))
+            .collect(),
+        _ => wine_prefixes(home),
+    }
+}
+
+/// Wine/Proton prefixes (and similar) worth probing on Linux, derived from the home folder.
+fn wine_prefixes(home: &Path) -> Vec<PathBuf> {
     let mut roots = vec![home.join(".wine"), home.join("Games")];
     // Parents whose children are prefixes (one level), with an optional suffix inside each child.
     let parents: [(PathBuf, &str); 7] = [
