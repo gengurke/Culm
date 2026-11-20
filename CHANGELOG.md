@@ -12,6 +12,7 @@ or break. New changes go under "Unreleased"; a release turns that heading into i
   They check for a new version when they start; "Update to x.y.z" opens the release page.
 - Settings → About links a privacy note: which services Culm talks to and what it sends (no telemetry).
 - Settings → About → Licences lists the open-source code and fonts Culm is built from, with their licences.
+  Every download (AppImage, Windows installer, macOS app) also carries that list and Culm's own licence.
 - Windows and macOS: switching from WowUp keeps your addons' sources, as on Linux (Culm reads WowUp's settings there too).
 - Windows and macOS: maintenance tools (clear cache, clean backups, back up settings) wait while the game is running, as on Linux.
 - Windows and macOS: Culm finds WoW Forever in its usual install folders (Battle.net's default on any drive, `/Applications` on macOS).

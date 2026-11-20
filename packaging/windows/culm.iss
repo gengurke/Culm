@@ -44,6 +44,7 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 [Files]
 Source: "{#Exe}"; DestDir: "{app}"; DestName: "culm.exe"; Flags: ignoreversion
 Source: "..\..\LICENSE"; DestDir: "{app}"; DestName: "LICENSE.txt"
+Source: "..\..\THIRD-PARTY-LICENSES.md"; DestDir: "{app}"
 
 [Icons]
 Name: "{autoprograms}\Culm"; Filename: "{app}\culm.exe"
