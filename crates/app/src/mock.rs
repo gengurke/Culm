@@ -934,6 +934,7 @@ fn to_addon(r: &RemoteAddon, f: &RemoteFile) -> Addon {
         installed_file_id: Some(f.id.clone()),
         installed_at: Some("2026-11-15T12:00:00Z".into()),
         game_version: Some("1.60.1".into()),
+        game_versions: vec!["1.60.1".into()],
         channel: f.channel,
         latest: None,
         ignored: None,
@@ -978,6 +979,7 @@ pub fn installed_addons() -> Vec<Addon> {
             }
             if row.0 == "MoveAnything" {
                 a.game_version = Some("1.15.4".into());
+                a.game_versions = vec!["1.15.4".into()];
             }
             a
         })

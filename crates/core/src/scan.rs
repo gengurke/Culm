@@ -192,6 +192,9 @@ pub fn build_addons(
             installed_file_id: file.map(|f| f.id.clone()),
             installed_at: None,
             game_version: main.and_then(|m| m.toc.as_ref()?.forever_game_version()),
+            game_versions: main
+                .and_then(|m| Some(m.toc.as_ref()?.game_versions()))
+                .unwrap_or_default(),
             channel,
             latest: a.latest_for(channel).cloned(),
             ignored: locals
@@ -253,6 +256,7 @@ pub fn build_addons(
             installed_file_id: None,
             installed_at: None,
             game_version: toc.and_then(Toc::forever_game_version),
+            game_versions: toc.map(Toc::game_versions).unwrap_or_default(),
             channel: Channel::Stable,
             latest: None,
             ignored: Some(if locals.iter().any(|f| f.is_git) {

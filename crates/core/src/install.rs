@@ -223,6 +223,7 @@ pub fn new_record(remote: &RemoteAddon, channel: Channel) -> Addon {
         installed_file_id: None,
         installed_at: None,
         game_version: None,
+        game_versions: vec![],
         channel,
         latest: remote.latest_for(channel).cloned(),
         ignored: None,

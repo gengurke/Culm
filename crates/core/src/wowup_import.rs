@@ -158,6 +158,7 @@ fn map_record(r: &Value) -> Option<Addon> {
             .find(|v| v.starts_with("1.6"))
             .or(game_versions.first())
             .cloned(),
+        game_versions,
         channel: channel(&r["channelType"]),
         latest,
         ignored,

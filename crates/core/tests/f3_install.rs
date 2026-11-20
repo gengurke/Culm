@@ -294,6 +294,7 @@ fn f4_3_install_takes_only_shared_folders_from_other_records() {
         installed_file_id: None,
         installed_at: None,
         game_version: None,
+        game_versions: vec![],
         channel: Channel::Beta,
         latest: None,
         ignored: None,
