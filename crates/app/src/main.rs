@@ -9,5 +9,6 @@ fn main() {
     // The icon of the running windows (title bar, taskbar, Alt+Tab, Dock). Rune applies it on Windows and macOS;
     // on Linux the desktop entry matched by the app id names it.
     rune::set_app_icon(ICON).expect("the bundled icon is a PNG");
+    addon_app::start_log();
     addon_app::app().run();
 }

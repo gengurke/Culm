@@ -2,7 +2,7 @@
 //! lock). Features end to end over the real core live in `e2e_*.rs`.
 
 use addon_app::mock::MockBackend;
-use addon_app::state::{MaintCard, Status};
+use addon_app::state::{MaintCard, Status, Tone};
 use addon_app::theme::{BAND_H, SIDEBAR_W};
 use addon_app::{Op, Screen, State, loaded, runtime};
 use rune::{ChromeInsets, Key, KeyEvent, Mods, Runtime, TitlebarAction};
@@ -366,6 +366,59 @@ fn f7_5_about_links_the_privacy_note() {
         .and_then(|e| e.help)
         .unwrap_or_default();
     assert!(tip.starts_with("Open the privacy note"), "{tip}");
+}
+
+#[test]
+fn f7_7_copy_debug_info_leaves_out_the_key_and_the_home_folder() {
+    let home = rune::dirs::home().expect("a home folder");
+    let key = "cf-secret-key-123";
+    let mut s = fresh();
+    loaded(&mut s);
+    s.settings.curseforge_key = Some(key.into());
+    s.installations[0].root = home
+        .join("Games")
+        .join("World of Warcraft")
+        .join("_forever_");
+    let home = home.display().to_string();
+    s.toast(
+        Tone::Danger,
+        "Could not update Questie",
+        format!("{home}/Games/x.zip: rejected key {key}"),
+    );
+    // Tall enough that About is on screen without scrolling.
+    let mut rt = runtime(s, (1280.0, 3000.0));
+    let clipboard = rune::clipboard::memory();
+    rt.use_clipboard(&clipboard);
+    rt.frame(0.0);
+    tap(&mut rt, "nav/settings");
+    let tip = rt
+        .elements()
+        .into_iter()
+        .find(|e| e.key.as_deref() == Some("settings/copy-debug-info"))
+        .and_then(|e| e.help)
+        .unwrap_or_default();
+    assert!(tip.starts_with("Copy Culm's version"), "{tip}");
+    tap(&mut rt, "settings/copy-debug-info");
+    let text = clipboard
+        .text()
+        .expect("debug info on the clipboard")
+        .to_string();
+    assert!(
+        text.starts_with(&format!("Culm v{}", env!("CARGO_PKG_VERSION"))),
+        "{text}"
+    );
+    for part in [
+        "System: ",
+        "Rune: ",
+        "WoW Forever",
+        "~",
+        "Could not update Questie",
+    ] {
+        assert!(text.contains(part), "no {part:?} in {text}");
+    }
+    assert!(!text.contains(key), "the key leaked: {text}");
+    assert!(!text.contains(&home), "the home folder leaked: {text}");
+    assert!(shows(&rt, "Debug info copied"));
 }
 
 #[test]

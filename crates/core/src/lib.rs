@@ -7,6 +7,7 @@ pub mod fingerprint;
 pub mod html;
 pub mod http;
 pub mod install;
+pub mod log;
 pub mod maintenance;
 pub mod manual;
 pub mod model;

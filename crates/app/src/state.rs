@@ -390,6 +390,8 @@ pub enum Intent {
     SortAddons(SortBy),
     /// Settings → About: ask GitHub for a newer app version (F8.4).
     CheckAppUpdate,
+    /// Settings → About: copy version, system, installations and recent errors for a bug report (F7.7).
+    CopyDebugInfo,
     /// Download the offered version over the running AppImage (or, if it can't, open its page).
     InstallAppUpdate,
     /// Start the updated app and quit this one.
@@ -679,6 +681,15 @@ impl State {
     }
 
     pub fn toast(&mut self, tone: Tone, title: impl Into<String>, body: impl Into<String>) {
+        let (title, body) = (title.into(), body.into());
+        if tone == Tone::Danger {
+            let key = self.settings.curseforge_key.as_deref();
+            addon_core::log::error(&addon_core::log::scrub(
+                &format!("{title}: {body}"),
+                None,
+                key,
+            ));
+        }
         let (id, due) = (
             self.next_toast,
             self.clock + if tone == Tone::Danger { 8.0 } else { 4.5 },
@@ -687,8 +698,8 @@ impl State {
         self.toasts.push(Toast {
             id,
             tone,
-            title: title.into(),
-            body: body.into(),
+            title,
+            body,
             due,
         });
         self.toasts.drain(..self.toasts.len().saturating_sub(4));
@@ -1734,6 +1745,14 @@ pub fn dispatch(s: &mut State, intent: Intent, tx: &mut Tx) {
         }
         Intent::PickSource(index) => s.pick_source(index),
         Intent::CloseRemote => s.detail = None,
+        Intent::CopyDebugInfo => {
+            tx.copy(crate::debug_info::text(s));
+            s.toast(
+                Tone::Success,
+                "Debug info copied",
+                "Paste it into your bug report",
+            );
+        }
         Intent::OpenUrl(url) => {
             if url.starts_with("https://") || url.starts_with("http://") {
                 let _ = tx.open_url(&url);
