@@ -27,6 +27,10 @@ tempfile = "3.27.0"
 [target.'cfg(target_os = "linux")'.dependencies]
 libc = "0.2"
 
+# Icon and version info in culm.exe (build.rs); only used when building for Windows.
+[build-dependencies]
+winresource = { version = "0.1.34", default-features = false }
+
 [dev-dependencies]
 addon-testkit = { path = "../testkit" }
 serde_json.workspace = true

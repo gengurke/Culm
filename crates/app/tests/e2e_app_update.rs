@@ -135,8 +135,32 @@ fn f8_4_a_copy_that_cant_update_itself_asks_only_when_told_and_links_the_release
     app.wait_for("the check", |s| {
         matches!(s.app_update, AppUpdate::Available(_))
     });
-    assert!(app.shows_in("app-update/sidebar", "Get 99.0.0"));
-    assert!(app.shows_in("settings/app-update", "Get 99.0.0"));
+    assert!(app.shows_in("app-update/sidebar", "Update to 99.0.0"));
+    assert!(app.shows_in("settings/app-update", "Update to 99.0.0"));
+}
+
+/// The Windows and macOS builds can't replace themselves but have no other way to hear of a new version.
+#[test]
+fn f8_4_a_windows_or_macos_build_checks_at_start_and_links_the_release() {
+    let world = World::new();
+    serve_app_release(
+        &world.server,
+        REPO,
+        "99.0.0",
+        "Culm-99.0.0-setup.exe",
+        b"new",
+        None,
+    );
+    let mut config = world.config();
+    config.checks_updates = true;
+
+    let mut app = world.app_with(config);
+    app.wait_for("the check at start", |s| {
+        matches!(s.app_update, AppUpdate::Available(_))
+    });
+    assert!(app.shows("Culm 99.0.0 is available"));
+    assert!(app.shows_in("app-update/sidebar", "Update to 99.0.0"));
+    assert!(!app.state().backend.self_updating());
 }
 
 #[test]

@@ -7,6 +7,9 @@ or break. New changes go under "Unreleased"; a release turns that heading into i
 ## [Unreleased]
 
 ### Added
+- Culm for Windows and macOS: a Windows installer (per user, no admin rights) and a macOS .dmg for
+  Apple Silicon and Intel Macs. They are not code-signed yet: the README says how to allow the first start.
+  They check for a new version when they start; "Update to x.y.z" opens the release page.
 - Settings → About links a privacy note: which services Culm talks to and what it sends (no telemetry).
 - Settings → About → Licences lists the open-source code and fonts Culm is built from, with their licences.
 - Windows and macOS: switching from WowUp keeps your addons' sources, as on Linux (Culm reads WowUp's settings there too).

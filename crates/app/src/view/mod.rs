@@ -217,24 +217,28 @@ pub(crate) fn app_update(s: &State, key: &str) -> Option<El> {
     let p = pal();
     let self_updating = s.backend.self_updating();
     Some(match &s.app_update {
-        AppUpdate::Available(r) | AppUpdate::Failed { release: r, .. } if self_updating => ui::button(
-            key,
-            &format!("Update to {}", r.version),
-            Kind::Primary,
-            Some(&icons::DOWNLOAD),
-            true,
-            |s, tx| dispatch(s, Intent::InstallAppUpdate, tx),
-        )
-        .help("Download the new version over this one (checked before it's used); a restart starts it"),
-        AppUpdate::Available(r) | AppUpdate::Failed { release: r, .. } => ui::button(
-            key,
-            &format!("Get {}", r.version),
-            Kind::Primary,
-            Some(&icons::EXTERNAL),
-            true,
-            |s, tx| dispatch(s, Intent::InstallAppUpdate, tx),
-        )
-        .help("Open the release page: this copy can't update itself"),
+        AppUpdate::Available(r) | AppUpdate::Failed { release: r, .. } => {
+            let (icon, help) = if self_updating {
+                (
+                    &icons::DOWNLOAD,
+                    "Download the new version over this one (checked before it's used); a restart starts it",
+                )
+            } else {
+                (
+                    &icons::EXTERNAL,
+                    "Open the release page to download it: this copy can't replace itself",
+                )
+            };
+            ui::button(
+                key,
+                &format!("Update to {}", r.version),
+                Kind::Primary,
+                Some(icon),
+                true,
+                |s, tx| dispatch(s, Intent::InstallAppUpdate, tx),
+            )
+            .help(help)
+        }
         AppUpdate::Downloading { release, done } => text(format!(
             "Downloading {}… {}%",
             release.version,
