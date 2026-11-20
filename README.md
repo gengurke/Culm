@@ -86,7 +86,7 @@ cargo clippy --all-targets
 - `crates/app/tests/e2e_*.rs`: the real UI driven headlessly (Rune `Runtime`) over the real core and the same fakes.
 - `crates/app/tests/ui_shell.rs`: UI-only checks over the mock backend.
 
-Test names carry the feature id from `docs/FEATURES.md` (`f3_2_...`). Contributor notes: `AGENTS.md`.
+Test names carry the feature id from `docs/FEATURES.md` (`f3_2_...`). How to contribute: [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Inspiration and thanks
 

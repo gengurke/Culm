@@ -1,0 +1,11 @@
+name: Theme idea
+description: A look you'd like Culm to have (collected in #27).
+labels: [design, idea]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: Describe the theme
+      description: Mood, colours, fonts (must be freely licensed), references or screenshots. No game art or assets.
+    validations:
+      required: true
