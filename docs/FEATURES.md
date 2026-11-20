@@ -224,7 +224,8 @@ in the theme's tones, gilded on the active chip, around a disc showing the origi
   telemetry). (`f7_5_about_shows_the_version_and_release_stage`, `f7_5_about_links_the_privacy_note`)
 - **F7.6 Third-party licences** ✅ — `THIRD-PARTY-LICENSES.md` lists every Rust crate's licence and the bundled fonts'
   OFL texts, written by `packaging/third-party-licences.sh` (cargo-about, `about.toml`); `.github/workflows/licences.yml`
-  fails when it is out of date. Settings → About → Licences opens it at this version's tag.
+  fails when it is out of date. Settings → About → Licences opens it at this version's tag. Every release package carries it next to `LICENSE`
+  (F8.3, F8.5).
   (`f7_6_about_links_the_third_party_licences`)
 
 ## F8 Releases
@@ -236,7 +237,8 @@ in the theme's tones, gilded on the active chip, around a disc showing the origi
   GPL-3.0-or-later, only crates.io and Rune's git repo as sources) on every push, pull request and weekly.
 - **F8.3 Linux AppImage** ✅ — Pushing a tag `v<version>` (it must match `Cargo.toml`) runs `.github/workflows/release.yml`:
   tests, then a release build on Ubuntu 22.04 (glibc 2.35, so older distros run it), `packaging/appimage.sh` packs
-  `Culm-<version>-x86_64.AppImage` with the desktop entry, icons and AppStream metadata, and embeds the update
+  `Culm-<version>-x86_64.AppImage` with the desktop entry, icons, AppStream metadata and `LICENSE` plus
+  `THIRD-PARTY-LICENSES.md` in `usr/share/doc/culm/`, and embeds the update
   information `gh-releases-zsync|gengurke|Culm|latest|Culm-*-x86_64.AppImage.zsync`. The release carries every
   platform's files (F8.5), `SHA256SUMS` over all of them, and notes from the CHANGELOG section plus the install steps
   in `packaging/release-install.md`. Releases are never marked "pre-release": zsync's `latest` skips those, and the
@@ -260,10 +262,11 @@ in the theme's tones, gilded on the active chip, around a disc showing the origi
   - **Windows** (x64, MSVC, C runtime linked in): `culm.exe` carries the icon and version info (`crates/app/build.rs`,
     `assets/icon/culm.ico`; `packaging/icons.sh` makes it and `culm.icns` from `packaging/culm.svg`) and opens no console window. `packaging/windows/culm.iss` (Inno Setup) makes
     `Culm-<version>-windows-x64-setup.exe`: per-user install without admin rights into `%LOCALAPPDATA%\Programs\Culm`,
-    Start menu entry, optional desktop icon, uninstaller (leaves settings and addon records), installs over an older
+    Start menu entry, optional desktop icon, `LICENSE.txt` and `THIRD-PARTY-LICENSES.md` beside `culm.exe`, uninstaller (leaves settings and addon records), installs over an older
     version.
   - **macOS** (13+): `packaging/macos.sh` joins the arm64 and x86_64 builds with `lipo` into a universal `Culm.app`
-    (bundle id `dev.culm.app` from `brand.rs`, the committed `culm.icns`), signs it ad hoc and packs it into
+    (bundle id `dev.culm.app` from `brand.rs`, the committed `culm.icns`, `LICENSE` and `THIRD-PARTY-LICENSES.md` in
+    `Contents/Resources/`), signs it ad hoc and packs it into
     `Culm-<version>-macos.dmg` with an Applications link.
   - Neither is signed with a paid certificate yet: Windows SmartScreen needs "More info → Run anyway" once, macOS
     "Open Anyway" in Privacy & Security once per downloaded version (README, release notes). Checked by the workflow run, not by tests.

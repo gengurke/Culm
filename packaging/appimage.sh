@@ -24,6 +24,7 @@ install -Dm644 "$here/dev.culm.app.desktop" "$appdir/usr/share/applications/dev.
 echo "X-AppImage-Version=$version" >> "$appdir/usr/share/applications/dev.culm.app.desktop"
 install -Dm644 "$here/dev.culm.app.metainfo.xml" "$appdir/usr/share/metainfo/dev.culm.app.metainfo.xml"
 install -Dm644 "$here/culm.svg" "$appdir/usr/share/icons/hicolor/scalable/apps/culm.svg"
+install -Dm644 -t "$appdir/usr/share/doc/culm" "$here/../LICENSE" "$here/../THIRD-PARTY-LICENSES.md"
 for size in 32 48 64 128 256 512; do
     dir="$appdir/usr/share/icons/hicolor/${size}x${size}/apps"
     mkdir -p "$dir"

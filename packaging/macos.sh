@@ -27,6 +27,7 @@ lipo -create -output "$app/Contents/MacOS/culm" "$arm" "$intel"
 lipo -info "$app/Contents/MacOS/culm"
 
 cp "$here/../crates/app/assets/icon/culm.icns" "$app/Contents/Resources/culm.icns"
+cp "$here/../LICENSE" "$here/../THIRD-PARTY-LICENSES.md" "$app/Contents/Resources/"
 
 # The oldest macOS the binaries were built for (set by the release workflow).
 min_macos=${MACOSX_DEPLOYMENT_TARGET:?set MACOSX_DEPLOYMENT_TARGET to the one the binaries were built with}
