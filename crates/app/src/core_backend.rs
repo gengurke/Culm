@@ -340,7 +340,10 @@ impl Backend for CoreBackend {
         self.edit(inst, |stored| {
             for s in stored.iter_mut() {
                 if let Some(a) = list.iter().find(|a| a.id == s.id) {
-                    s.latest = a.latest.clone();
+                    // The channel may have changed meanwhile; that check stores its own answer.
+                    if a.channel == s.channel {
+                        s.latest = a.latest.clone();
+                    }
                     (s.name, s.author, s.summary) =
                         (a.name.clone(), a.author.clone(), a.summary.clone());
                     (s.url, s.thumbnail_url) = (a.url.clone(), a.thumbnail_url.clone());

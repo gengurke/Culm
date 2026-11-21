@@ -49,7 +49,7 @@ fn local(v: Value, base: &str) -> Value {
 
 /// The disk and the network the app sees.
 ///
-/// On disk: Ace 1.0 (CurseForge 1, 1.1 out), Bee + Bee_Options 2.0 (CurseForge 2, 2.1 out) and
+/// On disk: Ace 1.0 (CurseForge 1, 1.1 out, beta 1.2-beta), Bee + Bee_Options 2.0 (CurseForge 2, 2.1 out) and
 /// Homebrew (no provider knows it). CurseForge also offers Cee (3) in search and the popular list.
 /// WowUp Hub offers Cee too (7, same repo `cee-dev/Cee`, release `v70` = Cee 3.0-hub) and Dee (8),
 /// in search and its featured list. GitHub has `Questie/Questie` (stable v12.9.0).
@@ -122,6 +122,7 @@ impl World {
             1,
             "Ace",
             vec![
+                cf_file(12, "1.2-beta", 2, &["Ace"], 0),
                 cf_file(11, "1.1", 1, &["Ace"], 0),
                 cf_file(10, "1.0", 1, &["Ace"], 0),
             ],

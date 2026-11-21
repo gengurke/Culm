@@ -207,6 +207,33 @@ fn f3_2_update_all_updates_every_outdated_addon() {
 }
 
 #[test]
+fn f3_3_channel_change_rechecks_only_that_addon() {
+    let world = World::new().with_key("test-key");
+    let mut app = world.app();
+    app.wait_idle();
+    assert!(app.shows_in(&app.row("Ace", ""), "1.0 → 1.1"));
+    let before = world.server.requests_to("/v1/mods").len();
+    app.tap(&app.row("Ace", ""));
+    app.tap("detail/channel/beta");
+    assert_eq!(app.state().job, addon_app::Job::Idle, "no full check");
+    assert_eq!(
+        app.status("Ace"),
+        Status::Working,
+        "Ace shows it is being checked"
+    );
+    app.wait_idle();
+    let asked = world.server.requests_to("/v1/mods");
+    assert_eq!(asked.len(), before + 1, "one request for the change");
+    assert_eq!(
+        asked[before].json()["modIds"],
+        serde_json::json!([1]),
+        "only Ace is asked"
+    );
+    assert!(app.shows_in(&app.row("Ace", ""), "1.0 → 1.2-beta"));
+    assert!(!app.shows("Update check failed"));
+}
+
+#[test]
 fn f3_4_ignored_addon_is_not_offered_for_update() {
     let world = World::new().with_key("test-key");
     let mut app = world.app();
