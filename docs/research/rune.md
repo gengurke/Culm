@@ -95,7 +95,7 @@ fn main() {
 
 ### Verified on this machine (Fedora 44, rustc 1.99.1, Intel UHD iGPU, Wayland session)
 
-The scratch app lives at `/tmp/claude-1000/rune-research/hello-rune`. It is the hello example plus a rune-kit `Button`, with the manifest above.
+The scratch app lives at `/tmp/claude-1000/rune-research/hello-rune`. It is the hello example plus a rune-kit `Button`, built against the `rune`/`rune-kit` deps, `[patch.crates-io]` and profiles of Culm's root `Cargo.toml`.
 
 **Results:**
 
