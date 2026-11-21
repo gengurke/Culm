@@ -43,6 +43,8 @@ cargo test                      # all tests, headless (no display/GPU needed for
 cargo run                       # open the window
 target/debug/culm --snap out.png [--size 1100x720] [--scene settings@hearthwood]   # headless screenshot
 target/debug/culm --tree tree.json                  # element tree (keys, text, rects)
+scripts/tree-diff.sh target/trees-before            # every scene's tree; on the refactor branch add
+scripts/tree-diff.sh target/trees-after target/trees-before   # the before folder: prints what changed
 ```
 
 Development happens on Linux; keep the build free of Linux-only steps for macOS and Windows.

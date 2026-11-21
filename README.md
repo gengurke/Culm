@@ -88,7 +88,7 @@ the import already knew about; CurseForge addons show "Not checked".
 | What | Linux | Windows | macOS |
 |---|---|---|---|
 | Data: installations, addon lists, class icons, WTF backups | `~/.local/share/dev.culm.app/` | `%APPDATA%\dev.culm.app\` | `~/Library/Application Support/dev.culm.app/` |
-| Settings (API key, default channel) | `~/.config/dev.culm.app/` | `%APPDATA%\dev.culm.app\` | `~/Library/Application Support/dev.culm.app/` |
+| Settings (API key, theme, defaults) | `~/.config/dev.culm.app/` | `%APPDATA%\dev.culm.app\` | `~/Library/Application Support/dev.culm.app/` |
 | Thumbnail cache (safe to delete) | `~/.cache/dev.culm.app/` | `%LOCALAPPDATA%\dev.culm.app\Cache\` | `~/Library/Caches/dev.culm.app/` |
 | Log: errors and crashes (`culm.log`, `culm.old.log`) | `~/.local/state/dev.culm.app/logs/` | `%LOCALAPPDATA%\dev.culm.app\Logs\` | `~/Library/Logs/dev.culm.app/` |
 

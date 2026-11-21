@@ -1,77 +1,30 @@
 //! UI-only behaviour over the mock backend (filtering, navigation, failure display, game-running
 //! lock). Features end to end over the real core live in `e2e_*.rs`.
 
-use addon_app::mock::MockBackend;
+mod common;
 use addon_app::state::{MaintCard, Status, Tone};
 use addon_app::theme::{BAND_H, SIDEBAR_W};
-use addon_app::{Op, Screen, State, loaded, runtime};
-use rune::{ChromeInsets, Key, KeyEvent, Mods, Runtime, TitlebarAction};
+use addon_app::{Op, Screen, loaded, runtime};
+use common::{App, mock_state};
+use rune::{ChromeInsets, TitlebarAction};
 use std::sync::Arc;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 const SIZE: (f32, f32) = (1280.0, 800.0);
 
-fn fresh() -> State {
-    State::new(Arc::new(MockBackend::with_delay(Duration::from_millis(30))))
-}
-
-fn app(prepare: fn(&mut State)) -> Runtime<State> {
-    let mut s = fresh();
-    prepare(&mut s);
-    let mut rt = runtime(s, SIZE);
-    rt.frame(0.0);
-    rt
-}
-
-fn tap(rt: &mut Runtime<State>, key: &str) {
-    let (x, y) = rt
-        .find(key)
-        .unwrap_or_else(|| panic!("no element keyed {key}"));
-    rt.pointer_down(x, y);
-    rt.pointer_up(x, y);
-    rt.frame(1.0 / 60.0);
-}
-
-/// Steps frames (and real time, for the worker threads) until `done` holds.
-fn wait(rt: &mut Runtime<State>, what: &str, done: impl Fn(&State) -> bool) {
-    let start = Instant::now();
-    while !done(&rt.state) {
-        assert!(
-            start.elapsed() < Duration::from_secs(10),
-            "timed out waiting for {what}"
-        );
-        std::thread::sleep(Duration::from_millis(5));
-        rt.frame(1.0 / 60.0);
-    }
-    rt.frame(1.0 / 60.0);
-}
-
-fn shows(rt: &Runtime<State>, needle: &str) -> bool {
-    rt.elements()
-        .iter()
-        .any(|e| e.text.as_deref().is_some_and(|t| t.contains(needle)) && !e.exiting)
-}
-
-fn type_text(rt: &mut Runtime<State>, t: &str) {
-    rt.key(KeyEvent {
-        key: Key::Text(t.into()),
-        mods: Mods::default(),
-    });
-    rt.frame(1.0 / 60.0);
-}
-
 #[test]
 fn navigation_switches_screens() {
-    let mut rt = app(loaded);
+    let mut app = App::mock(loaded);
     for (key, screen, title) in [
         ("nav/get-addons", Screen::GetAddons, "Get Addons"),
         ("nav/maintenance", Screen::Maintenance, "Maintenance"),
         ("nav/settings", Screen::Settings, "Settings"),
         ("nav/my-addons", Screen::MyAddons, "My Addons"),
     ] {
-        tap(&mut rt, key);
-        assert_eq!(rt.state.screen, screen);
-        let heading = rt
+        app.tap(key);
+        assert_eq!(app.state().screen, screen);
+        let heading = app
+            .rt
             .elements()
             .into_iter()
             .find(|e| e.key.as_deref() == Some("page-title") && !e.exiting)
@@ -82,20 +35,20 @@ fn navigation_switches_screens() {
 
 #[test]
 fn f2_1_filter_narrows_the_list() {
-    let mut rt = app(loaded);
-    assert!(rt.find("addon/ace3").is_some());
-    tap(&mut rt, "my-addons/filter");
-    type_text(&mut rt, "details");
-    assert_eq!(rt.state.filter.text, "details");
-    assert!(rt.find("addon/detailsdamagemeter").is_some());
-    assert!(rt.find("addon/ace3").is_none());
-    type_text(&mut rt, "zzz");
-    assert!(shows(&rt, "No addons match"));
+    let mut app = App::mock(loaded);
+    assert!(app.has("addon/ace3"));
+    app.tap("my-addons/filter");
+    app.type_text("details");
+    assert_eq!(app.state().filter.text, "details");
+    assert!(app.has("addon/detailsdamagemeter"));
+    assert!(!app.has("addon/ace3"));
+    app.type_text("zzz");
+    assert!(app.shows("No addons match"));
 }
 
 /// Names of the rows in display order.
-fn order(rt: &Runtime<State>) -> Vec<String> {
-    rt.state
+fn order(app: &App) -> Vec<String> {
+    app.state()
         .visible_addons()
         .iter()
         .map(|a| a.addon.name.clone())
@@ -105,8 +58,8 @@ fn order(rt: &Runtime<State>) -> Vec<String> {
 #[test]
 fn f2_6_column_headers_sort_the_list() {
     use addon_app::backend::{AddonOrder, SortBy};
-    let mut rt = app(loaded);
-    let by_name = order(&rt);
+    let mut app = App::mock(loaded);
+    let by_name = order(&app);
     assert!(
         by_name
             .windows(2)
@@ -114,9 +67,9 @@ fn f2_6_column_headers_sort_the_list() {
     );
 
     // Addon again: Z to A, the chevron flips.
-    tap(&mut rt, "addons/sort/addon");
+    app.tap("addons/sort/addon");
     assert_eq!(
-        rt.state.settings.addon_order,
+        app.state().settings.addon_order,
         AddonOrder {
             by: SortBy::Name,
             desc: true
@@ -124,22 +77,27 @@ fn f2_6_column_headers_sort_the_list() {
     );
     let mut reversed = by_name.clone();
     reversed.reverse();
-    assert_eq!(order(&rt), reversed);
+    assert_eq!(order(&app), reversed);
     assert!(
-        rt.find(&format!("addon/{}", rt.state.visible_addons()[0].addon.id))
+        app.rt
+            .find(&format!(
+                "addon/{}",
+                app.state().visible_addons()[0].addon.id
+            ))
             .is_some()
     );
 
     // Status: what needs the user first (an error, then updates), then the rest.
-    rt.update(|s, _| {
+    app.rt.update(|s, _| {
         s.addons
             .iter_mut()
             .find(|a| a.addon.id == "spoken")
             .unwrap()
             .op = Some(Op::Failed("503".into()))
     });
-    tap(&mut rt, "addons/sort/status");
-    let statuses: Vec<Status> = rt
+    app.tap("addons/sort/status");
+    let statuses: Vec<Status> = app
+        .rt
         .state
         .visible_addons()
         .iter()
@@ -156,15 +114,13 @@ fn f2_6_column_headers_sort_the_list() {
             .iter()
             .all(|s| matches!(s, Status::Error | Status::UpdateAvailable))
     );
-    assert!(
-        rt.find("addon/spoken").is_some(),
-        "the first row is on screen"
-    );
+    assert!(app.has("addon/spoken"), "the first row is on screen");
 
     // The filter narrows the ordered list; the order holds.
-    tap(&mut rt, "my-addons/filter");
-    type_text(&mut rt, "b");
-    let filtered: Vec<Status> = rt
+    app.tap("my-addons/filter");
+    app.type_text("b");
+    let filtered: Vec<Status> = app
+        .rt
         .state
         .visible_addons()
         .iter()
@@ -175,23 +131,23 @@ fn f2_6_column_headers_sort_the_list() {
             .windows(2)
             .all(|w| !(w[0] == Status::UpToDate && w[1] == Status::UpdateAvailable))
     );
-    assert!(rt.state.visible_addons().iter().all(|a| {
+    assert!(app.state().visible_addons().iter().all(|a| {
         let q = "b";
         a.addon.name.to_lowercase().contains(q) || a.addon.author.to_lowercase().contains(q)
     }));
 
     // Keyboard: Space on the focused header flips it (Return goes to buttons only on the web); the choice is saved with the settings.
-    rt.update(|_, tx| tx.focus("addons/sort/status", true));
-    rt.frame(1.0 / 60.0);
-    type_text(&mut rt, " ");
+    app.rt.update(|_, tx| tx.focus("addons/sort/status", true));
+    app.frame();
+    app.type_text(" ");
     assert_eq!(
-        rt.state.settings.addon_order,
+        app.state().settings.addon_order,
         AddonOrder {
             by: SortBy::Status,
             desc: true
         }
     );
-    wait(&mut rt, "the order saved", |s| {
+    app.wait_for("the order saved", |s| {
         s.backend.load_settings().addon_order
             == AddonOrder {
                 by: SortBy::Status,
@@ -204,50 +160,72 @@ fn f2_6_column_headers_sort_the_list() {
 
 #[test]
 fn slash_focuses_the_filter() {
-    let mut rt = app(loaded);
-    type_text(&mut rt, "/");
-    type_text(&mut rt, "pawn");
-    assert_eq!(rt.state.filter.text, "pawn");
-    assert!(rt.find("addon/pawn").is_some());
+    let mut app = App::mock(loaded);
+    app.type_text("/");
+    app.type_text("pawn");
+    assert_eq!(app.state().filter.text, "pawn");
+    assert!(app.has("addon/pawn"));
 }
 
 #[test]
 fn f3_2_failed_update_shows_error() {
-    let mut rt = app(loaded);
+    let mut app = App::mock(loaded);
     // Spoken is below the fold of the virtual list: select it as the row press would.
-    rt.update(|s, _| s.selected = Some("spoken".into()));
-    rt.frame(1.0 / 60.0);
-    tap(&mut rt, "detail/update");
-    wait(&mut rt, "update to fail", |s| {
+    app.rt.update(|s, _| s.selected = Some("spoken".into()));
+    app.frame();
+    app.tap("detail/update");
+    app.wait_for("update to fail", |s| {
         matches!(s.addon("spoken").unwrap().op, Some(Op::Failed(_)))
     });
-    assert_eq!(rt.state.addon("spoken").unwrap().status(), Status::Error);
-    assert!(shows(&rt, "GitHub answered 503"));
+    assert_eq!(app.state().addon("spoken").unwrap().status(), Status::Error);
+    assert!(app.shows("GitHub answered 503"));
 }
 
 #[test]
 fn f5_3_open_website() {
-    let mut rt = app(loaded);
-    tap(&mut rt, "addon/ace3");
-    tap(&mut rt, "detail/website");
+    let mut app = App::mock(loaded);
+    app.tap("addon/ace3");
+    app.tap("detail/website");
     assert_eq!(
-        rt.take_url_requests(),
+        app.rt.take_url_requests(),
         vec!["https://www.curseforge.com/wow/addons/ace3".to_string()]
     );
 }
 
 #[test]
+fn f5_3_open_folder_shows_the_addon_folder() {
+    use addon_app::mock::{MockBackend, installation};
+    let backend = Arc::new(MockBackend::with_delay(Duration::from_millis(30)));
+    let mut s = addon_app::State::new(backend.clone());
+    loaded(&mut s);
+    let mut app = App {
+        rt: runtime(s, SIZE),
+    };
+    app.frame();
+    app.tap("addon/ace3");
+    app.tap("detail/folder");
+    app.wait_until("the folder to open", |_| {
+        !backend.opened_folders().is_empty()
+    });
+    let folder = &app.state().addon("ace3").unwrap().addon.folders[0];
+    assert_eq!(
+        backend.opened_folders(),
+        [installation().addons_dir().join(folder)]
+    );
+}
+
+#[test]
 fn f6_1_maintenance_locked_while_game_runs() {
-    let mut rt = app(|s| {
+    let mut app = App::mock(|s| {
         loaded(s);
         s.screen = Screen::Maintenance;
         s.game_running = true;
     });
-    rt.frame(1.0 / 60.0);
-    assert!(rt.find("maintenance/game-running").is_some());
-    tap(&mut rt, "maint/cache/run");
+    app.frame();
+    assert!(app.has("maintenance/game-running"));
+    app.tap("maint/cache/run");
     assert_eq!(
-        rt.state.maint.get(&MaintCard::Cache),
+        app.state().maint.get(&MaintCard::Cache),
         None,
         "disabled button does nothing"
     );
@@ -256,7 +234,7 @@ fn f6_1_maintenance_locked_while_game_runs() {
 #[test]
 fn late_results_never_land_on_the_wrong_installation_or_restart_updates() {
     use addon_app::worker::Msg;
-    let mut s = fresh();
+    let mut s = mock_state();
     loaded(&mut s);
     let current = s.current.clone().unwrap();
     let before: Vec<String> = s.addons.iter().map(|a| a.addon.name.clone()).collect();
@@ -287,27 +265,28 @@ fn late_results_never_land_on_the_wrong_installation_or_restart_updates() {
 
 #[test]
 fn f1_3_installation_names_show_the_prefix_only_for_twins() {
-    let mut rt = app(loaded);
-    assert!(shows(&rt, "WoW Forever") && !shows(&rt, "battlenet"));
+    let mut app = App::mock(loaded);
+    assert!(app.shows("WoW Forever") && !app.shows("battlenet"));
     let mut twin = addon_app::mock::installation();
     twin.id = "forever-lutris".into();
     twin.root = "~/Games/lutris/drive_c/Program Files (x86)/World of Warcraft/_forever_".into();
-    rt.state.installations.push(twin);
-    tap(&mut rt, "installation/selector");
-    assert!(shows(&rt, "WoW Forever (battlenet)") && shows(&rt, "WoW Forever (lutris)"));
+    app.rt.update(|s, _| s.installations.push(twin));
+    app.tap("installation/selector");
+    assert!(app.shows("WoW Forever (battlenet)") && app.shows("WoW Forever (lutris)"));
 }
 
 /// Meaningful actions carry a short help text (a tooltip after a rest of the pointer), and it
 /// shows when the pointer rests on the button.
 #[test]
 fn ui_buttons_explain_themselves() {
-    let mut rt = app(|s| {
+    let mut app = App::mock(|s| {
         loaded(s);
         s.selected = Some("questie".into());
     });
-    rt.frame(1.0 / 60.0);
-    let help = |rt: &Runtime<State>, key: &str| {
-        rt.elements()
+    app.frame();
+    let help = |app: &App, key: &str| {
+        app.rt
+            .elements()
             .iter()
             .find(|e| e.key.as_deref() == Some(key))
             .unwrap_or_else(|| panic!("no element keyed {key}"))
@@ -325,17 +304,18 @@ fn ui_buttons_explain_themselves() {
         ("detail/channel/beta", "betas"),
         ("detail/website", "browser"),
     ] {
-        let h = help(&rt, key);
+        let h = help(&app, key);
         assert!(h.contains(needle), "{key}: help {h:?} lacks {needle:?}");
     }
     // A glyph-only button's help names it.
-    assert_eq!(help(&rt, "detail/close"), "Close details");
+    assert_eq!(help(&app, "detail/close"), "Close details");
 
-    let (x, y) = rt.find("my-addons/rescan").expect("rescan button");
-    rt.pointer_move(x, y);
-    rt.frame(1.0 / 60.0);
-    rt.frame(1.0);
-    let (tip, _) = rt
+    let (x, y) = app.rt.find("my-addons/rescan").expect("rescan button");
+    app.rt.pointer_move(x, y);
+    app.frame();
+    app.rt.frame(1.0);
+    let (tip, _) = app
+        .rt
         .help_tooltip()
         .expect("a tooltip after resting on Rescan");
     assert!(tip.starts_with("Read the AddOns folder again"), "{tip}");
@@ -343,9 +323,10 @@ fn ui_buttons_explain_themselves() {
 
 #[test]
 fn f7_5_about_shows_the_version_and_release_stage() {
-    let mut rt = app(loaded);
-    tap(&mut rt, "nav/settings");
-    let label = rt
+    let mut app = App::mock(loaded);
+    app.tap("nav/settings");
+    let label = app
+        .rt
         .elements()
         .into_iter()
         .find(|e| e.key.as_deref() == Some("settings/version") && !e.exiting)
@@ -356,10 +337,11 @@ fn f7_5_about_shows_the_version_and_release_stage() {
 
 #[test]
 fn f7_5_about_links_the_privacy_note() {
-    let mut rt = app(loaded);
-    tap(&mut rt, "nav/settings");
-    assert!(shows(&rt, "No telemetry."));
-    let tip = rt
+    let mut app = App::mock(loaded);
+    app.tap("nav/settings");
+    assert!(app.shows("No telemetry."));
+    let tip = app
+        .rt
         .elements()
         .into_iter()
         .find(|e| e.key.as_deref() == Some("settings/privacy"))
@@ -374,7 +356,7 @@ fn f7_7_copy_debug_info_leaves_out_the_key_and_the_user_name() {
     let home = rune::dirs::home().expect("a home folder");
     let user = home.file_name().unwrap().to_str().unwrap().to_string();
     let key = "cf-secret-key-123";
-    let mut s = fresh();
+    let mut s = mock_state();
     loaded(&mut s);
     s.settings.curseforge_key = Some(key.into());
     s.installations[0].root = home
@@ -398,21 +380,24 @@ fn f7_7_copy_debug_info_leaves_out_the_key_and_the_user_name() {
         format!("{home}/Games/x.zip: rejected key {key}"),
     );
     // Tall enough that About is on screen without scrolling.
-    let mut rt = runtime(s, (1280.0, 3000.0));
+    let mut app = App {
+        rt: runtime(s, (1280.0, 3000.0)),
+    };
     let clipboard = rune::clipboard::memory();
-    rt.use_clipboard(&clipboard);
-    rt.frame(0.0);
-    tap(&mut rt, "nav/settings");
-    let tip = |rt: &Runtime<State>, key: &str| {
-        rt.elements()
+    app.rt.use_clipboard(&clipboard);
+    app.rt.frame(0.0);
+    app.tap("nav/settings");
+    let tip = |app: &App, key: &str| {
+        app.rt
+            .elements()
             .into_iter()
             .find(|e| e.key.as_deref() == Some(key))
             .and_then(|e| e.help)
             .unwrap_or_default()
     };
-    assert!(tip(&rt, "settings/copy-debug-info").starts_with("Copy Culm's version"));
-    assert!(tip(&rt, "settings/report-bug").starts_with("Open the bug report form"));
-    tap(&mut rt, "settings/copy-debug-info");
+    assert!(tip(&app, "settings/copy-debug-info").starts_with("Copy Culm's version"));
+    assert!(tip(&app, "settings/report-bug").starts_with("Open the bug report form"));
+    app.tap("settings/copy-debug-info");
     let text = clipboard
         .text()
         .expect("debug info on the clipboard")
@@ -437,23 +422,23 @@ fn f7_7_copy_debug_info_leaves_out_the_key_and_the_user_name() {
         !text.contains(&format!("{SEP}{user}")),
         "the user name leaked: {text}"
     );
-    assert!(shows(&rt, "Debug info copied"));
+    assert!(app.shows("Debug info copied"));
 }
 
 #[test]
 fn f2_1_an_empty_installation_says_so_instead_of_a_filter_miss() {
-    let mut rt = app(|s| {
+    let mut app = App::mock(|s| {
         loaded(s);
         s.addons.clear();
     });
-    rt.frame(1.0 / 60.0);
-    assert!(shows(&rt, "No addons installed yet"));
-    assert!(!shows(&rt, "No addons match"));
+    app.frame();
+    assert!(app.shows("No addons installed yet"));
+    assert!(!app.shows("No addons match"));
 }
 
 #[test]
 fn ui_every_page_scrolls_with_a_thin_scroll_bar() {
-    let mut rt = app(loaded);
+    let mut app = App::mock(loaded);
     let pages = [
         (Screen::MyAddons, "my-addons/scroll"),
         (Screen::GetAddons, "get-addons/scroll"),
@@ -461,9 +446,9 @@ fn ui_every_page_scrolls_with_a_thin_scroll_bar() {
         (Screen::Settings, "settings/scroll"),
     ];
     for (screen, viewport) in pages {
-        rt.update(|s, _| s.screen = screen);
-        rt.frame(1.0 / 60.0);
-        let els = rt.elements();
+        app.rt.update(|s, _| s.screen = screen);
+        app.frame();
+        let els = app.rt.elements();
         let area = format!("{viewport}-scroll-area");
         let at = els
             .iter()
@@ -479,44 +464,45 @@ fn ui_every_page_scrolls_with_a_thin_scroll_bar() {
 
 #[test]
 fn ui_the_header_band_is_the_titlebar() {
-    let mut rt = app(loaded);
-    let target = |rt: &Runtime<State>, key: &str| {
-        rt.elements()
+    let mut app = App::mock(loaded);
+    let target = |app: &App, key: &str| {
+        app.rt
+            .elements()
             .into_iter()
             .find(|e| e.key.as_deref() == Some(key))
             .unwrap_or_else(|| panic!("no element keyed {key}"))
             .target
     };
-    let press = |rt: &mut Runtime<State>, (x, y): (f32, f32)| {
-        rt.pointer_move(x, y);
-        rt.pointer_down(x, y);
-        let action = rt.take_titlebar_action();
-        rt.pointer_up(x, y);
-        rt.frame(1.0 / 60.0);
+    let press = |app: &mut App, (x, y): (f32, f32)| {
+        app.rt.pointer_move(x, y);
+        app.rt.pointer_down(x, y);
+        let action = app.rt.take_titlebar_action();
+        app.rt.pointer_up(x, y);
+        app.frame();
         action
     };
-    let band = target(&rt, "band");
+    let band = target(&app, "band");
     let empty = (band[0] + band[2] * 0.6, band[1] + band[3] / 2.0);
     // Its empty parts and the sidebar's brand block move the window; a double press maximizes.
-    assert_eq!(press(&mut rt, empty), Some(TitlebarAction::Drag));
-    assert_eq!(press(&mut rt, empty), Some(TitlebarAction::DoubleClick));
-    let brand = target(&rt, "brand");
+    assert_eq!(press(&mut app, empty), Some(TitlebarAction::Drag));
+    assert_eq!(press(&mut app, empty), Some(TitlebarAction::DoubleClick));
+    let brand = target(&app, "brand");
     assert_eq!(
-        press(&mut rt, (brand[0] + 4.0, brand[1] + brand[3] / 2.0)),
+        press(&mut app, (brand[0] + 4.0, brand[1] + brand[3] / 2.0)),
         Some(TitlebarAction::Drag)
     );
     // Buttons on it keep their presses.
-    let update_all = rt.find("my-addons/update-all").expect("Update all");
-    assert_eq!(press(&mut rt, update_all), None);
+    let update_all = app.rt.find("my-addons/update-all").expect("Update all");
+    assert_eq!(press(&mut app, update_all), None);
 
     // Its own content keeps clear of the window's controls (macOS traffic lights at the leading
     // edge, Windows caption buttons at the trailing edge).
-    let wordmark = target(&rt, "brand/wordmark");
+    let wordmark = target(&app, "brand/wordmark");
     let mut insets = ChromeInsets::default();
     (insets.leading, insets.trailing, insets.height) = (76.0, 138.0, BAND_H);
-    rt.set_chrome_insets(insets);
-    rt.frame(1.0 / 60.0);
-    let els = rt.elements();
+    app.rt.set_chrome_insets(insets);
+    app.frame();
+    let els = app.rt.elements();
     let brand = els
         .iter()
         .position(|e| e.key.as_deref() == Some("brand"))
@@ -527,13 +513,13 @@ fn ui_the_header_band_is_the_titlebar() {
             .all(|e| e.target[0] >= 76.0),
         "the brand mark clears the traffic lights"
     );
-    let moved = target(&rt, "brand/wordmark");
+    let moved = target(&app, "brand/wordmark");
     assert_eq!(moved[2], wordmark[2], "the wordmark is not cut");
     assert!(
         moved[0] + moved[2] <= SIDEBAR_W,
         "the wordmark stays in the sidebar"
     );
-    let actions = target(&rt, "my-addons/update-all");
+    let actions = target(&app, "my-addons/update-all");
     assert!(
         actions[0] + actions[2] <= SIZE.0 - 138.0,
         "Update all clears the caption buttons"
@@ -542,9 +528,10 @@ fn ui_the_header_band_is_the_titlebar() {
 
 #[test]
 fn f7_6_about_links_the_third_party_licences() {
-    let mut rt = app(loaded);
-    tap(&mut rt, "nav/settings");
-    let tip = rt
+    let mut app = App::mock(loaded);
+    app.tap("nav/settings");
+    let tip = app
+        .rt
         .elements()
         .into_iter()
         .find(|e| e.key.as_deref() == Some("settings/licences"))
