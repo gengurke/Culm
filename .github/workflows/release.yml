@@ -51,10 +51,6 @@ jobs:
           sudo apt-get install -y --no-install-recommends libxkbcommon-dev libwayland-dev librsvg2-bin zsync
       - name: Rust toolchain (from rust-toolchain.toml)
         run: rustup toolchain install
-      - uses: Swatinem/rust-cache@v2
-        with:
-          # A cache saved on a tag can't be restored by the next tag: saving it would only evict master's.
-          save-if: false
       - run: cargo build --release --locked
       - name: AppImage
         run: packaging/appimage.sh target/release/culm "${{ needs.version.outputs.version }}" dist
@@ -74,10 +70,6 @@ jobs:
       - uses: actions/checkout@v7
       - name: Rust toolchain (from rust-toolchain.toml)
         run: rustup toolchain install
-      - uses: Swatinem/rust-cache@v2
-        with:
-          # A cache saved on a tag can't be restored by the next tag: saving it would only evict master's.
-          save-if: false
       - run: cargo build --release --locked
       # PowerShell, not bash: Git Bash would rewrite ISCC's "/D…" and "/O…" switches as paths.
       - name: Installer (Inno Setup)
@@ -107,10 +99,6 @@ jobs:
         run: |
           rustup toolchain install
           rustup target add aarch64-apple-darwin x86_64-apple-darwin
-      - uses: Swatinem/rust-cache@v2
-        with:
-          # A cache saved on a tag can't be restored by the next tag: saving it would only evict master's.
-          save-if: false
       - run: cargo build --release --locked --target aarch64-apple-darwin --target x86_64-apple-darwin
       - name: Universal Culm.app in a .dmg
         run: |
