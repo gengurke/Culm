@@ -236,6 +236,16 @@ in the theme's tones, gilded on the active chip, around a disc showing the origi
   fails when it is out of date. Settings → About → Licences opens it at this version's tag. Every release package carries it next to `LICENSE`
   (F8.3, F8.5).
   (`f7_6_about_links_the_third_party_licences`)
+- **F7.7 Log and debug info** ✅ — Culm logs each start, every error toast and every crash (panic message, place, thread,
+  backtrace, written by a panic hook before the process ends) to `culm.log` in the `rune::dirs` logs folder; once it
+  passes 256 KB (at start or while writing) it becomes `culm.old.log`, so two small files at most. The home folder is
+  written as `~`, the user name as `<user>` wherever it is a whole path segment (`/run/media/<user>/…`), the CurseForge key
+  never. Settings → About → "Copy debug info" copies plain text for the bug report form: version and stage, OS and CPU
+  (desktop and session type on Linux), installations (flavor, version, path) and the last 10 errors and crashes, also
+  from earlier runs, one line each plus the first ~15 frames of the latest crash's backtrace; "Report a bug" beside it
+  opens the GitHub bug form. Headless runs log nothing.
+  (`f7_7_log_rotates_keeps_recent_errors_hides_the_user_and_records_crashes`,
+  `f7_7_copy_debug_info_leaves_out_the_key_and_the_user_name`)
 
 ## F8 Releases
 - **F8.1 Versioning** ✅ — SemVer, 0.x while in beta; user-visible changes go into `CHANGELOG.md` under "Unreleased".

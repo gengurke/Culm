@@ -228,6 +228,40 @@ pub fn page(s: &State) -> El {
         )
         .help("Open the privacy note: which services Culm talks to and what it sends"),
     ))
+    .child(setting_row(
+        "Report a problem",
+        "Copy details that help fix it, then paste them into your bug report.",
+        row()
+            .gap(8.0)
+            .child(
+                ui::button(
+                    "settings/copy-debug-info",
+                    "Copy debug info",
+                    Kind::Ghost,
+                    None,
+                    true,
+                    |s, tx| dispatch(s, Intent::CopyDebugInfo, tx),
+                )
+                .help(
+                    "Copy Culm's version, your system, your game folders and the last errors as text. \
+                     Your user name and CurseForge key are left out.",
+                ),
+            )
+            .child(
+                ui::button(
+                    "settings/report-bug",
+                    "Report a bug",
+                    Kind::Ghost,
+                    None,
+                    true,
+                    |s, tx| {
+                        let url = format!("https://github.com/{}/issues/new?template=bug.yml", brand::REPO);
+                        dispatch(s, Intent::OpenUrl(url), tx)
+                    },
+                )
+                .help("Open the bug report form on GitHub (needs a GitHub account)"),
+            ),
+    ))
     .child(
         text(brand::DISCLAIMER)
             .key("settings/disclaimer")

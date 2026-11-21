@@ -3,6 +3,7 @@
 pub mod backend;
 mod brand;
 pub mod core_backend;
+mod debug_info;
 pub mod icons;
 pub mod mock;
 pub mod state;
@@ -31,6 +32,27 @@ pub fn init() -> State {
     let config =
         core_backend::Config::from_env().expect("no home folder to keep the app's data in");
     State::new(Arc::new(core_backend::CoreBackend::new(config)))
+}
+
+/// Logs errors and crashes to `<logs>/culm.log` (F7.7); headless runs (`--snap`, `--script`) log nothing.
+pub fn start_log() {
+    if rune::tooling::headless_run().is_some() {
+        return;
+    }
+    let Some(dirs) = rune::dirs::AppDirs::new(brand::APP_ID) else {
+        return;
+    };
+    let file = dirs
+        .logs()
+        .join(format!("{}.log", brand::APP_NAME.to_lowercase()));
+    addon_core::log::init(&file, dirs.home());
+    addon_core::log::info(&format!(
+        "{} {} started on {} {}",
+        brand::APP_NAME,
+        brand::version_label(),
+        std::env::consts::OS,
+        std::env::consts::ARCH
+    ));
 }
 
 /// The window, with named scenes for `--snap --scene <name>`.

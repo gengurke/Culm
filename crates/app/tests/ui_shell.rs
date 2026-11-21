@@ -2,7 +2,7 @@
 //! lock). Features end to end over the real core live in `e2e_*.rs`.
 
 use addon_app::mock::MockBackend;
-use addon_app::state::{MaintCard, Status};
+use addon_app::state::{MaintCard, Status, Tone};
 use addon_app::theme::{BAND_H, SIDEBAR_W};
 use addon_app::{Op, Screen, State, loaded, runtime};
 use rune::{ChromeInsets, Key, KeyEvent, Mods, Runtime, TitlebarAction};
@@ -366,6 +366,78 @@ fn f7_5_about_links_the_privacy_note() {
         .and_then(|e| e.help)
         .unwrap_or_default();
     assert!(tip.starts_with("Open the privacy note"), "{tip}");
+}
+
+#[test]
+fn f7_7_copy_debug_info_leaves_out_the_key_and_the_user_name() {
+    use std::path::{MAIN_SEPARATOR as SEP, Path};
+    let home = rune::dirs::home().expect("a home folder");
+    let user = home.file_name().unwrap().to_str().unwrap().to_string();
+    let key = "cf-secret-key-123";
+    let mut s = fresh();
+    loaded(&mut s);
+    s.settings.curseforge_key = Some(key.into());
+    s.installations[0].root = home
+        .join("Games")
+        .join("World of Warcraft")
+        .join("_forever_");
+    // A game on a second drive, mounted under the user name (KDE, GNOME).
+    let mut drive = s.installations[0].clone();
+    drive.id = "drive".into();
+    drive.root = Path::new(&SEP.to_string())
+        .join("run")
+        .join("media")
+        .join(&user)
+        .join("Games");
+    s.installations.push(drive);
+    let home = home.display().to_string();
+    // The error log is process-wide and keeps the last 10 entries: no other test here shows that many errors.
+    s.toast(
+        Tone::Danger,
+        "Could not update Questie",
+        format!("{home}/Games/x.zip: rejected key {key}"),
+    );
+    // Tall enough that About is on screen without scrolling.
+    let mut rt = runtime(s, (1280.0, 3000.0));
+    let clipboard = rune::clipboard::memory();
+    rt.use_clipboard(&clipboard);
+    rt.frame(0.0);
+    tap(&mut rt, "nav/settings");
+    let tip = |rt: &Runtime<State>, key: &str| {
+        rt.elements()
+            .into_iter()
+            .find(|e| e.key.as_deref() == Some(key))
+            .and_then(|e| e.help)
+            .unwrap_or_default()
+    };
+    assert!(tip(&rt, "settings/copy-debug-info").starts_with("Copy Culm's version"));
+    assert!(tip(&rt, "settings/report-bug").starts_with("Open the bug report form"));
+    tap(&mut rt, "settings/copy-debug-info");
+    let text = clipboard
+        .text()
+        .expect("debug info on the clipboard")
+        .to_string();
+    assert!(
+        text.starts_with(&format!("Culm v{}", env!("CARGO_PKG_VERSION"))),
+        "{text}"
+    );
+    for part in [
+        "System: ".to_string(),
+        format!(
+            "WoW Forever (Forever 1.60.1.70938): ~{SEP}Games{SEP}World of Warcraft{SEP}_forever_"
+        ),
+        format!("{SEP}run{SEP}media{SEP}<user>{SEP}Games"),
+        "error: Could not update Questie: ~/Games/x.zip: rejected key (hidden)".to_string(),
+    ] {
+        assert!(text.contains(&part), "no {part:?} in {text}");
+    }
+    assert!(!text.contains(key), "the key leaked: {text}");
+    assert!(!text.contains(&home), "the home folder leaked: {text}");
+    assert!(
+        !text.contains(&format!("{SEP}{user}")),
+        "the user name leaked: {text}"
+    );
+    assert!(shows(&rt, "Debug info copied"));
 }
 
 #[test]
