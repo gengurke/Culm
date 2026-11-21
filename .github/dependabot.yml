@@ -1,0 +1,11 @@
+# Keeps the GitHub Actions in .github/workflows current, one grouped PR a month (#48).
+# Crates are not listed: Rune is pinned by hand (#15), and lockfile refreshes ride along with each Rune bump.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      actions:
+        patterns: ["*"]

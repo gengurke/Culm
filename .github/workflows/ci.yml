@@ -7,6 +7,9 @@ on:
   pull_request:
   workflow_call:
 
+permissions:
+  contents: read
+
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
@@ -22,14 +25,17 @@ jobs:
       run:
         shell: bash
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - name: Build dependencies
         if: runner.os == 'Linux'
         # mesa-vulkan-drivers: lavapipe, the software GPU the screenshots render on.
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libxkbcommon-dev libwayland-dev mesa-vulkan-drivers
       - name: Rust toolchain (from rust-toolchain.toml)
         run: rustup toolchain install
+      # Only master saves the cache; pull requests restore it. Per-PR caches overflowed the repo's 10 GB.
       - uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.ref == 'refs/heads/master' }}
       - if: runner.os == 'Linux'
         run: cargo fmt --all --check
       - run: cargo clippy --all-targets --locked -- -D warnings
@@ -42,7 +48,7 @@ jobs:
           for scene in my-addons get-addons-detail settings maintenance my-addons@grimoire; do
             target/debug/culm --snap "snaps/$scene.png" --size 1280x800 --scene "$scene"
           done
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: screenshots-${{ runner.os }}

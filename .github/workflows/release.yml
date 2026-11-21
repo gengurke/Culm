@@ -11,7 +11,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   test:
@@ -22,7 +22,7 @@ jobs:
     outputs:
       version: ${{ steps.version.outputs.version }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - name: Version from the tag must match Cargo.toml
         id: version
         run: |
@@ -44,18 +44,17 @@ jobs:
     # The oldest supported runner: the AppImage links glibc from here, so it runs on this and anything newer.
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - name: Build and packaging dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends libxkbcommon-dev libwayland-dev librsvg2-bin zsync
       - name: Rust toolchain (from rust-toolchain.toml)
         run: rustup toolchain install
-      - uses: Swatinem/rust-cache@v2
       - run: cargo build --release --locked
       - name: AppImage
         run: packaging/appimage.sh target/release/culm "${{ needs.version.outputs.version }}" dist
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: linux
           path: dist/Culm-*
@@ -68,10 +67,9 @@ jobs:
       # Links the C runtime into culm.exe: no Visual C++ Redistributable needed on the user's machine.
       RUSTFLAGS: -C target-feature=+crt-static
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - name: Rust toolchain (from rust-toolchain.toml)
         run: rustup toolchain install
-      - uses: Swatinem/rust-cache@v2
       - run: cargo build --release --locked
       # PowerShell, not bash: Git Bash would rewrite ISCC's "/D…" and "/O…" switches as paths.
       - name: Installer (Inno Setup)
@@ -83,7 +81,7 @@ jobs:
           & $iscc "/DVersion=$version" "/DExe=$PWD\target\release\culm.exe" "/O$PWD\dist" packaging\windows\culm.iss
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           Get-ChildItem dist
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: windows
           path: dist/Culm-*
@@ -96,18 +94,17 @@ jobs:
       # Rune's oldest supported macOS; packaging/macos.sh writes it into Info.plist as LSMinimumSystemVersion.
       MACOSX_DEPLOYMENT_TARGET: "13.0"
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - name: Rust toolchain (from rust-toolchain.toml), both Mac architectures
         run: |
           rustup toolchain install
           rustup target add aarch64-apple-darwin x86_64-apple-darwin
-      - uses: Swatinem/rust-cache@v2
       - run: cargo build --release --locked --target aarch64-apple-darwin --target x86_64-apple-darwin
       - name: Universal Culm.app in a .dmg
         run: |
           packaging/macos.sh target/aarch64-apple-darwin/release/culm target/x86_64-apple-darwin/release/culm \
             "${{ needs.version.outputs.version }}" dist
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: macos
           path: dist/Culm-*
@@ -118,9 +115,11 @@ jobs:
     if: github.event_name == 'push'
     needs: [version, linux, windows, macos]
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
         with:
           path: dist
           merge-multiple: true
