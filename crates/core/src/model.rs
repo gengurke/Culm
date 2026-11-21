@@ -188,6 +188,9 @@ pub struct Addon {
     pub installed_at: Option<String>,
     /// TOC `## Interface` of the main folder, e.g. "1.60.1".
     pub game_version: Option<String>,
+    /// Game versions of every TOC `## Interface` number, e.g. ["1.15.9", "1.60.1"] (F2.5).
+    #[serde(default)]
+    pub game_versions: Vec<String>,
     pub channel: Channel,
     /// Latest known remote file for `channel` (filled by update checks).
     pub latest: Option<RemoteFile>,
@@ -197,6 +200,27 @@ pub struct Addon {
 }
 
 impl Addon {
+    /// Whether the addon is made for an older game version than the client's (`Installation::version`,
+    /// e.g. "1.60.1.70938"): its highest TOC interface number is below the client's (F2.7). A newer
+    /// number fits. False when either side is unknown.
+    pub fn out_of_date(&self, client: Option<&str>) -> bool {
+        let patch = |v: &str| -> Option<Vec<u32>> {
+            let p: Vec<u32> = v
+                .split('.')
+                .take(3)
+                .map(|n| n.parse().ok())
+                .collect::<Option<_>>()?;
+            (p.len() == 3).then_some(p)
+        };
+        let (Some(client), Some(newest)) = (
+            client.and_then(patch),
+            self.game_versions.iter().filter_map(|v| patch(v)).max(),
+        ) else {
+            return false;
+        };
+        newest < client
+    }
+
     pub fn update_available(&self) -> bool {
         if self.ignored.is_some() {
             return false;

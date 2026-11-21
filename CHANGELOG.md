@@ -16,6 +16,8 @@ or break. New changes go under "Unreleased"; a release turns that heading into i
 - Windows and macOS: switching from WowUp keeps your addons' sources, as on Linux (Culm reads WowUp's settings there too).
 - Windows and macOS: maintenance tools (clear cache, clean backups, back up settings) wait while the game is running, as on Linux.
 - Windows and macOS: Culm finds WoW Forever in its usual install folders (Battle.net's default on any drive, `/Applications` on macOS).
+- My Addons marks addons made for an older game version "Out of date" (the game only loads them with "Load out of date
+  AddOns" on); the tooltip says which versions the addon lists.
 
 ### Changed
 - An update whose author only allows downloads through CurseForge's own app or website no longer fails: its Update button starts the download in your browser, and Culm installs the file as soon as it is in your Downloads folder, then deletes it (and any duplicate copy). If the file is already in Downloads, it is installed right away without opening the browser. Saved it somewhere else? "Install from file…" in the details. Culm only installs a file that is exactly the new version. "Update all" skips these.

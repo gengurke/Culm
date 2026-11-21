@@ -363,19 +363,54 @@ fn addon_row(s: &State, a: &AddonUi) -> El {
                         .color(p.text)
                         .truncate(),
                 )
-                .child(ui::meta(&[&addon.author, provider])),
+                .child(meta_line(s, a, provider)),
         )
         .child(version_cell(a).w(VERSION_W));
     if !compact(s) {
+        let old = out_of_date_help(s, a).is_some();
         r = r.child(
             text(addon.game_version.clone().unwrap_or_else(|| "—".into()))
                 .font(t().ty.mono)
-                .color(p.text_muted)
+                .color(if old { p.warning } else { p.text_muted })
                 .w(GAME_W),
         );
     }
     r.child(status_cell(a).w(STATUS_W))
         .child(row().w(ACTION_W).justify_end().child(action_cell(a)))
+}
+
+/// Author and source, plus "Out of date" when the addon is made for an older game version (F2.7).
+fn meta_line(s: &State, a: &AddonUi, provider: &str) -> El {
+    let p = pal();
+    let mut parts: Vec<El> = [&a.addon.author, provider]
+        .into_iter()
+        .filter(|s| !s.is_empty())
+        .map(|s| text(s.to_string()).font(t().ty.small).color(p.text_muted))
+        .collect();
+    if let Some(help) = out_of_date_help(s, a) {
+        parts.push(
+            text("Out of date")
+                .key(format!("addon/{}/out-of-date", a.addon.id))
+                .font(t().ty.small)
+                .color(p.warning)
+                .help(help),
+        );
+    }
+    ui::meta_line(parts)
+}
+
+/// Why the addon counts as out of date, or None when it fits the game (F2.7).
+fn out_of_date_help(s: &State, a: &AddonUi) -> Option<String> {
+    let client = s.installation()?.version.as_deref()?;
+    if !a.addon.out_of_date(Some(client)) {
+        return None;
+    }
+    let game = client.split('.').take(3).collect::<Vec<_>>().join(".");
+    Some(format!(
+        "Made for game version {}, your game is {game}. The game loads it only with \
+         \"Load out of date AddOns\" on; a newer version of the addon may fix this.",
+        a.addon.game_versions.join(", ")
+    ))
 }
 
 fn version_cell(a: &AddonUi) -> El {
@@ -852,11 +887,15 @@ fn detail(s: &State, a: &AddonUi) -> El {
                     true,
                 ))
                 .child(fact("Latest", latest, true))
-                .child(fact(
-                    "Game version",
-                    addon.game_version.clone().unwrap_or_else(|| "—".into()),
-                    true,
-                ))
+                .child({
+                    let game = addon.game_version.clone().unwrap_or_else(|| "—".into());
+                    match out_of_date_help(s, a) {
+                        Some(help) => fact("Game version", format!("{game} (out of date)"), true)
+                            .key("detail/out-of-date")
+                            .help(help),
+                        None => fact("Game version", game, true),
+                    }
+                })
                 .child(fact(
                     "Provider",
                     addon

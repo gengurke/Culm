@@ -309,3 +309,37 @@ fn f2_5_store_roundtrip_and_rescan_keeps_user_choices() {
             .any(|a| a.folders == ["Details"] && a.provider.is_none())
     );
 }
+
+#[test]
+fn f2_7_out_of_date_when_the_newest_interface_number_is_older_than_the_client() {
+    let w = fake_wow();
+    let toc = |interface: &str| format!("## Interface: {interface}\n## Title: T\n");
+    w.add_folder("Fits", "Fits.toc", &toc("16001"), &[]);
+    w.add_folder("Listed", "Listed.toc", &toc("11509, 16001"), &[]);
+    w.add_folder("Newer", "Newer.toc", &toc("16100"), &[]);
+    w.add_folder("Older", "Older.toc", &toc("16000"), &[]);
+    w.add_folder("Classic", "Classic.toc", &toc("11509, 11508"), &[]);
+    w.add_folder("NoNumber", "NoNumber.toc", "## Title: T\n", &[]);
+    let res = scan::scan_installation(&w.inst, &[]).unwrap();
+    let client = w.inst.version.as_deref();
+    assert_eq!(client, Some("1.60.1.70938"), "read from .build.info");
+    let old = |folder: &str| {
+        let a = res.addons.iter().find(|a| a.folders == [folder]).unwrap();
+        a.out_of_date(client)
+    };
+    assert!(!old("Fits") && !old("Listed"));
+    assert!(!old("Newer"), "a newer number than the client's fits");
+    assert!(old("Older") && old("Classic"));
+    assert!(!old("NoNumber"), "no interface number: not judged");
+    let classic = res
+        .addons
+        .iter()
+        .find(|a| a.folders == ["Classic"])
+        .unwrap();
+    assert_eq!(classic.game_versions, ["1.15.9", "1.15.8"]);
+    assert!(
+        !classic.out_of_date(None),
+        "unknown client version: not judged"
+    );
+    assert!(!classic.out_of_date(Some("1.15.9.1234")));
+}

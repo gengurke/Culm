@@ -55,6 +55,13 @@ What the addon manager does, one short paragraph per feature. Ids are referenced
   working, not checked, up to date, unknown, ignored), ties by name. Version is not sortable (authors' own strings;
   Status covers "outdated"). Applies after the filter text; the order is kept in prefs (`addon_order`, e.g. `status-asc`).
   (`f2_6_column_headers_sort_the_list`)
+- **F2.7 Out of date** ✅ — An addon whose highest TOC `## Interface` number (of all listed, e.g. `11509, 16001`) is below
+  the client's says "Out of date" in its row and detail panel (the Game column turns amber); a newer number fits. The
+  tooltip names its game versions and the client's and says the game loads it only with "Load out of date AddOns". The
+  client's number comes from the version in `.build.info` (1.60.1 → 16001, the same number the game writes as
+  `engineSurveyPatch` in `Config.wtf`). No interface number or unknown client version: not judged.
+  (`f2_7_out_of_date_when_the_newest_interface_number_is_older_than_the_client`,
+  e2e `f2_7_addons_for_another_game_version_are_marked_out_of_date`)
 
 ## F3 Updates
 - **F3.1 Check for updates** ✅ — After each scan and on demand, `updates::check_updates` asks each available provider

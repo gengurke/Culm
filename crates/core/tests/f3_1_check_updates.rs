@@ -23,6 +23,7 @@ fn addon(provider: &str, external_id: &str, installed_file: &str) -> Addon {
         installed_file_id: Some(installed_file.into()),
         installed_at: None,
         game_version: None,
+        game_versions: vec![],
         channel: Channel::Stable,
         latest: None,
         ignored: None,
