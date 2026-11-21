@@ -6,28 +6,35 @@ or break. New changes go under "Unreleased"; a release turns that heading into i
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-21
+
+Culm now runs on Windows and macOS too.
+
 ### Added
-- Culm for Windows and macOS: a Windows installer (per user, no admin rights) and a macOS .dmg for
-  Apple Silicon and Intel Macs. They are not code-signed yet: the README says how to allow the first start.
-  They check for a new version when they start; "Update to x.y.z" opens the release page.
-- Settings → About links a privacy note: which services Culm talks to and what it sends (no telemetry).
-- Settings → About → Licences lists the open-source code and fonts Culm is built from, with their licences.
-  Every download (AppImage, Windows installer, macOS app) also carries that list and Culm's own licence.
-- Windows and macOS: switching from WowUp keeps your addons' sources, as on Linux (Culm reads WowUp's settings there too).
-- Windows and macOS: maintenance tools (clear cache, clean backups, back up settings) wait while the game is running, as on Linux.
-- Settings → About → "Copy debug info" copies what helps fix a problem (version, system, game folders, last errors and
-  crashes) for a bug report, and "Report a bug" opens the form. Culm now keeps a small log file of errors and crashes;
-  your user name and the CurseForge key stay out of both.
-- Windows and macOS: Culm finds WoW Forever in its usual install folders (Battle.net's default on any drive, `/Applications` on macOS).
-- My Addons marks addons made for an older game version "Out of date" (the game only loads them with "Load out of date
+- Windows and macOS: a Windows installer (per user, no admin rights) and a macOS .dmg for Apple Silicon and Intel Macs.
+  They are not code-signed yet: the README says how to allow the first start. They check for a new version at start;
+  "Update to x.y.z" opens the release page.
+- Windows and macOS: Culm finds WoW Forever in its usual install folders (Battle.net's default on any drive,
+  `/Applications` on macOS), keeps your addons' sources when you switch from WowUp, and waits with maintenance
+  (clear cache, clean backups, back up settings) while the game is running, as on Linux.
+- My Addons marks addons made for an older game version "Out of date" (the game loads them only with "Load out of date
   AddOns" on); the tooltip says which versions the addon lists.
+- Settings → About → "Copy debug info" copies what helps fix a problem (version, system, game folders, recent errors and
+  crashes) for a bug report, and "Report a bug" opens the form. Culm keeps a small log file of errors and crashes;
+  your user name and CurseForge key stay out of both.
+- Settings → About links a privacy note (which services Culm talks to and what it sends; no telemetry) and lists the
+  open-source code and fonts Culm is built from, with their licences. Every download carries that list and Culm's licence.
 
 ### Changed
-- An update whose author only allows downloads through CurseForge's own app or website no longer fails: its Update button starts the download in your browser, and Culm installs the file as soon as it is in your Downloads folder, then deletes it (and any duplicate copy). If the file is already in Downloads, it is installed right away without opening the browser. Saved it somewhere else? "Install from file…" in the details. Culm only installs a file that is exactly the new version. "Update all" skips these.
-- New addons with the same restriction (e.g. Platynator) are no longer greyed out in Get Addons: Install fetches them the same way, through your browser and Downloads folder.
-- Drag the header band to move the window, double-click it to maximize. On Windows and macOS it replaces the system title bar: the window buttons sit in the band (on Windows in the theme's colours). Linux keeps the system title bar for now.
+- Addons whose author allows downloads only through CurseForge's own app or website can now be installed and updated:
+  Culm opens the download in your browser and installs the file as soon as it lands in your Downloads folder, then
+  deletes it. A file already in Downloads is installed right away; one saved elsewhere goes in with "Install from file…"
+  in the details. Culm only installs a file that is exactly the expected version. "Update all" skips these.
+- Drag the header band to move the window, double-click it to maximize. On Windows and macOS it replaces the system
+  title bar, with the window buttons in the band. Linux keeps the system title bar for now.
 - Switching an addon between Stable, Beta and Alpha checks only that addon, not all of them.
-- Updated the Rune UI framework: a notched mouse wheel scrolls smoothly on Windows and Linux, and on GNOME (Wayland) the window's bottom corners are rounded like its title bar.
+- Updated the Rune UI framework: a notched mouse wheel scrolls smoothly on Windows and Linux, and on GNOME (Wayland)
+  the window's bottom corners are rounded like its title bar.
 
 ## [0.1.2] - 2026-11-17
 
@@ -55,7 +62,8 @@ First beta, Linux only (AppImage).
 - Updates itself: the AppImage checks for a new version at start and installs it with one click and a restart.
 - The AppImage carries update information, so Gear Lever, AppImageUpdate and AppImageLauncher can update it too.
 
-[Unreleased]: https://github.com/gengurke/Culm/compare/v0.1.2...HEAD
+[Unreleased]: https://github.com/gengurke/Culm/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/gengurke/Culm/compare/v0.1.2...v0.2.0
 [0.1.2]: https://github.com/gengurke/Culm/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/gengurke/Culm/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/gengurke/Culm/releases/tag/v0.1.0
