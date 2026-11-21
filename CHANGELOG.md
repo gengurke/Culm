@@ -16,7 +16,7 @@ or break. New changes go under "Unreleased"; a release turns that heading into i
 - Windows and macOS: switching from WowUp keeps your addons' sources, as on Linux (Culm reads WowUp's settings there too).
 - Windows and macOS: maintenance tools (clear cache, clean backups, back up settings) wait while the game is running, as on Linux.
 - Windows and macOS: Culm finds WoW Forever in its usual install folders (Battle.net's default on any drive, `/Applications` on macOS).
-- My Addons marks addons made for another game version "Out of date" (the game only loads them with "Load out of date
+- My Addons marks addons made for an older game version "Out of date" (the game only loads them with "Load out of date
   AddOns" on); the tooltip says which versions the addon lists.
 
 ### Changed

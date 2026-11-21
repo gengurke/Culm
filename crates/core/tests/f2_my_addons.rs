@@ -311,14 +311,14 @@ fn f2_5_store_roundtrip_and_rescan_keeps_user_choices() {
 }
 
 #[test]
-fn f2_7_out_of_date_compares_every_interface_number_with_the_client() {
+fn f2_7_out_of_date_when_the_newest_interface_number_is_older_than_the_client() {
     let w = fake_wow();
     let toc = |interface: &str| format!("## Interface: {interface}\n## Title: T\n");
     w.add_folder("Fits", "Fits.toc", &toc("16001"), &[]);
-    w.add_folder("Listed", "Listed.toc", &toc("11509, 20506, 16001"), &[]);
-    w.add_folder("Next", "Next.toc", &toc("16001, 16100"), &[]);
+    w.add_folder("Listed", "Listed.toc", &toc("11509, 16001"), &[]);
+    w.add_folder("Newer", "Newer.toc", &toc("16100"), &[]);
     w.add_folder("Older", "Older.toc", &toc("16000"), &[]);
-    w.add_folder("Classic", "Classic.toc", &toc("11509, 20506"), &[]);
+    w.add_folder("Classic", "Classic.toc", &toc("11509, 11508"), &[]);
     w.add_folder("NoNumber", "NoNumber.toc", "## Title: T\n", &[]);
     let res = scan::scan_installation(&w.inst, &[]).unwrap();
     let client = w.inst.version.as_deref();
@@ -327,7 +327,8 @@ fn f2_7_out_of_date_compares_every_interface_number_with_the_client() {
         let a = res.addons.iter().find(|a| a.folders == [folder]).unwrap();
         a.out_of_date(client)
     };
-    assert!(!old("Fits") && !old("Listed") && !old("Next"));
+    assert!(!old("Fits") && !old("Listed"));
+    assert!(!old("Newer"), "a newer number than the client's fits");
     assert!(old("Older") && old("Classic"));
     assert!(!old("NoNumber"), "no interface number: not judged");
     let classic = res
@@ -335,7 +336,7 @@ fn f2_7_out_of_date_compares_every_interface_number_with_the_client() {
         .iter()
         .find(|a| a.folders == ["Classic"])
         .unwrap();
-    assert_eq!(classic.game_versions, ["1.15.9", "2.5.6"]);
+    assert_eq!(classic.game_versions, ["1.15.9", "1.15.8"]);
     assert!(
         !classic.out_of_date(None),
         "unknown client version: not judged"

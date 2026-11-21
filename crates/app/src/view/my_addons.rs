@@ -379,7 +379,7 @@ fn addon_row(s: &State, a: &AddonUi) -> El {
         .child(row().w(ACTION_W).justify_end().child(action_cell(a)))
 }
 
-/// Author and source, plus "Out of date" when the addon is made for another game version (F2.5).
+/// Author and source, plus "Out of date" when the addon is made for an older game version (F2.7).
 fn meta_line(s: &State, a: &AddonUi, provider: &str) -> El {
     let p = pal();
     let mut parts: Vec<El> = [&a.addon.author, provider]
@@ -399,7 +399,7 @@ fn meta_line(s: &State, a: &AddonUi, provider: &str) -> El {
     ui::meta_line(parts)
 }
 
-/// Why the addon counts as out of date, or None when it fits the game (F2.5).
+/// Why the addon counts as out of date, or None when it fits the game (F2.7).
 fn out_of_date_help(s: &State, a: &AddonUi) -> Option<String> {
     let client = s.installation()?.version.as_deref()?;
     if !a.addon.out_of_date(Some(client)) {

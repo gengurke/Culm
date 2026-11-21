@@ -200,9 +200,9 @@ pub struct Addon {
 }
 
 impl Addon {
-    /// Whether the addon is made for another game version than the client's (`Installation::version`,
-    /// e.g. "1.60.1.70938"): none of its TOC interface numbers is the client's (F2.5). False when
-    /// either side is unknown.
+    /// Whether the addon is made for an older game version than the client's (`Installation::version`,
+    /// e.g. "1.60.1.70938"): its highest TOC interface number is below the client's (F2.7). A newer
+    /// number fits. False when either side is unknown.
     pub fn out_of_date(&self, client: Option<&str>) -> bool {
         let patch = |v: &str| -> Option<Vec<u32>> {
             let p: Vec<u32> = v
@@ -212,14 +212,13 @@ impl Addon {
                 .collect::<Option<_>>()?;
             (p.len() == 3).then_some(p)
         };
-        let Some(client) = client.and_then(patch) else {
+        let (Some(client), Some(newest)) = (
+            client.and_then(patch),
+            self.game_versions.iter().filter_map(|v| patch(v)).max(),
+        ) else {
             return false;
         };
-        !self.game_versions.is_empty()
-            && !self
-                .game_versions
-                .iter()
-                .any(|v| patch(v) == Some(client.clone()))
+        newest < client
     }
 
     pub fn update_available(&self) -> bool {

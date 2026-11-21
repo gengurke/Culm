@@ -585,7 +585,7 @@ fn f2_7_addons_for_another_game_version_are_marked_out_of_date() {
     let dir = world.addons_dir().join("Oldie");
     write(
         &dir.join("Oldie.toc"),
-        "## Interface: 11509, 20506\n## Title: Oldie\n## Version: 3\n",
+        "## Interface: 11509, 11508\n## Title: Oldie\n## Version: 3\n",
     );
     write(&dir.join("Core.lua"), "-- old\n");
     let mut app = world.app();
@@ -604,7 +604,7 @@ fn f2_7_addons_for_another_game_version_are_marked_out_of_date() {
         .and_then(|e| e.help.clone())
         .unwrap_or_default();
     assert!(
-        help.contains("1.15.9, 2.5.6") && help.contains("your game is 1.60.1"),
+        help.contains("1.15.9, 1.15.8") && help.contains("your game is 1.60.1"),
         "{help}"
     );
     app.tap(&app.row("Oldie", ""));
