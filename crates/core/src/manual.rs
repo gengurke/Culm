@@ -8,23 +8,26 @@ use crate::model::{Addon, Channel, FileCheck, Installation, RemoteAddon, RemoteF
 use anyhow::{Context, Result, bail};
 use sha1::{Digest, Sha1};
 use std::fs::File;
-use std::io::Read;
+use std::io::{Read, Seek};
 use std::path::{Path, PathBuf};
 
-/// Whether the file at `path` is the one `check` describes (size first, so most files cost one
-/// `stat`).
+/// Whether the file at `path` is the one `check` describes.
 pub fn matches(path: &Path, check: &FileCheck) -> bool {
-    let Ok(meta) = path.metadata() else {
+    File::open(path).is_ok_and(|mut f| is_file(&mut f, check))
+}
+
+/// Whether the open file is the one `check` describes (size first, so most files cost one `stat`).
+fn is_file(f: &mut File, check: &FileCheck) -> bool {
+    let Ok(meta) = f.metadata() else {
         return false;
     };
     if !meta.is_file() || meta.len() != check.size {
         return false;
     }
-    sha1_hex(path).is_ok_and(|h| h == check.sha1)
+    sha1_hex(f).is_ok_and(|h| h == check.sha1)
 }
 
-fn sha1_hex(path: &Path) -> Result<String> {
-    let mut f = File::open(path)?;
+fn sha1_hex(mut f: impl Read) -> Result<String> {
     let mut hasher = Sha1::new();
     let mut buf = vec![0u8; 64 * 1024];
     loop {
@@ -80,9 +83,11 @@ pub fn install(inst: &Installation, addon: &Addon, path: &Path) -> Result<Addon>
             addon.name
         );
     };
-    if !matches(path, check) {
+    // Checked and installed from one open file: a file swapped in meanwhile is never installed.
+    let mut zip = File::open(path).with_context(|| format!("opening {}", path.display()))?;
+    if !is_file(&mut zip, check) {
         bail!("this file is not {} {}", addon.name, file.version);
     }
-    let zip = File::open(path).with_context(|| format!("opening {}", path.display()))?;
+    zip.rewind()?;
     install_zip_file(inst, addon, file, zip).with_context(|| format!("installing {}", addon.name))
 }

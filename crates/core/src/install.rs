@@ -6,7 +6,7 @@
 //! folders are removed and the backups restored. Old folders absent from the new zip are gone.
 
 use crate::model::{Addon, Channel, Installation, RemoteAddon, RemoteFile};
-use crate::toc::read_folder_toc;
+use crate::toc::{Toc, read_folder_toc};
 use crate::util::{new_id, now_rfc3339, now_stamp};
 use anyhow::{Context, Result, bail};
 use std::collections::BTreeSet;
@@ -144,6 +144,13 @@ fn swap(
     new: &[String],
     old: &[String],
 ) -> Result<()> {
+    // A developer's checkout of a folder the addon doesn't own may hold unsaved work.
+    if let Some(git) = new
+        .iter()
+        .find(|n| !old.contains(n) && addons.join(n).join(".git").exists())
+    {
+        bail!("{git} is a git checkout (a developer's copy) - not replacing it");
+    }
     std::fs::create_dir(backup).with_context(|| format!("creating {}", backup.display()))?;
     let mut backed_up: Vec<&String> = Vec::new();
     let mut moved_in: Vec<&String> = Vec::new();
@@ -185,6 +192,63 @@ fn swap(
             backup.display()
         )))
     }
+}
+
+/// Cleans up after an install that was cut off mid-swap (crash, power loss): every folder in a
+/// leftover backup dir whose name is missing in AddOns goes back, then the backup dir is deleted;
+/// leftover staging dirs are deleted. Call it only while no install runs. A backup that can't be
+/// put back fully is kept for the next try.
+pub fn recover(inst: &Installation) -> Result<()> {
+    let addons = inst.addons_dir();
+    let Some(work) = addons.parent() else {
+        return Ok(());
+    };
+    let Ok(entries) = std::fs::read_dir(work) else {
+        return Ok(()); // no Interface folder yet
+    };
+    let mut failed = Vec::new();
+    for e in entries.flatten() {
+        if !e.file_type().is_ok_and(|t| t.is_dir()) {
+            continue;
+        }
+        let name = e.file_name().to_string_lossy().into_owned();
+        let path = e.path();
+        let res = if name.starts_with(".addons-staging-") {
+            std::fs::remove_dir_all(&path).map_err(Into::into)
+        } else if name.starts_with(".addons-backup-") {
+            restore(&path, &addons).and_then(|()| Ok(std::fs::remove_dir_all(&path)?))
+        } else {
+            continue;
+        };
+        if let Err(err) = res {
+            failed.push(format!("{}: {err:#}", path.display()));
+        }
+    }
+    if !failed.is_empty() {
+        bail!(
+            "could not clean up an interrupted install: {}",
+            failed.join("; ")
+        );
+    }
+    Ok(())
+}
+
+/// Moves each folder in `backup` whose name is missing in `addons` back.
+fn restore(backup: &Path, addons: &Path) -> Result<()> {
+    for e in std::fs::read_dir(backup)? {
+        let e = e?;
+        let dst = addons.join(e.file_name());
+        if dst.symlink_metadata().is_err() {
+            std::fs::create_dir_all(addons)?;
+            std::fs::rename(e.path(), &dst)
+                .with_context(|| format!("putting back {}", dst.display()))?;
+            crate::log::info(&format!(
+                "put back {} after an interrupted install",
+                dst.display()
+            ));
+        }
+    }
+    Ok(())
 }
 
 /// Installs a provider addon ([`pick_file`]) and returns its new record. Existing folders with the
@@ -263,9 +327,9 @@ pub fn install_zip_file(
     let main = folders
         .iter()
         .min_by(|x, y| x.len().cmp(&y.len()).then(x.cmp(y)));
-    a.game_version = main
-        .and_then(|m| read_folder_toc(&inst.addons_dir().join(m)).ok().flatten())
-        .and_then(|t| t.forever_game_version());
+    let toc = main.and_then(|m| read_folder_toc(&inst.addons_dir().join(m)).ok().flatten());
+    a.game_version = toc.as_ref().and_then(Toc::forever_game_version);
+    a.game_versions = toc.as_ref().map(Toc::game_versions).unwrap_or_default();
     a.folders = folders;
     a.installed_version = Some(file.version.clone());
     a.installed_file_id = Some(file.id.clone());

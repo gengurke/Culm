@@ -9,6 +9,17 @@ or break. New changes go under "Unreleased"; a release turns that heading into i
 ### Changed
 - Updated the Rune UI framework: when the button that has keyboard focus greys out, focus moves on to the next control
   instead of being lost, and on Windows saving settings no longer fails when another program briefly holds the file.
+- Starting Culm while it already runs brings the open window forward instead of opening a second one (Windows, Linux).
+
+### Fixed
+- Installing or updating an addon never replaces a folder that is a developer's git checkout.
+- If Culm is closed mid-install (crash, power loss), the addon's old folders are put back at the next scan instead of
+  staying hidden, and its source link is kept.
+- "Out of date" and the game versions in the detail are right straight after an install or update, not only after
+  the next scan.
+- One addon folder that can't be read no longer stops My Addons from loading: it is skipped with a warning.
+- A zip installed by hand is checked and installed from the same file, so a file replaced in between is never
+  installed unchecked.
 
 ## [0.2.0] - 2026-11-21
 

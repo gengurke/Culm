@@ -67,7 +67,7 @@ fn f2_4_imports_wowup_records() {
 
     // Imported links survive a rescan without any provider (no API key yet).
     let fresh = scan::scan_installation(&w.inst, &[]).unwrap().addons;
-    let merged = store::merge_rescan(&imported, fresh);
+    let merged = store::merge_rescan(&imported, fresh, &[]);
     let names: Vec<(&str, bool)> = merged
         .iter()
         .map(|a| (a.name.as_str(), a.provider.is_some()))
@@ -121,7 +121,7 @@ fn f2_4_overlapping_wowup_records_get_one_owner_per_folder() {
     );
     // Stays that way through a rescan merge, and removing Questie won't delete QuestieTrace.
     let fresh = scan::scan_installation(&w.inst, &[]).unwrap().addons;
-    let merged = store::merge_rescan(&imported, fresh);
+    let merged = store::merge_rescan(&imported, fresh, &[]);
     assert_eq!(merged.len(), 2);
     assert_eq!(merged[0].folders, ["Questie"]);
 }
@@ -160,7 +160,7 @@ fn f2_4_wowup_link_is_not_taken_over_by_another_providers_toc_match() {
         fail: false,
     })];
     let fresh = scan::scan_installation(&w.inst, &providers).unwrap().addons;
-    let merged = store::merge_rescan(&imported, fresh);
+    let merged = store::merge_rescan(&imported, fresh, &[]);
     assert_eq!(merged.len(), 1, "{merged:#?}");
     let e = &merged[0];
     assert_eq!(

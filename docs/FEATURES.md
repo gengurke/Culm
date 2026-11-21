@@ -28,7 +28,9 @@ What the addon manager does, one short paragraph per feature. Ids are referenced
 ## F2 My Addons (local)
 - **F2.1 Scan** ✅ — Reads `Interface/AddOns`, picks the right TOC per folder (Forever: `_Forever`/`_Camelot`
   first, then the plain TOC), and reads title, version, author, interface version. Rows show provider thumbnails
-  (downloaded on a worker, cached in the cache dir; CurseForge's only in memory, its terms forbid storing its data) over an initials tile. (`f2_1_scan_picks_forever_toc`,
+  (downloaded on a worker, cached in the cache dir; CurseForge's only in memory, its terms forbid storing its data) over an initials tile.
+  A folder that can't be read (no permission) is skipped and named in a warning; its stored record keeps its link and
+  settings. (`f2_1_scan_picks_forever_toc`, `f2_1_scan_skips_an_unreadable_folder_and_keeps_its_record`,
   e2e `f2_1_f2_3_scan_shows_matched_and_unknown_addons`, `f2_1_thumbnails_load_over_initials`;
   mock UI `f2_1_an_empty_installation_says_so_instead_of_a_filter_miss`)
 - **F2.2 Grouping** ✅ — Folders that belong to one addon (same provider match, folders listed in the installed file,
@@ -65,7 +67,9 @@ What the addon manager does, one short paragraph per feature. Ids are referenced
   tooltip names its game versions and the client's and says the game loads it only with "Load out of date AddOns". The
   client's number comes from the version in `.build.info` (1.60.1 → 16001, the same number the game writes as
   `engineSurveyPatch` in `Config.wtf`). No interface number or unknown client version: not judged.
+  Install and update record the new version's numbers at once, without a rescan.
   (`f2_7_out_of_date_when_the_newest_interface_number_is_older_than_the_client`,
+  `f2_7_install_and_update_record_the_game_versions`,
   e2e `f2_7_addons_for_another_game_version_are_marked_out_of_date`)
 
 ## F3 Updates
@@ -81,8 +85,10 @@ What the addon manager does, one short paragraph per feature. Ids are referenced
   cache, so big addons (audio packs pass 512 MB) never sit in memory, validates it (no `..`/absolute paths/symlinks,
   at least one top-level folder with a `.toc`, so a wrapper-folder zip can't replace the addon), extracts next to AddOns,
   swaps the folders with backup + rollback, removes folders the new version dropped (only folders no other record lists),
-  records the new version. A running update can't be started twice, also across a rescan. CurseForge CDN downloads carry the
-  user's key (`x-api-key`), sent only to CurseForge hosts and checked again on every redirect. (e2e `f3_2_update_replaces_folder_contents`, `f3_2_update_all_updates_every_outdated_addon`, core: `f3_2_download_reports_progress_and_http_errors`, `f3_2_update_swaps_folders_and_rolls_back_on_bad_zip`, `f3_2_swap_failure_restores_backups`, `f3_2_big_downloads_stream_to_a_file`, `f3_2_download_keys_go_only_to_their_hosts_even_across_redirects`, `f3_2_only_curseforge_hosts_get_the_key`)
+  records the new version. A folder that is a git checkout the addon doesn't own is never replaced (the install fails,
+  nothing touched). If Culm dies mid-swap, the next scan puts back the backed-up folders that are missing and deletes
+  the leftovers. A running update can't be started twice, also across a rescan. CurseForge CDN downloads carry the
+  user's key (`x-api-key`), sent only to CurseForge hosts and checked again on every redirect. (e2e `f3_2_update_replaces_folder_contents`, `f3_2_update_all_updates_every_outdated_addon`, core: `f3_2_download_reports_progress_and_http_errors`, `f3_2_update_swaps_folders_and_rolls_back_on_bad_zip`, `f3_2_swap_failure_restores_backups`, `f3_2_recover_puts_back_folders_of_an_interrupted_install`, `f3_2_big_downloads_stream_to_a_file`, `f3_2_download_keys_go_only_to_their_hosts_even_across_redirects`, `f3_2_only_curseforge_hosts_get_the_key`)
 - **F3.3 Channels** ✅ — Per addon Stable / Beta / Alpha in the detail panel (stored); "Beta" also accepts
   stable files, etc. A change rechecks only that addon (its row says "Checking…"); a full check still running answers
   for the old channel and doesn't overwrite it. (`f3_1_check_updates_batches_per_provider_and_isolates_failures`,
@@ -98,7 +104,7 @@ What the addon manager does, one short paragraph per feature. Ids are referenced
   size and SHA-1 CurseForge publishes (`manual::find_in`; unfinished `.part`/`.crdownload` files never match). The
   first look runs before the browser opens: a copy already there is installed without a tab. Found, it is installed
   like any update (validation, backup, rollback) and deleted with every identical copy (`Foo(1).zip`). Saved elsewhere: "Install from file…"
-  in the detail picks the zip, checks it the same way, installs it and leaves it in place. The size and hash stay in
+  in the detail picks the zip, checks it the same way, installs it (checked and installed from one open file) and leaves it in place. The size and hash stay in
   memory only (#69). (core `f3_5_finds_only_the_exact_zip_in_downloads`,
   `f3_5_installs_a_zip_fetched_by_hand_only_when_it_is_the_file`, `f3_5_curseforge_file_carries_its_size_and_sha1`,
   e2e `f3_5_update_only_on_curseforge_installs_the_browser_download`,
@@ -124,6 +130,7 @@ What the addon manager does, one short paragraph per feature. Ids are referenced
   Cancel on the card and in the detail, installs and deletes the zip once it lands; the detail adds "Install from file…").
   Without the file's size and SHA-1 Install is greyed out with the reason in its tooltip.
   (`f4_3_install_creates_record_and_replaces_existing_folders`, `f4_3_install_takes_only_shared_folders_from_other_records`,
+  `f4_3_install_never_replaces_a_git_checkout`,
   `f4_3_no_download_url_means_the_author_said_no`, `f4_3_installs_a_new_addon_from_a_zip_fetched_by_hand`, e2e
   `f4_1_search_and_f4_3_install_from_a_result`, `f4_3_install_only_on_curseforge_installs_the_browser_download`,
   `f4_3_a_zip_already_in_downloads_installs_without_the_browser`, `f4_3_waiting_for_a_new_addon_can_be_cancelled`,
