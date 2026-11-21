@@ -32,7 +32,7 @@ fn f6_1_clear_cache_removes_cache_dir() {
 
 /// The fake game: this test binary, copied as `Wow.exe`, runs only this (ignored) test.
 #[test]
-#[ignore]
+#[ignore = "helper process for f6_1_refuses_while_game_running"]
 fn fake_game() {
     std::thread::sleep(std::time::Duration::from_secs(30));
 }

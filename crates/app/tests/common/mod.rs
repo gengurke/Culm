@@ -4,6 +4,7 @@
 #![allow(dead_code)]
 
 use addon_app::core_backend::{Config, CoreBackend};
+use addon_app::mock::MockBackend;
 use addon_app::state::{Op, Status};
 use addon_app::{Job, State, runtime};
 use addon_core::fingerprint::folder_fingerprint;
@@ -100,6 +101,20 @@ impl World {
         let dir = self.addons_dir().join(name);
         write(&dir.join(format!("{name}.toc")), toc(name, version));
         write(&dir.join("Core.lua"), format!("-- {name} {version}\n"));
+    }
+
+    /// A second Forever installation in its own Wine prefix (`otherprefix`, found when its folder
+    /// joins `search_roots`) that holds only `Zed`; returns its WoW root (F1.2, F1.3).
+    pub fn second_installation(&self) -> PathBuf {
+        let root = self
+            .tmp
+            .path()
+            .join("otherprefix/drive_c/Program Files (x86)/World of Warcraft");
+        write(&root.join(".build.info"), BUILD_INFO);
+        let zed = root.join("_forever_/Interface/AddOns/Zed");
+        write(&zed.join("Zed.toc"), toc("Zed", "1.0"));
+        write(&zed.join("Core.lua"), "-- Zed\n");
+        root
     }
 
     /// A file below the client folder, e.g. `Interface/AddOns/Ace/Ace.toc`.
@@ -510,5 +525,21 @@ impl App {
             .iter()
             .map(|a| a.addon.name.clone())
             .collect()
+    }
+}
+
+/// A fresh `State` over the mock backend (30 ms per call): UI-only checks (`ui_shell.rs`).
+pub fn mock_state() -> State {
+    State::new(Arc::new(MockBackend::with_delay(Duration::from_millis(30))))
+}
+
+impl App {
+    /// The UI over the mock backend, `prepare`d before its first frame.
+    pub fn mock(prepare: fn(&mut State)) -> App {
+        let mut s = mock_state();
+        prepare(&mut s);
+        let mut rt = runtime(s, (1280.0, 800.0));
+        rt.frame(0.0);
+        App { rt }
     }
 }

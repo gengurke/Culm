@@ -49,6 +49,110 @@ fn f1_2_installation_added_from_folder_picker_is_remembered() {
 }
 
 #[test]
+fn f1_2_installation_added_from_settings_becomes_current() {
+    let world = World::new();
+    let other = world.second_installation();
+    let mut app = world.app();
+    app.wait_idle();
+    assert_eq!(app.names(), ["Ace", "Bee", "Homebrew"]);
+    app.tap("nav/settings");
+    app.reveal("settings/add-installation");
+    app.tap("settings/add-installation");
+    assert!(app.rt.file_dialog().is_some(), "folder picker requested");
+    app.rt.resolve_file_dialog(Some(other)).unwrap();
+    app.frame();
+    app.wait_for("the new installation to be scanned", |s| {
+        s.installations.len() == 2 && !s.addons.is_empty()
+    });
+    app.wait_idle();
+    assert!(app.shows("Installation added"));
+    assert_eq!(app.names(), ["Zed"]);
+
+    // Settings lists both; Use switches back to the first.
+    let first = app.state().installations[0].id.clone();
+    let use_first = format!("settings/installation/{first}/use");
+    app.reveal(&use_first);
+    app.tap(&use_first);
+    app.wait_for("the first installation's scan", |s| !s.addons.is_empty());
+    app.wait_idle();
+    assert_eq!(app.state().current.as_deref(), Some(first.as_str()));
+    assert_eq!(app.names(), ["Ace", "Bee", "Homebrew"]);
+}
+
+#[test]
+fn f1_3_sidebar_picker_switches_installations_and_keeps_the_choice() {
+    let mut world = World::new();
+    world.second_installation();
+    world
+        .search_roots
+        .push(world.tmp.path().join("otherprefix"));
+    let names_of = |app: &App, id: &str| {
+        let inst = app.state().installations.iter().find(|i| i.id == id);
+        if inst.unwrap().root.to_string_lossy().contains("otherprefix") {
+            vec!["Zed"]
+        } else {
+            vec!["Ace", "Bee", "Homebrew"]
+        }
+    };
+    let mut app = world.app();
+    app.wait_idle();
+    assert_eq!(app.state().installations.len(), 2);
+    let current = app.state().current.clone().unwrap();
+    assert_eq!(app.names(), names_of(&app, &current));
+    let other = app
+        .state()
+        .installations
+        .iter()
+        .find(|i| i.id != current)
+        .unwrap()
+        .id
+        .clone();
+
+    app.tap("installation/selector");
+    run(&mut app, 0.5); // the menu slides open
+    assert!(app.shows("WoW Forever (testprefix)") && app.shows("WoW Forever (otherprefix)"));
+    app.tap(&format!("installation/{other}"));
+    app.wait_for("the other installation's scan", |s| !s.addons.is_empty());
+    app.wait_idle();
+    assert_eq!(app.state().current.as_deref(), Some(other.as_str()));
+    assert_eq!(app.names(), names_of(&app, &other));
+
+    let mut again = world.app();
+    again.wait_idle();
+    assert_eq!(
+        again.state().current.as_deref(),
+        Some(other.as_str()),
+        "the choice is kept"
+    );
+    assert_eq!(again.names(), names_of(&again, &other));
+}
+
+#[test]
+fn f2_4_import_from_wowup_in_settings_takes_over_its_links() {
+    let world = World::new().with_wowup();
+    // WowUp knew nothing yet at the first scan.
+    let records = world.wowup_dirs[0].join("addons.json");
+    let known = std::fs::read_to_string(&records).unwrap();
+    write(&records, "{}");
+    let mut app = world.app();
+    app.wait_idle();
+    assert_eq!(app.status("Ace"), Status::Unknown);
+
+    write(&records, known);
+    app.tap("nav/settings");
+    app.reveal("settings/import-wowup");
+    app.tap("settings/import-wowup");
+    app.wait_for_text("Imported from WowUp");
+    app.wait_idle();
+    let ace = &app.state().addons[0].addon;
+    assert_eq!(
+        (ace.provider.as_deref(), ace.external_id.as_deref()),
+        (Some("CurseForge"), Some("1"))
+    );
+    assert_eq!(app.status("Ace"), Status::UpdateAvailable);
+}
+
+#[test]
 fn f2_1_f2_3_scan_shows_matched_and_unknown_addons() {
     let world = World::new().with_key("test-key");
     let mut app = world.app();
@@ -282,6 +386,29 @@ fn f5_1_remove_asks_then_deletes_the_folders() {
 }
 
 #[test]
+fn f5_2_reinstall_from_the_detail_panel_restores_modified_files() {
+    let world = World::new().with_key("test-key");
+    let mut app = world.app();
+    app.wait_idle();
+    app.tap(&app.row("Ace", "update"));
+    app.wait_idle();
+    assert_eq!(app.status("Ace"), Status::UpToDate);
+    write(&world.addons_dir().join("Ace/New.lua"), "edited by hand");
+    std::fs::remove_file(world.addons_dir().join("Ace/Ace.toc")).unwrap();
+
+    app.tap(&app.row("Ace", ""));
+    app.tap("detail/reinstall");
+    app.wait_idle();
+    assert_eq!(world.read("Interface/AddOns/Ace/New.lua"), "1.1");
+    assert!(
+        world
+            .read("Interface/AddOns/Ace/Ace.toc")
+            .contains("## Version: 1.1")
+    );
+    assert_eq!(app.status("Ace"), Status::UpToDate);
+}
+
+#[test]
 fn f6_1_clear_cache_asks_then_deletes_the_cache() {
     let world = World::new().with_key("test-key");
     write(
@@ -303,6 +430,39 @@ fn f6_1_clear_cache_asks_then_deletes_the_cache() {
     });
     assert!(app.shows("Freed 2 KB from Cache"));
     assert!(!world.exists("Cache"));
+}
+
+#[test]
+fn f6_2_clean_backups_asks_then_deletes_the_leftovers() {
+    let world = World::new().with_key("test-key");
+    let saved = world.client.join("WTF/Account/ACC/SavedVariables");
+    write(&saved.join("Ace.lua"), "keep");
+    write(&saved.join("Ace.lua.bak"), "1234");
+    write(&world.client.join("WTF/config-cache.old"), "1");
+    let mut app = world.app();
+    app.wait_idle();
+    app.tap("nav/maintenance");
+    app.wait_until("the maintenance page", |a| a.has("maint/leftovers/run"));
+    app.tap("maint/leftovers/run");
+    assert_eq!(
+        app.state().maint.get(&MaintCard::Leftovers),
+        Some(&MaintPhase::Confirm)
+    );
+    assert!(
+        world.exists("WTF/config-cache.old"),
+        "first press only asks"
+    );
+    app.tap("maint/leftovers/confirm");
+    app.wait_for("leftovers removed", |s| {
+        matches!(
+            s.maint.get(&MaintCard::Leftovers),
+            Some(MaintPhase::Done(_))
+        )
+    });
+    assert!(app.shows("Removed 2 .bak and .old files"));
+    assert!(!world.exists("WTF/config-cache.old"));
+    assert!(!world.exists("WTF/Account/ACC/SavedVariables/Ace.lua.bak"));
+    assert!(world.exists("WTF/Account/ACC/SavedVariables/Ace.lua"));
 }
 
 #[test]
