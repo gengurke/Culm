@@ -6,6 +6,10 @@ or break. New changes go under "Unreleased"; a release turns that heading into i
 
 ## [Unreleased]
 
+### Changed
+- Updated the Rune UI framework: when the button that has keyboard focus greys out, focus moves on to the next control
+  instead of being lost, and on Windows saving settings no longer fails when another program briefly holds the file.
+
 ## [0.2.0] - 2026-11-21
 
 Culm now runs on Windows and macOS too.
