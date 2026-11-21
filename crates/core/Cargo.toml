@@ -14,9 +14,9 @@ anyhow.workspace = true
 image = { version = "0.25", default-features = false, features = ["jpeg", "png"] }
 ureq = "3"
 # Checks a downloaded app update against the release's SHA256SUMS.
-sha2 = "0.10"
+sha2 = "0.11"
 # Recognises a zip fetched by hand from the SHA-1 its source publishes (F3.5).
-sha1 = "0.10"
+sha1 = "0.11"
 zip = { version = "9.5.1", default-features = false, features = ["deflate"] }
 
 # Lists running programs on Windows and macOS for the game check (Linux reads /proc itself).

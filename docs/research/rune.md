@@ -2,7 +2,7 @@
 
 Researched 2026-11-15 from `https://github.com/anomalyco/rune`, branch `dev`.
 
-**Pinned rev: `8fbc395190dbff430db9d9fc515bb6ac8cc7d13d`** (dev HEAD, 2026-11-19 21:55 +0100, "Merge pull request #1240 from anomalyco/overlay-keys-x11-windows"; bumped from `bd4d42b1`).
+**Pinned rev: `b39e1b4d326e323e971b86b8f105d3df53d4642c`** (dev HEAD, 2026-11-21 03:26 -0600, "fix(rune-kit): display math wakes and rebuilds only what a finished render changes (#1317)"; bumped from `8fbc3951`). The root `Cargo.toml` holds the rev; this line only records when the notes were last checked against it.
 
 Main sources in the repo: `README.md`, `AGENTS.md`, `crates/rune/README.md` (the ~3000-line framework guide), `crates/rune-kit/README.md`, `examples/hello`, `examples/todo`, `examples/background`, `CHANGELOG.md`, and the root `Cargo.toml` (`[patch.crates-io]`).
 
@@ -54,47 +54,12 @@ sudo dnf install libxkbcommon-devel wayland-devel   # build-time link deps (Fedo
 cargo new culm && cd culm
 ```
 
-`rust-toolchain.toml` (match Rune's pin; Rune uses edition 2024 and current std APIs):
-
-```toml
-[toolchain]
-channel = "1.99.1"
-components = ["clippy", "rustfmt"]
-```
-
-`Cargo.toml`:
-
-```toml
-[package]
-name = "culm"
-version = "0.1.0"
-edition = "2024"
-
-[dependencies]
-rune     = { git = "https://github.com/anomalyco/rune", rev = "8fbc395190dbff430db9d9fc515bb6ac8cc7d13d" }
-rune-kit = { git = "https://github.com/anomalyco/rune", rev = "8fbc395190dbff430db9d9fc515bb6ac8cc7d13d" }
-# optional: features = ["markdown"] on rune-kit for addon descriptions/changelogs
-# optional: rune features = ["native-file-dialog"] for the folder picker, ["tooling"] for headless flags in release
-
-# Cargo does not inherit [patch] from dependencies: mirror Rune's root [patch.crates-io] at the SAME rev.
-[patch.crates-io]
-winit             = { git = "https://github.com/anomalyco/rune", rev = "8fbc395190dbff430db9d9fc515bb6ac8cc7d13d" }
-parley_engine     = { git = "https://github.com/anomalyco/rune", rev = "8fbc395190dbff430db9d9fc515bb6ac8cc7d13d" }
-wgpu-hal          = { git = "https://github.com/anomalyco/rune", rev = "8fbc395190dbff430db9d9fc515bb6ac8cc7d13d" }
-accesskit_windows = { git = "https://github.com/anomalyco/rune", rev = "8fbc395190dbff430db9d9fc515bb6ac8cc7d13d" }
-sctk-adwaita      = { git = "https://github.com/anomalyco/rune", rev = "8fbc395190dbff430db9d9fc515bb6ac8cc7d13d" }
-accesskit_macos   = { git = "https://github.com/anomalyco/rune", rev = "8fbc395190dbff430db9d9fc515bb6ac8cc7d13d" }
-
-# Rune's own choice: full debuginfo made a test build use 18-23 GB RAM.
-[profile.dev]
-debug = "line-tables-only"
-[profile.dev.package."*"]
-debug = false
-
-[profile.release]
-codegen-units = 16
-incremental = true
-```
+`rust-toolchain.toml`, the `rune`/`rune-kit` dependencies, the mirrored `[patch.crates-io]` and the profiles: copy them
+from Culm's root `rust-toolchain.toml` and `Cargo.toml`, which are the single source for the pinned rev (the bump
+procedure is in AGENTS.md, "Rune rules"). Rune's own choices behind them: the toolchain matches Rune's pin, and
+`debug = "line-tables-only"` because full debuginfo made a test build use 18-23 GB RAM. Optional rune features:
+`native-file-dialog` for the folder picker, `tooling` for headless flags in release; rune-kit's `markdown` for
+addon descriptions/changelogs.
 
 `src/main.rs` is the minimal app, adapted from `examples/hello`:
 
@@ -409,7 +374,7 @@ Window class / app id: call `rune::set_app_id("dev.x.culm")` before `run` (Wayla
 
 - **Pre-release, very fast-moving.** Dozens of commits a day. The CHANGELOG lists behaviour changes per rev and the API grows constantly. Pin a rev and bump it deliberately; on each bump, re-sync `[patch.crates-io]` and the toolchain.
 - **`[patch.crates-io]` is mandatory.** Issue #850: it fails to build without the winit patch. Cargo pulls each patched crate from Rune's `vendor/`.
-- **Heavy build.** wgpu, winit, parley, ICU, accesskit, zbus/tokio (dbus feature) and resvg. The first build takes minutes and lots of RAM. Keep `debug = "line-tables-only"`.
+- **Heavy build.** wgpu, winit, parley, ICU, accesskit, zbus (dbus feature; over async-io, no tokio, since Rune b7309162) and resvg. The first build takes minutes and lots of RAM. Keep `debug = "line-tables-only"`.
 - **Layout rules are CSS flexbox.**
   - `.grow()` inside an auto-height column collapses to 0.
   - Nested flex columns need `.min_h(0.0)`, or the inner `.scroll` never scrolls.

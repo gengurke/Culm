@@ -3041,41 +3041,6 @@ DEALINGS IN THE SOFTWARE.
 
 ### MIT License
 
-Used by: sha1 0.10.7, sha2 0.10.9
-
-~~~~text
-Copyright (c) 2006-2009 Graydon Hoare
-Copyright (c) 2009-2013 Mozilla Foundation
-Copyright (c) 2016 Artyom Pavlov
-
-Permission is hereby granted, free of charge, to any
-person obtaining a copy of this software and associated
-documentation files (the "Software"), to deal in the
-Software without restriction, including without
-limitation the rights to use, copy, modify, merge,
-publish, distribute, sublicense, and/or sell copies of
-the Software, and to permit persons to whom the Software
-is furnished to do so, subject to the following
-conditions:
-
-The above copyright notice and this permission notice
-shall be included in all copies or substantial portions
-of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF
-ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
-TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
-PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT
-SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
-IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-DEALINGS IN THE SOFTWARE.
-
-~~~~
-
-### MIT License
-
 Used by: core-foundation-sys 0.8.7, core-foundation 0.9.4, core-graphics-types 0.1.3, core-graphics 0.23.2
 
 ~~~~text
@@ -3170,7 +3135,7 @@ DEALINGS IN THE SOFTWARE.
 
 ### MIT License
 
-Used by: cc 1.11.2, cfg-if 1.0.5, find-msvc-tools 0.1.15, jobserver 0.1.35, js-sys 0.3.107, pkg-config 0.3.34, rustc-demangle 0.1.28, scoped-tls 1.0.1, socket2 0.6.5, stacker 0.1.25, wasm-bindgen-futures 0.4.80, wasm-bindgen-macro-support 0.2.130, wasm-bindgen-macro 0.2.130, wasm-bindgen-shared 0.2.130, wasm-bindgen 0.2.130, web-sys 0.3.107
+Used by: cc 1.11.3, cfg-if 1.0.5, find-msvc-tools 0.1.15, jobserver 0.1.35, js-sys 0.3.107, pkg-config 0.3.34, rustc-demangle 0.1.28, scoped-tls 1.0.1, stacker 0.1.25, wasm-bindgen-futures 0.4.80, wasm-bindgen-macro-support 0.2.130, wasm-bindgen-macro 0.2.130, wasm-bindgen-shared 0.2.130, wasm-bindgen 0.2.130, web-sys 0.3.107
 
 ~~~~text
 Copyright (c) 2014 Alex Crichton
@@ -3198,33 +3163,6 @@ CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
 IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
-
-~~~~
-
-### MIT License
-
-Used by: mio 1.2.5
-
-~~~~text
-Copyright (c) 2014 Carl Lerche and other MIO contributors
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.
 
 ~~~~
 
@@ -3296,7 +3234,7 @@ DEALINGS IN THE SOFTWARE.
 
 ### MIT License
 
-Used by: uuid 1.29.2
+Used by: uuid 1.29.3
 
 ~~~~text
 Copyright (c) 2014 The Rust Project Developers
@@ -4169,10 +4107,13 @@ DEALINGS IN THE SOFTWARE.
 
 ### MIT License
 
-Used by: digest 0.10.7
+Used by: sha1 0.11.0, sha2 0.11.1
 
 ~~~~text
-Copyright (c) 2017 Artyom Pavlov
+Copyright (c) 2016-2026 The RustCrypto Project Developers
+Copyright (c) 2016 Artyom Pavlov
+Copyright (c) 2009-2013 Mozilla Foundation
+Copyright (c) 2006-2009 Graydon Hoare
 
 Permission is hereby granted, free of charge, to any
 person obtaining a copy of this software and associated
@@ -4515,7 +4456,41 @@ DEALINGS IN THE SOFTWARE.
 
 ### MIT License
 
-Used by: bytes 1.12.1
+Used by: digest 0.11.3
+
+~~~~text
+Copyright (c) 2017-2025 RustCrypto Developers
+Copyright (c) 2017 Artyom Pavlov
+
+Permission is hereby granted, free of charge, to any
+person obtaining a copy of this software and associated
+documentation files (the "Software"), to deal in the
+Software without restriction, including without
+limitation the rights to use, copy, modify, merge,
+publish, distribute, sublicense, and/or sell copies of
+the Software, and to permit persons to whom the Software
+is furnished to do so, subject to the following
+conditions:
+
+The above copyright notice and this permission notice
+shall be included in all copies or substantial portions
+of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF
+ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
+TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT
+SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
+IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+DEALINGS IN THE SOFTWARE.
+
+~~~~
+
+### MIT License
+
+Used by: bytes 1.12.2
 
 ~~~~text
 Copyright (c) 2018 Carl Lerche
@@ -4647,7 +4622,7 @@ DEALINGS IN THE SOFTWARE.
 
 ### MIT License
 
-Used by: smallvec 1.16.5
+Used by: smallvec 1.16.6
 
 ~~~~text
 Copyright (c) 2018 The Servo Project Developers
@@ -4794,10 +4769,11 @@ THE SOFTWARE.
 
 ### MIT License
 
-Used by: block-buffer 0.10.4
+Used by: getrandom 0.2.17
 
 ~~~~text
-Copyright (c) 2018-2019 The RustCrypto Project Developers
+Copyright (c) 2018-2024 The rust-random Project Developers
+Copyright (c) 2014 The Rust Project Developers
 
 Permission is hereby granted, free of charge, to any
 person obtaining a copy of this software and associated
@@ -4827,11 +4803,10 @@ DEALINGS IN THE SOFTWARE.
 
 ### MIT License
 
-Used by: getrandom 0.2.17
+Used by: block-buffer 0.12.1
 
 ~~~~text
-Copyright (c) 2018-2024 The rust-random Project Developers
-Copyright (c) 2014 The Rust Project Developers
+Copyright (c) 2018-2025 The RustCrypto Project Developers
 
 Permission is hereby granted, free of charge, to any
 person obtaining a copy of this software and associated
@@ -4895,7 +4870,7 @@ DEALINGS IN THE SOFTWARE.
 
 ### MIT License
 
-Used by: zeroize 1.9.1
+Used by: zeroize 1.9.2
 
 ~~~~text
 Copyright (c) 2018-2026 The RustCrypto Project Developers
@@ -5439,7 +5414,7 @@ DEALINGS IN THE SOFTWARE.
 
 ### MIT License
 
-Used by: pollster 1.0.1
+Used by: pollster 1.0.3
 
 ~~~~text
 Copyright (c) 2020-2021 Joshua Barretto
@@ -5472,76 +5447,10 @@ DEALINGS IN THE SOFTWARE.
 
 ### MIT License
 
-Used by: cpufeatures 0.2.17
-
-~~~~text
-Copyright (c) 2020-2025 The RustCrypto Project Developers
-
-Permission is hereby granted, free of charge, to any
-person obtaining a copy of this software and associated
-documentation files (the "Software"), to deal in the
-Software without restriction, including without
-limitation the rights to use, copy, modify, merge,
-publish, distribute, sublicense, and/or sell copies of
-the Software, and to permit persons to whom the Software
-is furnished to do so, subject to the following
-conditions:
-
-The above copyright notice and this permission notice
-shall be included in all copies or substantial portions
-of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF
-ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
-TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
-PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT
-SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
-IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-DEALINGS IN THE SOFTWARE.
-
-~~~~
-
-### MIT License
-
-Used by: cpufeatures 0.3.1
+Used by: const-oid 0.10.3, cpufeatures 0.3.1
 
 ~~~~text
 Copyright (c) 2020-2026 The RustCrypto Project Developers
-
-Permission is hereby granted, free of charge, to any
-person obtaining a copy of this software and associated
-documentation files (the "Software"), to deal in the
-Software without restriction, including without
-limitation the rights to use, copy, modify, merge,
-publish, distribute, sublicense, and/or sell copies of
-the Software, and to permit persons to whom the Software
-is furnished to do so, subject to the following
-conditions:
-
-The above copyright notice and this permission notice
-shall be included in all copies or substantial portions
-of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF
-ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
-TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
-PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT
-SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
-IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-DEALINGS IN THE SOFTWARE.
-
-~~~~
-
-### MIT License
-
-Used by: crypto-common 0.1.7
-
-~~~~text
-Copyright (c) 2021 RustCrypto Developers
 
 Permission is hereby granted, free of charge, to any
 person obtaining a copy of this software and associated
@@ -5581,6 +5490,39 @@ Permission is hereby granted, free of charge, to any person obtaining a copy of 
 The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+~~~~
+
+### MIT License
+
+Used by: crypto-common 0.2.2
+
+~~~~text
+Copyright (c) 2021-2026 RustCrypto Developers
+
+Permission is hereby granted, free of charge, to any
+person obtaining a copy of this software and associated
+documentation files (the "Software"), to deal in the
+Software without restriction, including without
+limitation the rights to use, copy, modify, merge,
+publish, distribute, sublicense, and/or sell copies of
+the Software, and to permit persons to whom the Software
+is furnished to do so, subject to the following
+conditions:
+
+The above copyright notice and this permission notice
+shall be included in all copies or substantial portions
+of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF
+ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
+TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT
+SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
+IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+DEALINGS IN THE SOFTWARE.
+
 ~~~~
 
 ### MIT License
@@ -5694,6 +5636,39 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+~~~~
+
+### MIT License
+
+Used by: hybrid-array 0.4.15
+
+~~~~text
+Copyright (c) 2022-2026 The RustCrypto Project Developers
+
+Permission is hereby granted, free of charge, to any
+person obtaining a copy of this software and associated
+documentation files (the "Software"), to deal in the
+Software without restriction, including without
+limitation the rights to use, copy, modify, merge,
+publish, distribute, sublicense, and/or sell copies of
+the Software, and to permit persons to whom the Software
+is furnished to do so, subject to the following
+conditions:
+
+The above copyright notice and this permission notice
+shall be included in all copies or substantial portions
+of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF
+ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
+TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT
+SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
+IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+DEALINGS IN THE SOFTWARE.
 
 ~~~~
 
@@ -5818,7 +5793,7 @@ DEALINGS IN THE SOFTWARE.
 
 ### MIT License
 
-Used by: zbus 5.19.0, zbus 6.3.0, zbus_macros 5.19.0, zbus_macros 6.3.0, zbus_names 4.3.5, zbus_utils 6.1.0, zbus_xml 5.2.1, zvariant 5.15.1, zvariant_derive 5.15.1
+Used by: zbus 5.19.0, zbus_macros 5.19.0, zbus_names 4.3.5, zbus_xml 5.2.1, zvariant 5.15.1, zvariant_derive 5.15.1
 
 ~~~~text
 Copyright (c) 2024 Zeeshan Ali Khan & zbus contributors
@@ -5884,7 +5859,7 @@ DEALINGS IN THE SOFTWARE.
 
 ### MIT License
 
-Used by: zcheapstr 1.2.0
+Used by: zcheapstr 1.4.0
 
 ~~~~text
 Copyright (c) 2026 Zeeshan Ali Khan & zcheapstr contributors
@@ -5917,46 +5892,7 @@ DEALINGS IN THE SOFTWARE.
 
 ### MIT License
 
-Used by: zruntime 0.2.3
-
-~~~~text
-Copyright (c) 2026 Zeeshan Ali Khan & zruntime contributors
-
-Permission is hereby granted, free of charge, to any
-person obtaining a copy of this software and associated
-documentation files (the "Software"), to deal in the
-Software without restriction, including without
-limitation the rights to use, copy, modify, merge,
-publish, distribute, sublicense, and/or sell copies of
-the Software, and to permit persons to whom the Software
-is furnished to do so, subject to the following
-conditions:
-
-The above copyright notice and this permission notice
-shall be included in all copies or substantial portions
-of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF
-ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
-TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
-PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT
-SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
-IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-DEALINGS IN THE SOFTWARE.
-
-The broadcast channel (`src/broadcast.rs`), its tests (`src/tests/broadcast.rs`) and its
-benchmark (`benches/broadcast.rs`) come from the async-broadcast crate
-(https://github.com/smol-rs/async-broadcast), under the license above and this notice:
-
-Copyright (c) 2020 Yoshua Wuyts, Stjepan Glavina & Zeeshan Ali Khan
-
-~~~~
-
-### MIT License
-
-Used by: toml_datetime 1.1.3+spec-1.1.0, toml_edit 0.25.19+spec-1.1.0, toml_parser 1.1.5+spec-1.1.0
+Used by: toml_datetime 1.1.3+spec-1.1.0, toml_edit 0.25.20+spec-1.1.0, toml_parser 1.1.6+spec-1.1.0
 
 ~~~~text
 Copyright (c) Individual contributors
@@ -6279,7 +6215,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 ### MIT License
 
-Used by: zerocopy-derive 0.8.63, zerocopy 0.8.63
+Used by: zerocopy-derive 0.8.64, zerocopy 0.8.64
 
 ~~~~text
 Copyright 2023 The Fuchsia Authors
@@ -6719,36 +6655,6 @@ Used by: raw-window-handle 0.6.2
 MIT License
 
 Copyright (c) 2019 Osspial
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-
-~~~~
-
-### MIT License
-
-Used by: tokio-macros 2.7.2
-
-~~~~text
-MIT License
-
-Copyright (c) 2019 Yoshua Wuyts
-Copyright (c) Tokio Contributors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -7400,7 +7306,7 @@ DEALINGS IN THE SOFTWARE.
 
 ### MIT License
 
-Used by: adler2 2.0.1, anyhow 1.0.104, async-channel 2.5.0, async-executor 1.14.1, async-io 2.6.0, async-lock 3.5.0, async-process 2.5.0, async-signal 0.2.14, async-task 4.7.1, async-trait 0.1.92, atomic-waker 1.1.2, blocking 1.7.0, concurrent-queue 2.5.0, displaydoc 0.2.7, endi 1.1.1, event-listener-strategy 0.5.4, event-listener 5.4.2, fastrand 2.5.0, futures-lite 2.6.1, hermit-abi 0.5.3, itoa 1.0.19, lazy_static 1.5.1, linux-raw-sys 0.12.1, linux-raw-sys 0.4.15, num_enum 0.7.6, num_enum_derive 0.7.6, once_cell 1.21.4, ordered-stream 0.2.0, parking 2.2.1, pin-project-internal 1.1.13, pin-project-lite 0.2.17, pin-project 1.1.13, piper 0.2.5, polling 3.11.0, portable-atomic-util 0.2.8, portable-atomic 1.15.0, proc-macro-crate 3.5.0, proc-macro2 1.0.107, quote 1.0.47, rustc-hash 1.1.0, rustix 0.38.44, rustix 1.1.6, rustversion 1.0.23, semver 1.0.28, serde 1.0.229, serde_core 1.0.229, serde_derive 1.0.229, serde_json 1.0.154, serde_repr 0.1.21, simd_cesu8 1.2.0, smol_str 0.2.2, syn 2.0.119, syn 3.0.10, thiserror-impl 1.0.69, thiserror-impl 2.0.21, thiserror 1.0.69, thiserror 2.0.21, typed-path 0.13.0, unicode-ident 1.0.27, utf8-zero 0.8.1, wasi 0.11.1+wasi-snapshot-preview1, wasip2 1.0.4+wasi-0.2.12, wit-bindgen 0.57.1, x11-dl 2.21.0, zbus-lockstep-macros 0.5.2, zbus-lockstep 0.5.2, zmij 1.0.23, zvariant_utils 4.2.0
+Used by: adler2 2.0.1, anyhow 1.0.104, async-channel 2.5.0, async-executor 1.14.1, async-io 2.6.0, async-lock 3.5.0, async-process 2.5.0, async-signal 0.2.14, async-task 4.7.1, async-trait 0.1.92, atomic-waker 1.1.2, blocking 1.7.0, concurrent-queue 2.5.0, displaydoc 0.2.7, endi 1.1.1, event-listener-strategy 0.5.4, event-listener 5.4.2, fastrand 2.5.0, futures-lite 2.6.1, hermit-abi 0.5.3, itoa 1.0.19, lazy_static 1.5.1, linux-raw-sys 0.12.1, linux-raw-sys 0.4.15, num_enum 0.7.6, num_enum_derive 0.7.6, once_cell 1.21.4, ordered-stream 0.2.0, parking 2.2.1, pin-project-internal 1.2.0, pin-project-lite 0.2.18, pin-project 1.2.0, piper 0.2.5, polling 3.11.0, portable-atomic-util 0.2.8, portable-atomic 1.15.0, proc-macro-crate 3.5.0, proc-macro2 1.0.107, quote 1.0.47, rustc-hash 1.1.0, rustix 0.38.44, rustix 1.1.6, rustversion 1.0.23, semver 1.0.28, serde 1.0.229, serde_core 1.0.229, serde_derive 1.0.229, serde_json 1.0.154, serde_repr 0.1.21, simd_cesu8 1.2.0, smol_str 0.2.2, syn 2.0.119, syn 3.0.10, thiserror-impl 1.0.69, thiserror-impl 2.0.21, thiserror 1.0.69, thiserror 2.0.21, typed-path 0.13.0, unicode-ident 1.0.27, utf8-zero 0.8.1, wasi 0.11.1+wasi-snapshot-preview1, wasip2 1.0.4+wasi-0.2.12, wit-bindgen 0.57.1, x11-dl 2.21.0, zbus-lockstep-macros 0.5.2, zbus-lockstep 0.5.2, zmij 1.0.23, zvariant_utils 4.2.0
 
 ~~~~text
 Permission is hereby granted, free of charge, to any
@@ -7596,7 +7502,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 ### MIT License
 
-Used by: tracing-core 0.1.36, zip 9.5.1
+Used by: tracing-core 0.1.36, zip 9.8.1
 
 ~~~~text
 The MIT License (MIT)
@@ -7711,7 +7617,7 @@ THE SOFTWARE.
 
 ### MIT License
 
-Used by: byteorder-lite 0.1.0, memchr 2.8.3, walkdir 2.5.0
+Used by: byteorder-lite 0.1.0, memchr 2.8.3, walkdir 2.5.1
 
 ~~~~text
 The MIT License (MIT)
@@ -7740,7 +7646,7 @@ THE SOFTWARE.
 
 ### MIT License
 
-Used by: nix 0.31.3
+Used by: nix 0.32.0
 
 ~~~~text
 The MIT License (MIT)
@@ -8385,34 +8291,6 @@ COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
 IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-~~~~
-
-### MIT License
-
-Used by: generic-array 0.14.7
-
-~~~~text
-The MIT License (MIT)
-
-Copyright (c) 2015 Bartłomiej Kamiński
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
 ~~~~
 
 ### MIT License

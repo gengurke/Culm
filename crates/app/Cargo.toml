@@ -20,7 +20,6 @@ addon-core = { path = "../core" }
 rune = { workspace = true, features = ["native-file-dialog"] }
 rune-kit.workspace = true
 anyhow.workspace = true
-serde_json.workspace = true
 tempfile = "3.27.0"
 
 # Restarting into an updated AppImage closes inherited descriptors (see `CoreBackend::launch_app`).
@@ -38,7 +37,7 @@ tempfile = "3.27.0"
 # Reads the bundled fonts' family names (already in the tree through Rune).
 swash = "0.2"
 # Publishes a test zip's SHA-1 the way CurseForge does (F3.5).
-sha1 = "0.10"
+sha1 = "0.11"
 
 [target.'cfg(target_os = "linux")'.dev-dependencies]
 libc = "0.2"
