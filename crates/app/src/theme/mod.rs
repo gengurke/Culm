@@ -81,49 +81,57 @@ pub struct Theme {
     pub frame: Option<&'static LazyLock<Theme>>,
 }
 
+/// The colours views read directly (everything else a theme paints goes through its [`Skin`]).
+/// Theme-only tones (sidebar wood, band sky, field wells, …) are local `let`s in the theme file.
 pub struct Pal {
-    // grounds, darkest to lightest
-    pub sidebar: Color,
-    pub footer: Color,
+    /// The window ground; the contrast test's base and the kit's (dropdown, slider) background.
     pub bg: Color,
+    /// Card ground: the contrast test checks text on it; toasts use it opaque.
     pub panel: Color,
-    pub panel_alt: Color,
-    pub sky: Color,
-    pub well: Color,
-    pub overlay: Color,
-    // text ladder
+    /// Body text and the window caption.
     pub text: Color,
     /// Page titles and section headings.
     pub heading: Color,
+    /// Secondary text: descriptions, inactive tabs, quiet badges.
     pub text_dim: Color,
+    /// Hints, counts, timestamps, keyboard caps and icon buttons.
     pub text_muted: Color,
-    pub text_off: Color,
-    pub on_accent: Color,
-    // ink
+    /// The theme picker's unselected card outline.
     pub border: Color,
+    /// Scroll thumbs and the edge of a tooltip without its own border.
     pub border_strong: Color,
+    /// Hairlines between list rows and sections.
     pub divider: Color,
+    /// Hover wash on clickable rows, chips and cards.
     pub hover: Color,
+    /// Press wash on buttons.
     pub selected: Color,
+    /// Quiet badge ground and keyboard caps.
     pub chip: Color,
+    /// Progress bar track.
     pub track: Color,
-    // accent
+    /// Links, active controls, progress and the busy badge.
     pub accent: Color,
+    /// The lit side of accent: band embers, the toast gem's top edge.
     pub accent_hi: Color,
-    pub accent_warm: Color,
+    /// The busy badge's ground.
     pub accent_soft: Color,
+    /// Keyboard focus rings and the focused field's border.
     pub accent_focus: Color,
-    // status
+    /// Up to date, done.
     pub success: Color,
+    /// The "up to date" badge's ground.
     pub success_soft: Color,
+    /// Update available, out of date, game running.
     pub warning: Color,
+    /// Ground of the update badge, the sidebar's update count and the game-running notice.
     pub warning_soft: Color,
+    /// Errors and failures.
     pub danger: Color,
+    /// The remove and clean confirmation's ground.
     pub danger_soft: Color,
+    /// The remove and clean confirmation's border.
     pub danger_line: Color,
-    pub info: Color,
-    pub info_soft: Color,
-    pub haze: Color,
 }
 
 /// Text style per role. Tracking is in points: em × size.
@@ -227,9 +235,91 @@ pub struct Skin {
     pub glyphs: &'static [(&'static Icon, &'static Icon)],
 }
 
+impl Skin {
+    /// The slots most themes share, drawn from the palette, with `radius` on the small controls:
+    /// a plain window, underlined toolbar, list header and rows, hover-only nav, ghost and icon
+    /// buttons, a soft danger button, status chips and hairline key caps. Every other slot is
+    /// blank (a transparent box), and the emblem is the stock one: themes set those and override
+    /// what they make their own (`Skin { panel: .., ..Skin::base(&p, 3.0) }`).
+    pub fn base(p: &Pal, radius: f32) -> Skin {
+        let under = Some(Border::sides([0.0, 0.0, 1.0, 0.0], p.divider));
+        let blank = Surface::default;
+        Skin {
+            window: Surface {
+                fill: p.bg,
+                ink: p.text,
+                ..blank()
+            },
+            sidebar: blank(),
+            band: blank(),
+            band_deco: BandDeco::None,
+            toolbar: Surface {
+                border: under,
+                ..blank()
+            },
+            panel: blank(),
+            detail: blank(),
+            menu: blank(),
+            list_header: Surface {
+                border: under,
+                ..blank()
+            },
+            row: Surface {
+                border: under,
+                hover: p.hover,
+                ..blank()
+            },
+            row_selected: blank(),
+            nav: Surface {
+                hover: p.hover,
+                ..blank()
+            },
+            nav_active: blank(),
+            primary: blank(),
+            secondary: blank(),
+            ghost: Surface {
+                ink: p.text_dim,
+                border: Some(Border::all(1.0, Color::TRANSPARENT)),
+                radius,
+                hover: p.hover,
+                ..blank()
+            },
+            danger: Surface {
+                fill: p.danger_soft,
+                ink: p.danger,
+                border: Some(Border::all(1.0, p.danger_line)),
+                radius,
+                hover: p.danger.alpha(0.12),
+                ..blank()
+            },
+            icon_button: Surface {
+                ink: p.text_muted,
+                radius,
+                hover: p.hover,
+                ..blank()
+            },
+            input: blank(),
+            chip: Surface { radius, ..blank() },
+            tile: blank(),
+            segments: blank(),
+            segment_on: blank(),
+            toast: blank(),
+            kbd: Surface {
+                ink: p.text_muted,
+                border: Some(Border::all(1.0, p.border)),
+                radius,
+                ..blank()
+            },
+            medal: Medal::default(),
+            emblem: &crate::icons::EMBLEM,
+            glyphs: &[],
+        }
+    }
+}
+
 /// A round metal medallion's ring: `[highlight, body, shade]` along the light from the top left,
 /// gilded (`ring_on`) on the active chip, and the dark outline that sets it off the ground.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Default)]
 pub struct Medal {
     pub ring: [Color; 3],
     pub ring_on: [Color; 3],
@@ -311,6 +401,11 @@ impl Border {
             top: c,
             bottom: c,
         }
+    }
+    /// A clear border: a margin round a plaque whose face a [`face`] shadow paints (a fill
+    /// would run under the border).
+    pub fn margin(sides: [f32; 4]) -> Border {
+        Border::sides(sides, Color::TRANSPARENT)
     }
 }
 
@@ -558,6 +653,46 @@ pub(crate) fn inset(y: f32, color: Color) -> Shadow {
     }
 }
 
+/// A black drop shadow outside the box, `y` points down.
+pub(crate) fn drop(y: f32, blur: f32, a: f32) -> Shadow {
+    Shadow {
+        y,
+        blur,
+        color: Color::BLACK.alpha(a),
+        ..Shadow::default()
+    }
+}
+
+/// A 1 pt line just inside the box's edge.
+pub(crate) fn inner_ring(color: Color) -> Shadow {
+    Shadow {
+        spread: 1.0,
+        color,
+        inset: true,
+        ..Shadow::default()
+    }
+}
+
+/// A 1 pt line just outside the box's edge.
+pub(crate) fn outer_ring(color: Color) -> Shadow {
+    Shadow {
+        spread: 1.0,
+        color,
+        ..Shadow::default()
+    }
+}
+
+/// Paints the whole inside of a box's border (its padding box), unlike a fill: the face of a
+/// plaque inset by a [`Border::margin`].
+pub(crate) fn face(color: Color) -> Shadow {
+    Shadow {
+        spread: 40.0,
+        color,
+        inset: true,
+        ..Shadow::default()
+    }
+}
+
 /// Small tweaks of a ladder style at the call site.
 pub trait StyleExt {
     fn size_of(self, size: f32) -> Self;
@@ -600,7 +735,6 @@ mod tests {
                         ("success", p.success, 3.0),
                         ("warning", p.warning, 3.0),
                         ("danger", p.danger, 3.0),
-                        ("info", p.info, 3.0),
                     ];
                     for (name, fg, min) in checks {
                         let c = contrast(fg, bg, p.bg);
