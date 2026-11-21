@@ -23,7 +23,7 @@ fn main() -> anyhow::Result<()> {
         );
         println!("   game running: {}", wow::is_game_running(inst));
         let t = Instant::now();
-        let folders = scan::scan_folders(inst)?;
+        let (folders, _) = scan::scan_folders(inst)?;
         println!("   scanned {} folders in {:?}", folders.len(), t.elapsed());
         for f in &folders {
             let toc = f.toc.as_ref();
@@ -65,7 +65,7 @@ fn main() -> anyhow::Result<()> {
                     a.installed_version.as_deref().unwrap_or("?")
                 );
             }
-            let merged = store::merge_rescan(&imported, local.clone());
+            let merged = store::merge_rescan(&imported, local.clone(), &[]);
             let linked = merged.iter().filter(|a| a.provider.is_some()).count();
             println!(
                 "   merged with scan: {} entries, {} provider-linked, {} unknown",

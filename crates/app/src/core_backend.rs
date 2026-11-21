@@ -316,8 +316,13 @@ impl Backend for CoreBackend {
 
     fn scan(&self, inst: &Installation) -> Result<Warned<Vec<Addon>>> {
         let _disk = self.disk.write().unwrap_or_else(|e| e.into_inner());
+        // No install runs under the write lock: whatever one left behind is from a crash.
+        let recovered = install::recover(inst);
         let fresh = scan::scan_installation(inst, &self.providers())?;
         let mut warnings = fresh.errors;
+        if let Err(e) = recovered {
+            warnings.push(format!("{e:#}"));
+        }
         let addons = self.edit(inst, |stored| {
             // First scan of this installation: start from WowUp's records, so provider links are
             // known without an API key.
@@ -327,7 +332,7 @@ impl Backend for CoreBackend {
                     Err(e) => warnings.push(format!("WowUp import: {e:#}")),
                 }
             }
-            *stored = store::merge_rescan(stored, fresh.addons);
+            *stored = store::merge_rescan(stored, fresh.addons, &fresh.unreadable);
             stored.clone()
         })?;
         Ok((addons, warnings))

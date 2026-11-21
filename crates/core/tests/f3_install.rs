@@ -346,3 +346,114 @@ fn f4_3_no_download_url_means_the_author_said_no() {
         "{err:#}"
     );
 }
+
+#[test]
+fn f2_7_install_and_update_record_the_game_versions() {
+    let w = fake_wow();
+    let client = w.inst.version.as_deref();
+    let toc = |interface: &str| format!("## Interface: {interface}\n## Title: G\n");
+    let v1 = remote_file("1", "1.0", Channel::Stable, &[]);
+    let v2 = remote_file("22", "2.0", Channel::Stable, &[]);
+    let server = Server::new(vec![
+        (&v1, zip_bytes(&[("G/G.toc", &toc("16000"))])),
+        (&v2, zip_bytes(&[("G/G.toc", &toc("11509, 16001"))])),
+    ]);
+    let dl = |u: &str| server.get(u).map(install::in_memory);
+    let mut addon = install::install_remote(
+        &w.inst,
+        &remote_addon("3", "G", vec![v1]),
+        Channel::Stable,
+        &dl,
+    )
+    .unwrap();
+    assert_eq!(addon.game_versions, ["1.60.0"]);
+    assert!(addon.out_of_date(client), "flagged without a rescan");
+
+    addon.latest = Some(v2);
+    let updated = install::update_addon(&w.inst, &addon, &dl).unwrap();
+    assert_eq!(updated.game_versions, ["1.15.9", "1.60.1"]);
+    assert_eq!(updated.game_version.as_deref(), Some("1.60.1"));
+    assert!(
+        !updated.out_of_date(client),
+        "the fixed build is no longer out of date"
+    );
+}
+
+#[test]
+fn f4_3_install_never_replaces_a_git_checkout() {
+    let w = fake_wow();
+    w.add_folder(
+        "Foo",
+        "Foo.toc",
+        &simple_toc("My Foo", "dev"),
+        &[
+            (".git/HEAD", "ref: refs/heads/main\n"),
+            ("Wip.lua", "unsaved work"),
+        ],
+    );
+    let file = remote_file("1", "1.0", Channel::Stable, &[]);
+    let zip = zip_bytes(&[
+        ("Foo/Foo.toc", &simple_toc("Foo", "1.0")),
+        ("Foo_Extra/Foo_Extra.toc", "## Title: Extra\n"),
+    ]);
+    let err = install::install_remote(
+        &w.inst,
+        &remote_addon("5", "Foo", vec![file]),
+        Channel::Stable,
+        &|_| Ok(install::in_memory(zip.clone())),
+    )
+    .unwrap_err();
+    assert!(
+        format!("{err:#}").contains("Foo is a git checkout"),
+        "{err:#}"
+    );
+    assert_eq!(w.folder_names(), ["Foo"], "nothing installed");
+    assert_eq!(read(&w, "Foo/Wip.lua"), "unsaved work");
+    assert!(w.addons().join("Foo/.git/HEAD").is_file());
+    let leftovers = std::fs::read_dir(w.addons().parent().unwrap())
+        .unwrap()
+        .count();
+    assert_eq!(leftovers, 1, "no staging or backup left");
+}
+
+#[test]
+fn f3_2_recover_puts_back_folders_of_an_interrupted_install() {
+    let w = fake_wow();
+    let interface = w.addons().parent().unwrap().to_path_buf();
+    // Cut off mid-swap: Foo and Foo_Lib were backed up, the new Foo_Lib was already moved in.
+    w.add_folder("Foo_Lib", "Foo_Lib.toc", "## Title: new lib\n", &[]);
+    let backup = interface.join(".addons-backup-20260101-abcdef12");
+    write(&backup.join("Foo/Foo.toc"), "## Title: old Foo\n");
+    write(&backup.join("Foo_Lib/Foo_Lib.toc"), "## Title: old lib\n");
+    write(
+        &interface.join(".addons-staging-20260101-abcdef12/Foo/Foo.toc"),
+        "## Title: new Foo\n",
+    );
+    // A backup kept after a failed restore, for a folder the user has since deleted.
+    write(
+        &interface.join(".addons-backup-20260102-12345678/Bar/Bar.toc"),
+        "## Title: Bar\n",
+    );
+
+    install::recover(&w.inst).unwrap();
+    assert_eq!(w.folder_names(), ["Bar", "Foo", "Foo_Lib"]);
+    assert_eq!(
+        read(&w, "Foo/Foo.toc"),
+        "## Title: old Foo\n",
+        "missing folder put back"
+    );
+    assert_eq!(
+        read(&w, "Foo_Lib/Foo_Lib.toc"),
+        "## Title: new lib\n",
+        "present folder kept"
+    );
+    let left: Vec<_> = std::fs::read_dir(&interface).unwrap().collect();
+    assert_eq!(left.len(), 1, "backup and staging dirs deleted");
+
+    install::recover(&w.inst).unwrap();
+    assert_eq!(
+        w.folder_names(),
+        ["Bar", "Foo", "Foo_Lib"],
+        "nothing to do the second time"
+    );
+}
