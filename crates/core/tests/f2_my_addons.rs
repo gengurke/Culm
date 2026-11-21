@@ -33,7 +33,7 @@ fn f2_1_scan_picks_forever_toc() {
     );
     std::fs::create_dir_all(w.addons().join("NoToc/media")).unwrap();
 
-    let folders = scan::scan_folders(&w.inst).unwrap();
+    let (folders, _) = scan::scan_folders(&w.inst).unwrap();
     let names: Vec<&str> = folders.iter().map(|f| f.name.as_str()).collect();
     assert_eq!(names, ["Details", "Plain", "Questie"]);
 
@@ -249,7 +249,7 @@ fn f2_5_store_roundtrip_and_rescan_keeps_user_choices() {
     let (w, providers) = grouped_fixture();
     let data = tempfile::tempdir().unwrap();
     let first = scan::scan_installation(&w.inst, &providers).unwrap().addons;
-    let mut saved = store::merge_rescan(&[], first);
+    let mut saved = store::merge_rescan(&[], first, &[]);
     let d = saved
         .iter_mut()
         .find(|a| a.external_id.as_deref() == Some("61284"))
@@ -276,7 +276,7 @@ fn f2_5_store_roundtrip_and_rescan_keeps_user_choices() {
     let previous = store::load_addons(data.path(), &w.inst.id).unwrap();
     assert_eq!(previous, saved);
     let fresh = scan::scan_installation(&w.inst, &providers).unwrap().addons;
-    let merged = store::merge_rescan(&previous, fresh);
+    let merged = store::merge_rescan(&previous, fresh, &[]);
     let d = merged.iter().find(|a| a.id == details_id).unwrap();
     assert_eq!(
         (d.channel, d.auto_update, d.ignored),
@@ -293,7 +293,7 @@ fn f2_5_store_roundtrip_and_rescan_keeps_user_choices() {
         fail: true,
     })];
     let fresh = scan::scan_installation(&w.inst, &offline).unwrap().addons;
-    let merged = store::merge_rescan(&previous, fresh);
+    let merged = store::merge_rescan(&previous, fresh, &[]);
     assert_eq!(merged.len(), 4, "{merged:#?}");
     let d = merged.iter().find(|a| a.id == details_id).unwrap();
     assert_eq!(d.provider.as_deref(), Some("Fake"));
@@ -301,7 +301,7 @@ fn f2_5_store_roundtrip_and_rescan_keeps_user_choices() {
     // Folders deleted by hand: the record goes away.
     std::fs::remove_dir_all(w.addons().join("Details_TinyThreat")).unwrap();
     let fresh = scan::scan_installation(&w.inst, &offline).unwrap().addons;
-    let merged = store::merge_rescan(&previous, fresh);
+    let merged = store::merge_rescan(&previous, fresh, &[]);
     assert!(merged.iter().all(|a| a.id != details_id));
     assert!(
         merged
@@ -342,4 +342,64 @@ fn f2_7_out_of_date_when_the_newest_interface_number_is_older_than_the_client() 
         "unknown client version: not judged"
     );
     assert!(!classic.out_of_date(Some("1.15.9.1234")));
+}
+
+#[cfg(unix)]
+#[test]
+fn f2_1_scan_skips_an_unreadable_folder_and_keeps_its_record() {
+    use std::os::unix::fs::PermissionsExt;
+    let (w, providers) = grouped_fixture();
+    let first = scan::scan_installation(&w.inst, &providers).unwrap().addons;
+    let mut previous = store::merge_rescan(&[], first, &[]);
+    let lonely = previous
+        .iter_mut()
+        .find(|a| a.folders == ["Lonely"])
+        .unwrap();
+    lonely.ignored = Some(IgnoreReason::User);
+    let lonely = lonely.clone();
+    let details = previous
+        .iter()
+        .find(|a| a.external_id.as_deref() == Some("61284"))
+        .unwrap()
+        .clone();
+
+    let locked = ["Details_TinyThreat", "Lonely"].map(|f| w.addons().join(f));
+    let set = |mode| {
+        for p in &locked {
+            std::fs::set_permissions(p, std::fs::Permissions::from_mode(mode)).unwrap();
+        }
+    };
+    set(0o000);
+    if std::fs::read_dir(&locked[0]).is_ok() {
+        set(0o755);
+        eprintln!("skipped: running as root, folders stay readable");
+        return;
+    }
+    let offline: Vec<Box<dyn Provider>> = vec![Box::new(FakeProvider {
+        matches: vec![],
+        fail: true,
+    })];
+    let res = scan::scan_installation(&w.inst, &offline);
+    set(0o755);
+    let res = res.unwrap();
+    assert_eq!(res.unreadable, ["Details_TinyThreat", "Lonely"]);
+    assert!(
+        res.errors
+            .iter()
+            .any(|e| e.contains("Details_TinyThreat") && e.contains("ermission denied")),
+        "{:?}",
+        res.errors
+    );
+    assert!(
+        res.addons
+            .iter()
+            .any(|a| a.folders == ["Moonlit", "Moonlit_Codex", "Moonlit_Guides"])
+    );
+
+    // A folder the scan couldn't read is not gone: its records keep their link and choices.
+    let merged = store::merge_rescan(&previous, res.addons, &res.unreadable);
+    let d = merged.iter().find(|a| a.id == details.id).unwrap();
+    assert_eq!(d.provider.as_deref(), Some("Fake"));
+    assert_eq!(d.folders, details.folders);
+    assert_eq!(merged.iter().find(|a| a.id == lonely.id), Some(&lonely));
 }
