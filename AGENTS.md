@@ -1,8 +1,8 @@
 # AGENTS.md
 
 **Culm**, an addon manager for **World of Warcraft: Forever**, written in Rust on the
-[Rune](https://github.com/anomalyco/rune) GUI framework. The name lives only in `crates/app/src/brand.rs` and the
-`[[bin]]` name in `crates/app/Cargo.toml`.
+[Rune](https://github.com/anomalyco/rune) GUI framework. The name is final (since 0.1.0): code refers to
+`brand::APP_NAME`, `brand::REPO` and the other constants in `crates/app/src/brand.rs`; UI copy and docs may name "Culm".
 
 Culm is cross-platform and should look and behave the same everywhere. Targets:
 - **Linux with KDE Plasma** (Wayland and X11): the main target; everything must work here.
@@ -62,6 +62,7 @@ Build dependencies (Fedora): `sudo dnf install libxkbcommon-devel wayland-devel`
   before pushing.
 - One topic per PR. Title says what changes for the user; the body starts with `Fixes #<n>` and briefly says what,
   why and how it was tested. CI must be green; the user merges.
+- Dependabot's monthly GitHub Actions PRs (`.github/dependabot.yml`) don't follow the branch-name and PR-body rules.
 - Several agents may work on this machine at once: edit only in your own git worktree, never in the main checkout.
   No `git stash` (shared by all worktrees), no `git add -A`/`commit -a`, don't touch other branches, and never
   merge or push `master` unless the user asks.
@@ -75,8 +76,8 @@ SemVer, 0.x while in beta (`brand::STAGE` shows "Beta" beside the version). Ever
 bump `version` in the root `Cargo.toml`, add `<release version="x.y.z" date="..."/>` to
 `packaging/dev.culm.app.metainfo.xml` on a `chore/release-x.y.z` branch, merge its PR, then tag the merged `master`:
 `git tag vx.y.z && git push origin vx.y.z`.
-`.github/workflows/release.yml` checks all three, runs the tests, builds the AppImage (`packaging/appimage.sh`) and
-publishes the release. Never mark a release "pre-release": the AppImage's zsync update info only follows `latest`.
+`.github/workflows/release.yml` checks all three, runs the tests, builds the AppImage (`packaging/appimage.sh`), the
+Windows installer (`packaging/windows/`) and the macOS .dmg (`packaging/macos.sh`) and publishes the release. Never mark a release "pre-release": the AppImage's zsync update info only follows `latest`.
 
 ## Rune rules (from Rune's own guidance — see docs/research/rune.md)
 
@@ -134,7 +135,7 @@ publishes the release. Never mark a release "pre-release": the AppImage's zsync 
   `Variant => module` line in the `themes!` list in `theme/mod.rs`. The picker, prefs id, scenes (`<scene>@<id>`) and
   `f7_3_every_theme_renders_every_screen` pick it up. Fonts: every family a theme names
   (`Family::Named`, one bundled name, no fallback list) is bundled in the binary with its licence (OFL/Apache) in
-  `assets/fonts/<family>/` and listed in `theme::FONTS`, so text looks identical on every OS
+  `crates/app/assets/fonts/<family>/` and listed in `theme::FONTS`, so text looks identical on every OS
   (`f7_3_every_theme_font_is_bundled`); never rely on system fonts, and never bundle proprietary game fonts or assets.
 - A light-paged theme (Grimoire) sets `Theme::frame` to a second, dark theme: views build the sidebar and the header band
   inside `theme::framed(|| ..)`, where `t()`/`pal()` return the frame (`Theme::frame_look`). `Skin::glyphs` swaps stock glyphs per theme
