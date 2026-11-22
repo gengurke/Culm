@@ -74,12 +74,16 @@ pub fn get_json<T: DeserializeOwned>(
     headers: Headers,
     key: Option<&ScopedHeader>,
 ) -> Result<T> {
+    // The query goes on the first hop only: a redirect's `Location` already carries its own.
+    let first = std::cell::Cell::new(true);
     parse_json(
         url,
         send(url, key, |agent, url, scoped| {
             let mut req = agent.get(url).header("Accept", "application/json");
-            for (k, v) in query {
-                req = req.query(*k, *v);
+            if first.replace(false) {
+                for (k, v) in query {
+                    req = req.query(*k, *v);
+                }
             }
             for (k, v) in headers.iter().chain(scoped) {
                 req = req.header(*k, *v);
