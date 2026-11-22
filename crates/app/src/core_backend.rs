@@ -448,7 +448,8 @@ impl Backend for CoreBackend {
     fn save_addon(&self, inst: &Installation, addon: &Addon) -> Result<()> {
         self.edit(inst, |list| {
             if let Some(slot) = list.iter_mut().find(|a| a.id == addon.id) {
-                *slot = addon.clone();
+                slot.ignored = addon.ignored;
+                slot.channel = addon.channel;
             }
         })
     }

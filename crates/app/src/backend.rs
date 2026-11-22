@@ -137,7 +137,8 @@ pub trait Backend: Send + Sync {
         progress: &dyn Fn(f32),
     ) -> Result<Addon>;
     fn remove(&self, inst: &Installation, addon: &Addon) -> Result<()>;
-    /// Persist record changes (channel, ignore).
+    /// Store the user's choices on `addon`'s record (ignore, channel), nothing else: a save that
+    /// waited behind an update must not put the old version and folders back (#136).
     fn save_addon(&self, inst: &Installation, addon: &Addon) -> Result<()>;
     /// Search every available source by text, grouped per addon (F4.1, F4.8); a category or
     /// browsing without text asks CurseForge alone (F4.6, see [`curseforge_only`]). Fails only

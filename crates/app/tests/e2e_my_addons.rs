@@ -339,6 +339,75 @@ fn f3_3_channel_change_rechecks_only_that_addon() {
 }
 
 #[test]
+fn f2_5_changes_made_just_before_quitting_are_stored() {
+    let world = World::new().with_key("test-key");
+    let mut app = world.app();
+    app.wait_idle();
+    let (id, inst) = (app.id("Ace"), app.state().current.clone().unwrap());
+    let data = world.config().data_dir;
+    let stored = || {
+        let list = addon_core::store::load_addons(&data, &inst).unwrap();
+        list.into_iter().find(|a| a.id == id).unwrap()
+    };
+    // A long store edit (a remove, a scan merge) holds the writes back while the user toggles
+    // Ignore three times and quits.
+    let saves = app.state().saves.clone();
+    let edit = saves.hold();
+    app.tap(&app.row("Ace", ""));
+    for _ in 0..3 {
+        app.tap("detail/ignore");
+    }
+    assert_eq!(
+        stored().ignored,
+        None,
+        "nothing written while the edit runs"
+    );
+    drop(edit);
+    // What quitting runs: it writes the waiting saves in order before the app ends.
+    app.state().flush_saves();
+    assert_eq!(
+        stored().ignored,
+        Some(IgnoreReason::User),
+        "the last toggle wins"
+    );
+
+    let mut again = world.app();
+    again.wait_idle();
+    assert_eq!(again.status("Ace"), Status::Ignored);
+}
+
+#[test]
+fn f2_5_a_late_toggle_only_writes_the_users_choices() {
+    // A toggle's save that waited behind an update must not put the old version and folders back.
+    let world = World::new().with_key("test-key");
+    let mut app = world.app();
+    app.wait_idle();
+    let (inst, ace) = (
+        app.state().installation().unwrap().clone(),
+        app.state().addons[0].addon.clone(),
+    );
+    assert_eq!(ace.name, "Ace");
+    let stale = addon_core::Addon {
+        installed_version: Some("0.1".into()),
+        folders: vec!["Gone".into()],
+        ignored: Some(IgnoreReason::User),
+        channel: addon_core::Channel::Beta,
+        ..ace.clone()
+    };
+    app.state().backend.save_addon(&inst, &stale).unwrap();
+    let list = addon_core::store::load_addons(&world.config().data_dir, &inst.id).unwrap();
+    let saved = list.iter().find(|a| a.id == ace.id).unwrap();
+    assert_eq!(
+        (saved.ignored, saved.channel),
+        (Some(IgnoreReason::User), addon_core::Channel::Beta)
+    );
+    assert_eq!(
+        (&saved.installed_version, &saved.folders),
+        (&ace.installed_version, &ace.folders)
+    );
+}
+
+#[test]
 fn f3_4_ignored_addon_is_not_offered_for_update() {
     let world = World::new().with_key("test-key");
     let mut app = world.app();

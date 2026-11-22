@@ -26,6 +26,8 @@ or break. New changes go under "Unreleased"; a release turns that heading into i
   (downloads already worked this way).
 
 ### Fixed
+- Ignoring an addon or changing its channel right before closing Culm is no longer lost, and quick toggles are
+  stored in the order they were made.
 - Importing from WowUp keeps addons WowUp installed from the WowUp Hub, with their channel, auto-update and ignore
   setting, instead of re-matching them from scratch.
 - Esc closes the installation menu in the sidebar.

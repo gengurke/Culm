@@ -55,8 +55,11 @@ What the addon manager does, one short paragraph per feature. Ids are referenced
 - **F2.5 Persistence** ✅ — The addon list per installation is stored as JSON (`<data>/addons/<id>.json`, atomic write);
   a rescan refreshes it, keeping ids, channel, auto-update, user ignores and offline provider links. On a shared folder a
   fresh match of the same provider wins, a link to another provider stays with the stored record. Store writes are
-  serialized in the app, fsynced, and a scan waits for running installs so it never sees a folder mid-swap.
-  (`f2_5_store_roundtrip_and_rescan_keeps_user_choices`)
+  serialized in the app, fsynced, and a scan waits for running installs so it never sees a folder mid-swap. Ignore and
+  channel changes are written in the order they were made, and quitting waits for the ones still pending (`App::on_quit`);
+  they write only those choices, so one that waited behind an update keeps the new version and folders.
+  (`f2_5_store_roundtrip_and_rescan_keeps_user_choices`, e2e `f2_5_changes_made_just_before_quitting_are_stored`,
+  `f2_5_a_late_toggle_only_writes_the_users_choices`)
 - **F2.6 Sort** ✅ — The Addon, Game and Status column headers are buttons (keyboard: Space) that order the list by
   that column and flip the order when pressed again; a chevron marks the active one. Addon: name A–Z; Game: oldest game
   version first (dotted numbers compared part by part, none last); Status: what needs the user first (error, update,

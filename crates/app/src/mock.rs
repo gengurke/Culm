@@ -1229,7 +1229,8 @@ impl Backend for MockBackend {
             .iter_mut()
             .find(|x| x.id == addon.id)
         {
-            *slot = addon.clone();
+            slot.ignored = addon.ignored;
+            slot.channel = addon.channel;
         }
         Ok(())
     }
