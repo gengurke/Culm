@@ -118,9 +118,12 @@ fn map_record(r: &Value) -> Option<Addon> {
         .flatten()
         .filter_map(|v| v.as_str().map(str::to_string))
         .collect();
+    // WowUp's Hub release ids are the Hub's own, ours are the GitHub asset ids: they never match, so
+    // a Hub record keeps no release id and update checks compare versions instead.
+    let release_id = |k: &str| s(k).filter(|_| provider != providers::hub::NAME);
     // Only a newer release WowUp knew of is kept (it can be installed without a key); "latest is
     // what's installed" was WowUp's check, not ours, so the addon shows "Not checked" until we check.
-    let latest = match (s("externalLatestReleaseId"), s("latestVersion")) {
+    let latest = match (release_id("externalLatestReleaseId"), s("latestVersion")) {
         (Some(id), _) if Some(&id) == s("installedExternalReleaseId").as_ref() => None,
         (Some(id), Some(version)) => Some(RemoteFile {
             id,
@@ -151,7 +154,7 @@ fn map_record(r: &Value) -> Option<Addon> {
         thumbnail_url: s("thumbnailUrl"),
         folders,
         installed_version: s("installedVersion"),
-        installed_file_id: s("installedExternalReleaseId"),
+        installed_file_id: release_id("installedExternalReleaseId"),
         installed_at: s("installedAt"),
         game_version: game_versions
             .iter()

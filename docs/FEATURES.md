@@ -186,7 +186,7 @@ in the theme's tones, gilded on the active chip, around a disc showing the origi
   `ProviderConfig::hub_base_url`): search, featured (popular + recent, deduped), batch `get_many` for update checks,
   `wowup.io/addons/<id>` URLs, and folder matching by WowUp's md5 fingerprint (`POST /addons/fingerprint`, exact matches
   of a Forever release only; scans now compute it next to the CurseForge one). Only releases with a `forever` game version
-  and an http(s) download count; file id = GitHub asset id, version = tag, folders from `addonFolders`. In
+  and an http(s) download count; file id = GitHub asset id, version = the Forever TOC version (else the tag, as WowUp shows it), folders from `addonFolders`. In
   `providers::all` between CurseForge and GitHub (scans, update checks, search); `ADDONS_HUB_URL` points it elsewhere. (`f4_7_hub_search_keeps_forever_releases`,
   `f4_7_hub_featured_dedupes_popular_and_recent`, `f4_7_hub_install_and_update`, `f4_7_hub_fingerprint_matches_folders`,
   `f4_7_hub_url_resolves_id`, `f2_3_fingerprint_matches_golden_value`)

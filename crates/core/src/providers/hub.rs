@@ -215,25 +215,30 @@ fn to_addon(flavor: Flavor, a: &HubAddon) -> RemoteAddon {
 
 /// None unless the release targets `flavor` and has an http(s) download URL.
 fn to_file(flavor: Flavor, r: &HubRelease) -> Option<RemoteFile> {
-    let versions: Vec<String> = r
+    let mine: Vec<&GameVersion> = r
         .game_versions
         .iter()
         .filter(|g| g.game_type == game_type(flavor))
+        .collect();
+    let versions: Vec<String> = mine
+        .iter()
         .filter_map(|g| toc::game_version(&g.interface))
         .collect();
-    let any = r
-        .game_versions
-        .iter()
-        .any(|g| g.game_type == game_type(flavor));
     let url_ok = r.download_url.starts_with("https://") || r.download_url.starts_with("http://");
-    (any && url_ok).then(|| RemoteFile {
+    (!mine.is_empty() && url_ok).then(|| RemoteFile {
         // The GitHub asset id, so a Hub install and a GitHub install of the same release agree.
         id: if r.external_id.is_empty() {
             r.id.to_string()
         } else {
             r.external_id.clone()
         },
-        version: r.tag_name.clone(),
+        // The TOC version for this game type, else the tag: what WowUp shows, so a WowUp import compares.
+        version: mine
+            .iter()
+            .map(|g| g.version.as_str())
+            .find(|v| !v.is_empty())
+            .unwrap_or(&r.tag_name)
+            .to_string(),
         channel: if r.prerelease {
             Channel::Beta
         } else {
@@ -323,6 +328,8 @@ struct HubRelease {
 struct GameVersion {
     game_type: String,
     interface: String,
+    /// The TOC `## Version` for this game type; empty when the TOC has none.
+    version: String,
 }
 
 #[derive(Deserialize, Default)]

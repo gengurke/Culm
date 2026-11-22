@@ -1,6 +1,7 @@
 mod common;
-use addon_core::{Channel, DependencyKind, IgnoreReason, scan, store, wowup_import};
-use addon_testkit::{toc, write};
+use addon_core::providers::{GitHub, Hub, Provider};
+use addon_core::{Channel, DependencyKind, Flavor, IgnoreReason, scan, store, wowup_import};
+use addon_testkit::{FakeServer, hub_addon, toc, write};
 use common::*;
 
 #[test]
@@ -94,10 +95,13 @@ fn f2_4_wowup_hub_records_keep_their_link_and_bad_folder_names_are_dropped() {
     let prefs = serde_json::json!({
         "wow_installations": [{"id": "fev", "clientType": 10, "location": format!("{client}/Wow.exe")}]
     });
+    // WowUp keeps the Hub's own release id (252933) and the Forever TOC version.
     let rec = |id: &str, folders: &[&str], provider: &str| {
         serde_json::json!({
             "id": id, "name": id, "providerName": provider, "externalId": "47671",
-            "installedFolderList": folders, "clientType": 10, "installationId": "fev"
+            "installedFolderList": folders, "clientType": 10, "installationId": "fev",
+            "installedVersion": "1.2.0", "installedExternalReleaseId": "252933",
+            "latestVersion": "1.3.0", "externalLatestReleaseId": "252999"
         })
     };
     let addons = serde_json::json!({
@@ -118,6 +122,42 @@ fn f2_4_wowup_hub_records_keep_their_link_and_bad_folder_names_are_dropped() {
             ("Alpha", Some("WowUpHub"), &["Alpha".to_string()][..]),
             ("Beta", Some("WowUpHub"), &["Beta".to_string()][..]),
         ]
+    );
+    // Our Hub file ids are GitHub asset ids, so WowUp's release ids are not kept.
+    let mut a = imported[0].clone();
+    assert_eq!(
+        (a.installed_file_id.as_deref(), a.latest.as_ref()),
+        (None, None)
+    );
+
+    // The Hub's current release is what is installed: asset id 778295167, TOC version 1.2.0.
+    let s = FakeServer::start();
+    let mut hub_json = hub_addon(
+        47671,
+        "me/Alpha",
+        &["Alpha"],
+        778295167,
+        "https://dl.example/a.zip",
+    );
+    hub_json["releases"][0]["id"] = 252933.into();
+    hub_json["releases"][0]["game_versions"][0]["version"] = "1.2.0".into();
+    s.json(
+        "POST",
+        "/addons/batch/forever",
+        &serde_json::json!({ "addons": [hub_json] }),
+    );
+    let hub = Hub {
+        base_url: s.url().into(),
+        github: GitHub {
+            api_base: s.url().into(),
+        },
+    };
+    let remote = &hub.get_many(Flavor::Forever, &["47671".into()]).unwrap()[0];
+    a.latest = remote.latest_for(a.channel).cloned();
+    assert_eq!(a.latest.as_ref().map(|l| l.id.as_str()), Some("778295167"));
+    assert!(
+        !a.update_available(),
+        "the installed release is not an update"
     );
 }
 
