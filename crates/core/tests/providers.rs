@@ -11,6 +11,31 @@ use serde_json::json;
 
 const F: Flavor = Flavor::Forever;
 
+fn text(q: &str) -> SearchFilter {
+    SearchFilter {
+        text: q.into(),
+        ..SearchFilter::default()
+    }
+}
+
+/// A CurseForge result known only by its id.
+fn cf_addon(id: &str) -> addon_core::RemoteAddon {
+    addon_core::RemoteAddon {
+        provider: "CurseForge".into(),
+        external_id: id.into(),
+        name: String::new(),
+        author: String::new(),
+        summary: String::new(),
+        url: None,
+        thumbnail_url: None,
+        download_count: 0,
+        files: vec![],
+        source_url: None,
+        categories: vec![],
+        updated_at: None,
+    }
+}
+
 fn curseforge(s: &FakeServer) -> CurseForge {
     CurseForge {
         api_key: Some("test-key".into()),
@@ -32,7 +57,7 @@ fn f4_1_search_curseforge_filters_forever_files() {
     let s = FakeServer::start();
     s.json("GET", "/v1/mods/search", &fixture("cf_search.json"));
 
-    let results = curseforge(&s).search(F, "damage meter").unwrap();
+    let results = curseforge(&s).search(F, &text("damage meter")).unwrap();
 
     let req = &s.requests_to("/v1/mods/search")[0];
     assert_eq!(req.header("x-api-key"), Some("test-key"));
@@ -261,14 +286,17 @@ fn f4_5_description_is_plain_text() {
              <script>alert(1)</script><ul><li>Raids</li><li>Dungeons</li></ul>"
         )),
     );
-    let text = curseforge(&s).description("61284").unwrap();
-    assert_eq!(text, "Most powerful meter & more.\n\n• Raids\n• Dungeons");
+    let text = curseforge(&s).description(&cf_addon("61284")).unwrap();
+    assert_eq!(
+        text.as_deref(),
+        Some("Most powerful meter & more.\n\n• Raids\n• Dungeons")
+    );
     assert_eq!(
         s.requests_to("/v1/mods/61284/description")[0].header("x-api-key"),
         Some("test-key")
     );
     assert!(
-        curseforge(&s).description("../x").is_err(),
+        curseforge(&s).description(&cf_addon("../x")).is_err(),
         "ids are numbers"
     );
 }
@@ -315,11 +343,14 @@ fn f4_6_search_sends_category_and_sort() {
     s.json("GET", "/v1/mods/search", &fixture("cf_search.json"));
     let cf = curseforge(&s);
     let results = cf
-        .search_filtered(&SearchFilter {
-            text: String::new(),
-            category: Some(1009),
-            sort: Sort::Name,
-        })
+        .search(
+            F,
+            &SearchFilter {
+                text: String::new(),
+                category: Some(1009),
+                sort: Sort::Name,
+            },
+        )
         .unwrap();
     assert_eq!(results.len(), 1);
     let req = &s.requests_to("/v1/mods/search")[0];
@@ -337,11 +368,14 @@ fn f4_6_search_sends_category_and_sort() {
         (Sort::LastUpdated, "3"),
         (Sort::TotalDownloads, "6"),
     ] {
-        cf.search_filtered(&SearchFilter {
-            text: "bag".into(),
-            category: None,
-            sort,
-        })
+        cf.search(
+            F,
+            &SearchFilter {
+                text: "bag".into(),
+                category: None,
+                sort,
+            },
+        )
         .unwrap();
         let req = s.requests_to("/v1/mods/search").pop().unwrap();
         assert_eq!(req.query_param("sortField").as_deref(), Some(field));
@@ -551,7 +585,7 @@ fn f7_1_curseforge_unavailable_without_key() {
             base_url: s.url().into(),
         };
         assert!(!cf.available());
-        let err = cf.search(F, "x").unwrap_err();
+        let err = cf.search(F, &text("x")).unwrap_err();
         assert!(err.to_string().contains("API key"), "{err}");
     }
     assert!(s.requests().is_empty(), "no request without a key");
@@ -599,7 +633,10 @@ fn f3_2_download_reports_progress_and_http_errors() {
             .starts_with("addon-manager/")
     );
 
-    let err = curseforge(&s).search(F, "x").unwrap_err().to_string();
+    let err = curseforge(&s)
+        .search(F, &text("x"))
+        .unwrap_err()
+        .to_string();
     assert!(err.contains("403") && err.contains("bad key"), "{err}");
     assert!(
         http::download(&format!("{}/missing", s.url()), &mut |_, _| {})

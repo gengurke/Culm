@@ -122,9 +122,6 @@ impl Provider for FakeProvider {
     fn name(&self) -> &'static str {
         "Fake"
     }
-    fn search(&self, _: Flavor, _: &str) -> anyhow::Result<Vec<RemoteAddon>> {
-        Ok(vec![])
-    }
     fn get_many(&self, _: Flavor, _: &[String]) -> anyhow::Result<Vec<RemoteAddon>> {
         Ok(vec![])
     }

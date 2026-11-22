@@ -686,8 +686,7 @@ pub fn dispatch(s: &mut State, intent: Intent, tx: &mut Tx) {
                 s.start_check();
             }
         }
-        Intent::Update(id) => s.start_update(&id, false),
-        Intent::Reinstall(id) => s.start_update(&id, true),
+        Intent::Update(id) | Intent::Reinstall(id) => s.start_update(&id),
         Intent::UpdateAll => s.update_all(),
         Intent::SetIgnored(id, ignored) => {
             if let Some(a) = s.addon_mut(&id) {

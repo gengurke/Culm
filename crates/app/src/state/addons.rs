@@ -466,13 +466,13 @@ impl State {
         });
     }
 
-    pub(super) fn start_update(&mut self, id: &str, reinstall: bool) {
+    pub(super) fn start_update(&mut self, id: &str) {
         let Some((inst, addon)) = self.begin_op(id, Op::Downloading(0.0)) else {
             return;
         };
         worker::spawn(self, "update", move |b, post| {
             let id = addon.id.clone();
-            let result = b.update(&inst, &addon, reinstall, &|done| {
+            let result = b.update(&inst, &addon, &|done| {
                 post.send(Msg::Progress {
                     id: id.clone(),
                     done,
@@ -584,7 +584,7 @@ impl State {
             .map(|a| a.addon.id.clone())
             .collect();
         for id in ids {
-            self.start_update(&id, false);
+            self.start_update(&id);
         }
     }
 

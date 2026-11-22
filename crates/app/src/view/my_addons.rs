@@ -686,7 +686,7 @@ fn detail(s: &State, a: &AddonUi) -> El {
                     move |s, tx| dispatch(s, Intent::Reinstall(id.clone()), tx)
                 },
             )
-            .help("Download the current version again and replace the addon's folders"),
+            .help("Download the newest version and replace the addon's folders"),
             ui::button(
                 key("ignore"),
                 if ignored { "Unignore" } else { "Ignore" },

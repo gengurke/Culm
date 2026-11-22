@@ -109,8 +109,12 @@ impl Provider for GitHub {
         NAME
     }
 
-    fn search(&self, _flavor: Flavor, _query: &str) -> Result<Vec<RemoteAddon>> {
-        Ok(vec![])
+    fn is_link(&self, input: &str) -> bool {
+        parse_url(input).is_some()
+    }
+
+    fn takes_links(&self) -> bool {
+        true
     }
 
     /// One request pair per repo: a failing repo (renamed, deleted, rate limit) is skipped so
@@ -131,6 +135,11 @@ impl Provider for GitHub {
             eprintln!("GitHub update check skipped {e}");
         }
         Ok(out)
+    }
+
+    fn description(&self, addon: &RemoteAddon) -> Result<Option<String>> {
+        let text = self.readme(&addon.external_id)?;
+        Ok((!text.is_empty()).then_some(text))
     }
 
     fn from_url(&self, _flavor: Flavor, url: &str) -> Result<Option<RemoteAddon>> {

@@ -54,8 +54,52 @@ impl CurseForge {
         Ok(env.data)
     }
 
+    /// WoW addon categories (`GET /v1/categories?gameId=1`), sorted by name; top-level ones have
+    /// no parent.
+    pub fn categories(&self) -> Result<Vec<Category>> {
+        let game = GAME_ID.to_string();
+        let all: Vec<CfCategory> = self.get("/v1/categories", &[("gameId", &game)])?;
+        let mut out: Vec<Category> = all
+            .into_iter()
+            .filter(|c| !c.is_class.unwrap_or(false) && c.class_id == Some(ADDONS_CLASS_ID))
+            .map(|c| Category {
+                id: c.id,
+                name: c.name,
+                slug: c.slug,
+                parent: c.parent_category_id.filter(|p| *p != ADDONS_CLASS_ID),
+            })
+            .collect();
+        out.sort_by_key(|c| c.name.to_lowercase());
+        Ok(out)
+    }
+
+    fn mods(&self, ids: &[u64]) -> Result<Vec<CfMod>> {
+        if ids.is_empty() {
+            return Ok(vec![]);
+        }
+        self.post("/v1/mods", json!({ "modIds": ids }))
+    }
+}
+
+impl Provider for CurseForge {
+    fn name(&self) -> &'static str {
+        NAME
+    }
+
+    fn is_link(&self, input: &str) -> bool {
+        parse_url(input).is_some()
+    }
+
+    fn takes_links(&self) -> bool {
+        true
+    }
+
+    fn available(&self) -> bool {
+        self.key().is_ok()
+    }
+
     /// Forever addons matching `filter` (text, category, order), mods without a Forever file dropped.
-    pub fn search_filtered(&self, filter: &SearchFilter) -> Result<Vec<RemoteAddon>> {
+    fn search(&self, _flavor: Flavor, filter: &SearchFilter) -> Result<Vec<RemoteAddon>> {
         let (game, ty) = (GAME_ID.to_string(), FOREVER_TYPE_ID.to_string());
         // docs.curseforge.com ModsSearchSortField: 2 Popularity, 3 LastUpdated, 4 Name, 6 TotalDownloads.
         let (field, order) = match filter.sort {
@@ -87,54 +131,15 @@ impl CurseForge {
             .collect())
     }
 
-    /// WoW addon categories (`GET /v1/categories?gameId=1`), sorted by name; top-level ones have
-    /// no parent.
-    pub fn categories(&self) -> Result<Vec<Category>> {
-        let game = GAME_ID.to_string();
-        let all: Vec<CfCategory> = self.get("/v1/categories", &[("gameId", &game)])?;
-        let mut out: Vec<Category> = all
-            .into_iter()
-            .filter(|c| !c.is_class.unwrap_or(false) && c.class_id == Some(ADDONS_CLASS_ID))
-            .map(|c| Category {
-                id: c.id,
-                name: c.name,
-                slug: c.slug,
-                parent: c.parent_category_id.filter(|p| *p != ADDONS_CLASS_ID),
-            })
-            .collect();
-        out.sort_by_key(|c| c.name.to_lowercase());
-        Ok(out)
-    }
-
-    /// The addon's long description (`GET /v1/mods/{id}/description`, HTML) as plain text.
-    pub fn description(&self, id: &str) -> Result<String> {
-        let id: u64 = id.parse().context("not a CurseForge addon id")?;
+    /// `GET /v1/mods/{id}/description` (HTML) as plain text.
+    fn description(&self, addon: &RemoteAddon) -> Result<Option<String>> {
+        let id: u64 = addon
+            .external_id
+            .parse()
+            .context("not a CurseForge addon id")?;
         let html: String = self.get(&format!("/v1/mods/{id}/description"), &[])?;
-        Ok(html::to_text(&html, html::DESCRIPTION_MAX))
-    }
-
-    fn mods(&self, ids: &[u64]) -> Result<Vec<CfMod>> {
-        if ids.is_empty() {
-            return Ok(vec![]);
-        }
-        self.post("/v1/mods", json!({ "modIds": ids }))
-    }
-}
-
-impl Provider for CurseForge {
-    fn name(&self) -> &'static str {
-        NAME
-    }
-
-    fn available(&self) -> bool {
-        self.key().is_ok()
-    }
-
-    fn search(&self, _flavor: Flavor, query: &str) -> Result<Vec<RemoteAddon>> {
-        self.search_filtered(&SearchFilter {
-            text: query.into(),
-            ..SearchFilter::default()
-        })
+        let text = html::to_text(&html, html::DESCRIPTION_MAX);
+        Ok((!text.is_empty()).then_some(text))
     }
 
     fn featured(&self, _flavor: Flavor) -> Result<Vec<RemoteAddon>> {

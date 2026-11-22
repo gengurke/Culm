@@ -149,11 +149,12 @@ What the addon manager does, one short paragraph per feature. Ids are referenced
 - **F4.5 Detail** ✅ — Clicking a result opens a side panel (like My Addons' detail): thumbnail, name, author, summary,
   downloads, last updated, latest Forever file (version, date, channel, game version), categories, source, website link and
   Install / progress / Installed ("Show in My Addons") / Update. The long description is fetched on a worker when it opens
-  and shown as plain text, capped at 8000 characters: CurseForge's HTML (`GET /v1/mods/{id}/description`, `html::to_text`:
+  and shown as plain text, capped at 8000 characters; each source gives its own (`Provider::description`): CurseForge's HTML (`GET /v1/mods/{id}/description`, `html::to_text`:
   tags, scripts and images dropped, paragraphs and list items kept) or, for GitHub and WowUp Hub addons, the repo's README
   (`GET /repos/{repo}/readme` raw, `html::markdown_to_text`: badges, images and HTML dropped, link text kept). With several
   sources the panel describes the picked one (F4.8). Esc, the close button or clicking the
   result again closes it. (`f4_5_description_is_plain_text`, `f4_5_github_readme_is_plain_text`,
+  `f4_5_each_source_gives_its_own_description`,
   e2e `f4_5_clicking_a_result_opens_its_detail_and_esc_closes_it`, `f4_4_install_from_github_url_without_a_key`)
 - **F4.6 Filters** ✅ — A category dropdown (CurseForge's WoW addon tree from `GET /v1/categories?gameId=1`, fetched once
   per run and never stored, per CurseForge's terms; subcategories indented, the Class subtree left out), a row of class chips
@@ -166,7 +167,8 @@ in the theme's tones, gilded on the active chip, around a disc showing the origi
   category or order other than Popularity is set, "Clear filters" beside the dropdowns resets all three at once; the
   search text stays (it is the query, not a filter on it) and Esc only closes menus and the detail panel. Filters are
   CurseForge's: while a category or class is set (or the list is browsed in another order without text) only CurseForge
-  is asked, silently. (`f4_6_categories_are_the_addon_tree`, `f4_6_search_sends_category_and_sort`,
+  is asked, silently (`discover::curseforge_only`). (`f4_6_categories_are_the_addon_tree`, `f4_6_search_sends_category_and_sort`,
+  `f4_6_a_category_asks_curseforge_alone_and_text_orders_the_grouped_list`,
   e2e `f4_6_category_and_sort_filter_the_search`, `f4_6_clear_filters_resets_class_category_and_sort`)
   - **F4.6.1 Class icons** ✅ — The icons are Blizzard's art, so they are never bundled: `class_icons::load` downloads
     them on a worker the first time the class chips show (never at startup otherwise), from the first source that serves
@@ -189,7 +191,7 @@ in the theme's tones, gilded on the active chip, around a disc showing the origi
   `f4_7_hub_url_resolves_id`, `f2_3_fingerprint_matches_golden_value`)
 - **F4.8 Multi-source search** ✅ — `discover::search` / `discover::featured` ask every available provider in parallel
   and group the results into one entry per addon (`sources[0]` preferred: CurseForge if present, else the first provider).
-  Results merge only on an exact shared id (`curse:`, `hub:`, `wowi:`, `github:<owner/repo>` lowercased; a CurseForge
+  Results merge only on an exact shared id (`<provider>:<id>` from the provider's `name()`, e.g. `curseforge:61284`, `wowuphub:47671`, `github:<owner/repo>` lowercased; a CurseForge
   `links.sourceUrl` or Hub `repository` counts only when it is exactly a GitHub repo URL). Never on name, slug, author
   or folder; a merge that would join two different ids of one kind does not happen ("better a duplicate than a wrong
   merge"). A failing provider is reported per source, the rest still answer. Get Addons shows one card per entry (the
