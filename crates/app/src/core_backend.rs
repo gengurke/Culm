@@ -1,15 +1,12 @@
 //! The real [`Backend`]: `addon-core` over the app's own folders and prefs. Everything here runs
 //! on workers; the stored addon lists are read-modify-written under one lock.
 
-use crate::backend::{
-    AddonOrder, Backend, Backup, Found, Maintenance, Settings, Warned, curseforge_only,
-    sort_entries,
-};
+use crate::backend::{AddonOrder, Backend, Backup, Found, Maintenance, Settings, Warned};
 use crate::brand;
 use crate::theme::ThemeId;
 use crate::ui::bytes;
 use addon_core::discover::{self, Discovery};
-use addon_core::providers::{self, CurseForge, GitHub, Provider, ProviderConfig};
+use addon_core::providers::{self, CurseForge, Provider, ProviderConfig};
 use addon_core::self_update::Release;
 use addon_core::{
     Addon, Category, Channel, Flavor, Installation, RemoteAddon, RemoteFile, SearchFilter,
@@ -130,10 +127,6 @@ const ADDON_ORDER: &str = "addon_order";
 
 impl CoreBackend {
     pub fn new(c: Config) -> CoreBackend {
-        // Earlier versions stored CurseForge data here (categories, thumbnails mixed with others);
-        // its terms don't allow that. Best effort: both are rebuilt when needed.
-        let _ = std::fs::remove_file(c.cache_dir.join("curseforge-categories.json"));
-        let _ = std::fs::remove_dir_all(c.cache_dir.join("thumbnails"));
         CoreBackend {
             data_dir: c.data_dir,
             cache_dir: c.cache_dir,
@@ -168,14 +161,6 @@ impl CoreBackend {
         CurseForge {
             api_key: c.curseforge_api_key,
             base_url: c.curseforge_base_url,
-        }
-    }
-
-    fn github(&self) -> GitHub {
-        let c = self.provider_config();
-        GitHub {
-            token: c.github_token,
-            api_base: c.github_base_url,
         }
     }
 
@@ -236,14 +221,41 @@ impl CoreBackend {
     fn disk_shared(&self) -> std::sync::RwLockReadGuard<'_, ()> {
         self.disk.read().unwrap_or_else(|e| e.into_inner())
     }
+
+    /// Runs `installer` over `addon` limited to its stored folders that no other record lists, then
+    /// stores the result, keeping channel / ignore / auto-update changes made meanwhile.
+    fn install_over(
+        &self,
+        inst: &Installation,
+        addon: &Addon,
+        installer: impl FnOnce(&Addon) -> Result<Addon>,
+    ) -> Result<Addon> {
+        let _disk = self.disk_shared();
+        let folders = self.edit(inst, |list| store::owned_folders(list, addon))?;
+        let mut a = installer(&Addon {
+            folders,
+            ..addon.clone()
+        })?;
+        self.edit(inst, |list| {
+            if let Some(s) = list.iter().find(|s| s.id == a.id) {
+                (a.channel, a.ignored, a.auto_update) = (s.channel, s.ignored, s.auto_update);
+            }
+            store::upsert_addon(list, a.clone());
+        })?;
+        Ok(a)
+    }
 }
 
 /// Grouped results with the failed sources by name; an error when all `asked` sources failed.
-fn found(d: Discovery, asked: usize) -> Result<Found> {
-    if d.errors.len() >= asked
+fn found(d: Discovery) -> Result<Found> {
+    if d.errors.len() >= d.asked
         && let Some((name, e)) = d.errors.first()
     {
-        bail!("{}: {e}", crate::backend::source_label(name));
+        // A search that asked one source alone (`discover::curseforge_only`) needs no name.
+        if d.asked == 1 {
+            bail!("{e}");
+        }
+        bail!("{}: {e}", providers::label(name));
     }
     Ok(Found {
         entries: d.entries,
@@ -361,30 +373,10 @@ impl Backend for CoreBackend {
     /// Update and reinstall both install `addon.latest` (fresh from the update check). Only the
     /// stored folders no other record lists are replaced; channel / ignore changes made while it
     /// downloaded are kept.
-    fn update(
-        &self,
-        inst: &Installation,
-        addon: &Addon,
-        _reinstall: bool,
-        progress: &dyn Fn(f32),
-    ) -> Result<Addon> {
-        let _disk = self.disk_shared();
-        let folders = self.edit(inst, |list| store::owned_folders(list, addon))?;
-        let mut a = install::update_addon(
-            inst,
-            &Addon {
-                folders,
-                ..addon.clone()
-            },
-            &|url| self.download(url, progress),
-        )?;
-        self.edit(inst, |list| {
-            if let Some(s) = list.iter().find(|s| s.id == a.id) {
-                (a.channel, a.ignored, a.auto_update) = (s.channel, s.ignored, s.auto_update);
-            }
-            store::upsert_addon(list, a.clone());
-        })?;
-        Ok(a)
+    fn update(&self, inst: &Installation, addon: &Addon, progress: &dyn Fn(f32)) -> Result<Addon> {
+        self.install_over(inst, addon, |a| {
+            install::update_addon(inst, a, &|url| self.download(url, progress))
+        })
     }
 
     fn find_download(&self, file: &RemoteFile) -> Option<PathBuf> {
@@ -404,22 +396,7 @@ impl Backend for CoreBackend {
         path: &Path,
         remove: bool,
     ) -> Result<Addon> {
-        let _disk = self.disk_shared();
-        let folders = self.edit(inst, |list| store::owned_folders(list, addon))?;
-        let mut a = manual::install(
-            inst,
-            &Addon {
-                folders,
-                ..addon.clone()
-            },
-            path,
-        )?;
-        self.edit(inst, |list| {
-            if let Some(s) = list.iter().find(|s| s.id == a.id) {
-                (a.channel, a.ignored, a.auto_update) = (s.channel, s.ignored, s.auto_update);
-            }
-            store::upsert_addon(list, a.clone());
-        })?;
+        let a = self.install_over(inst, addon, |a| manual::install(inst, a, path))?;
         if remove {
             // Installed and recorded: the zip and any copy the browser saved twice have served
             // their purpose. A file that can't be deleted only stays in Downloads.
@@ -477,60 +454,7 @@ impl Backend for CoreBackend {
     }
 
     fn search(&self, filter: &SearchFilter) -> Result<Found> {
-        if curseforge_only(filter) {
-            let list = self.curseforge().search_filtered(filter)?;
-            return Ok(Found {
-                entries: discover::group(vec![list]),
-                failed: vec![],
-            });
-        }
-        // Like `discover::search`, except that CurseForge also gets the sort order.
-        let providers = self.providers();
-        let curseforge = self.curseforge();
-        let available: Vec<&dyn Provider> = providers
-            .iter()
-            .filter(|p| p.available())
-            .map(|p| p.as_ref())
-            .collect();
-        let results: Vec<Result<Vec<RemoteAddon>>> = std::thread::scope(|s| {
-            let handles: Vec<_> = available
-                .iter()
-                .map(|p| {
-                    let cf = &curseforge;
-                    s.spawn(move || {
-                        if p.name() == providers::curseforge::NAME {
-                            cf.search_filtered(filter)
-                        } else {
-                            p.search(Flavor::Forever, &filter.text)
-                        }
-                    })
-                })
-                .collect();
-            handles
-                .into_iter()
-                .map(|h| {
-                    h.join()
-                        .unwrap_or_else(|_| Err(anyhow::anyhow!("search thread panicked")))
-                })
-                .collect()
-        });
-        let mut lists = Vec::new();
-        let mut errors = Vec::new();
-        for (p, r) in available.iter().zip(results) {
-            match r {
-                Ok(list) => lists.push(list),
-                Err(e) => errors.push((p.name(), format!("{e:#}"))),
-            }
-        }
-        let mut found = found(
-            Discovery {
-                entries: discover::group(lists),
-                errors,
-            },
-            available.len(),
-        )?;
-        sort_entries(&mut found.entries, filter.sort);
-        Ok(found)
+        found(discover::search(Flavor::Forever, &self.providers(), filter))
     }
 
     /// Fetched fresh: CurseForge's terms don't allow storing API data. The UI asks once per run.
@@ -539,25 +463,18 @@ impl Backend for CoreBackend {
     }
 
     fn description(&self, remote: &RemoteAddon) -> Result<Option<String>> {
-        let text = match remote.provider.as_str() {
-            providers::curseforge::NAME => self.curseforge().description(&remote.external_id)?,
-            providers::github::NAME => self.github().readme(&remote.external_id)?,
-            // Hub addons are GitHub repos: their README is the long description.
-            providers::hub::NAME => match remote.source_url.as_deref() {
-                Some(repo) if discover::github_repo(repo).is_some() => {
-                    self.github().readme(repo)?
-                }
-                _ => return Ok(None),
-            },
-            _ => return Ok(None),
-        };
-        Ok((!text.is_empty()).then_some(text))
+        match self
+            .providers()
+            .iter()
+            .find(|p| p.name() == remote.provider)
+        {
+            Some(p) => p.description(remote),
+            None => Ok(None),
+        }
     }
 
     fn featured(&self) -> Result<Found> {
-        let providers = self.providers();
-        let asked = providers.iter().filter(|p| p.available()).count();
-        found(discover::featured(Flavor::Forever, &providers), asked)
+        found(discover::featured(Flavor::Forever, &self.providers()))
     }
 
     fn resolve_url(&self, url: &str) -> Result<RemoteAddon> {
@@ -566,7 +483,7 @@ impl Backend for CoreBackend {
                 return Ok(addon);
             }
         }
-        bail!("Not a CurseForge, WowUp Hub or GitHub addon URL")
+        bail!("Not a {} addon URL", providers::link_sources())
     }
 
     fn game_running(&self, inst: &Installation) -> bool {

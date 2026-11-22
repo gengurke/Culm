@@ -1153,13 +1153,7 @@ impl Backend for MockBackend {
         Ok((with_latest(addons), vec![]))
     }
 
-    fn update(
-        &self,
-        _inst: &Installation,
-        addon: &Addon,
-        _reinstall: bool,
-        progress: &dyn Fn(f32),
-    ) -> Result<Addon> {
+    fn update(&self, _inst: &Installation, addon: &Addon, progress: &dyn Fn(f32)) -> Result<Addon> {
         let latest = addon
             .latest
             .clone()
@@ -1197,7 +1191,7 @@ impl Backend for MockBackend {
         _path: &Path,
         _remove: bool,
     ) -> Result<Addon> {
-        let a = self.update(inst, addon, false, &|_| {})?;
+        let a = self.update(inst, addon, &|_| {})?;
         let mut installed = self.installed.lock().unwrap();
         if !installed.iter().any(|x| x.id == a.id) {
             installed.push(a.clone());

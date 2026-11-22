@@ -109,10 +109,6 @@ impl Provider for GitHub {
         NAME
     }
 
-    fn search(&self, _flavor: Flavor, _query: &str) -> Result<Vec<RemoteAddon>> {
-        Ok(vec![])
-    }
-
     /// One request pair per repo: a failing repo (renamed, deleted, rate limit) is skipped so
     /// the others still get checked; only a batch where every repo fails is an error.
     fn get_many(&self, _flavor: Flavor, external_ids: &[String]) -> Result<Vec<RemoteAddon>> {
@@ -131,6 +127,11 @@ impl Provider for GitHub {
             eprintln!("GitHub update check skipped {e}");
         }
         Ok(out)
+    }
+
+    fn description(&self, addon: &RemoteAddon) -> Result<Option<String>> {
+        let text = self.readme(&addon.external_id)?;
+        Ok((!text.is_empty()).then_some(text))
     }
 
     fn from_url(&self, _flavor: Flavor, url: &str) -> Result<Option<RemoteAddon>> {

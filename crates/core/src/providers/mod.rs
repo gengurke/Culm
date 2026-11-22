@@ -2,8 +2,9 @@
 //! Each provider is a small blocking client behind this trait so the rest of
 //! the app does not care where an addon comes from.
 
-use crate::model::{Flavor, RemoteAddon, RemoteFile};
+use crate::model::{Flavor, RemoteAddon, RemoteFile, SearchFilter};
 use anyhow::Result;
+use std::sync::LazyLock;
 
 pub mod curseforge;
 pub mod github;
@@ -48,6 +49,10 @@ pub fn all(config: &ProviderConfig) -> Vec<Box<dyn Provider>> {
         }),
         Box::new(Hub {
             base_url: config.hub_base_url.clone(),
+            github: GitHub {
+                token: config.github_token.clone(),
+                api_base: config.github_base_url.clone(),
+            },
         }),
         // shortcut: WowInterface is left out because its files carry no game-version info, so
         // for Forever it could offer a retail build. Re-add once it can be filtered per flavor.
@@ -58,20 +63,49 @@ pub fn all(config: &ProviderConfig) -> Vec<Box<dyn Provider>> {
     ]
 }
 
-/// The provider an install link names (a CurseForge addon page, a WowUp Hub page
-/// `wowup.io/addons/<id>`, a GitHub repo URL or bare `owner/repo`), or None for anything else
-/// (search text).
+/// Whether a link is one of a provider's addon pages.
+type IsLink = fn(&str) -> bool;
+
+/// The sources an install link can name, in the order links are tried: a CurseForge addon page,
+/// a WowUp Hub page `wowup.io/addons/<id>`, a GitHub repo URL or bare `owner/repo`.
+const LINKS: [(&str, IsLink); 3] = [
+    (curseforge::NAME, |s| curseforge::parse_url(s).is_some()),
+    (hub::NAME, |s| hub::parse_url(s).is_some()),
+    (github::NAME, |s| github::parse_url(s).is_some()),
+];
+
+/// The provider an install link names ([`LINKS`]), or None for anything else (search text).
 pub fn link_source(input: &str) -> Option<&'static str> {
     let input = input.trim();
-    if curseforge::parse_url(input).is_some() {
-        Some(curseforge::NAME)
-    } else if hub::parse_url(input).is_some() {
-        Some(hub::NAME)
-    } else if github::parse_url(input).is_some() {
-        Some(github::NAME)
-    } else {
-        None
+    LINKS
+        .iter()
+        .find(|(_, is)| is(input))
+        .map(|(name, _)| *name)
+}
+
+/// "CurseForge, WowUp Hub or GitHub": the sources install links can name, for messages.
+pub fn link_sources() -> String {
+    let labels: Vec<&str> = LINKS.iter().map(|(name, _)| label(name)).collect();
+    match labels.split_last() {
+        Some((last, [])) => last.to_string(),
+        Some((last, rest)) => format!("{} or {last}", rest.join(", ")),
+        None => String::new(),
     }
+}
+
+/// A provider's name as people read it ([`Provider::label`], "WowUpHub" → "WowUp Hub"); a name no
+/// provider has stays as it is.
+pub fn label(name: &str) -> &str {
+    static LABELS: LazyLock<Vec<(&'static str, &'static str)>> = LazyLock::new(|| {
+        all(&ProviderConfig::default())
+            .iter()
+            .map(|p| (p.name(), p.label()))
+            .collect()
+    });
+    LABELS
+        .iter()
+        .find(|(n, _)| *n == name)
+        .map_or(name, |(_, l)| l)
 }
 
 /// Keeps the first (newest) file of each channel from a newest-first list.
@@ -109,11 +143,19 @@ pub struct FolderMatch {
 pub trait Provider: Send + Sync {
     /// Stable provider name, persisted in `Addon::provider`.
     fn name(&self) -> &'static str;
+    /// The name as people read it ("WowUp Hub").
+    fn label(&self) -> &'static str {
+        self.name()
+    }
     /// Whether the provider is usable (e.g. has an API key).
     fn available(&self) -> bool {
         true
     }
-    fn search(&self, flavor: Flavor, query: &str) -> Result<Vec<RemoteAddon>>;
+    /// Addons matching `filter`. Only CurseForge has categories and orders; the others search by
+    /// text ([`crate::discover::search`] decides who is asked). Empty if unsupported.
+    fn search(&self, _flavor: Flavor, _filter: &SearchFilter) -> Result<Vec<RemoteAddon>> {
+        Ok(vec![])
+    }
     /// Landing page list (popular / recently updated). Empty if unsupported.
     fn featured(&self, _flavor: Flavor) -> Result<Vec<RemoteAddon>> {
         Ok(vec![])
@@ -127,6 +169,10 @@ pub trait Provider: Send + Sync {
         _folders: &[ScannedFolder],
     ) -> Result<Vec<FolderMatch>> {
         Ok(vec![])
+    }
+    /// The addon's long description as plain text, None if the source has none.
+    fn description(&self, _addon: &RemoteAddon) -> Result<Option<String>> {
+        Ok(None)
     }
     /// Resolve an addon page / repo URL (install-by-URL). None if not this provider's URL.
     #[allow(clippy::wrong_self_convention)] // "from URL" reads better than any rename

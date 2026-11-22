@@ -2,9 +2,9 @@
 //! release metadata. Forever = gameType `forever`; a release counts when one of its
 //! `game_versions` is for `forever`. Folders are matched by the Hub's md5 fingerprint.
 
-use super::{FolderMatch, Provider, ScannedFolder, newest_per_channel};
+use super::{FolderMatch, GitHub, Provider, ScannedFolder, newest_per_channel};
 use crate::http;
-use crate::model::{Channel, Flavor, RemoteAddon, RemoteFile};
+use crate::model::{Channel, Flavor, RemoteAddon, RemoteFile, SearchFilter};
 use crate::toc;
 use anyhow::Result;
 use serde::Deserialize;
@@ -16,6 +16,8 @@ pub const DEFAULT_BASE_URL: &str = "https://hub.wowup.io";
 
 pub struct Hub {
     pub base_url: String,
+    /// Hub addons are GitHub repos: their README is the long description.
+    pub github: GitHub,
 }
 
 fn game_type(flavor: Flavor) -> &'static str {
@@ -47,10 +49,14 @@ impl Provider for Hub {
         NAME
     }
 
-    fn search(&self, flavor: Flavor, query: &str) -> Result<Vec<RemoteAddon>> {
+    fn label(&self) -> &'static str {
+        "WowUp Hub"
+    }
+
+    fn search(&self, flavor: Flavor, filter: &SearchFilter) -> Result<Vec<RemoteAddon>> {
         let res: AddonList = http::get_json(
             &self.url(&format!("/addons/search/{}", game_type(flavor))),
-            &[("query", query), ("limit", "50")],
+            &[("query", filter.text.as_str()), ("limit", "50")],
             &[],
         )?;
         Ok(to_addons(flavor, &res.addons))
@@ -129,6 +135,16 @@ impl Provider for Hub {
                 })
             })
             .collect())
+    }
+
+    fn description(&self, addon: &RemoteAddon) -> Result<Option<String>> {
+        match addon.source_url.as_deref() {
+            Some(repo) if crate::discover::github_repo(repo).is_some() => {
+                let text = self.github.readme(repo)?;
+                Ok((!text.is_empty()).then_some(text))
+            }
+            _ => Ok(None),
+        }
     }
 
     fn from_url(&self, flavor: Flavor, url: &str) -> Result<Option<RemoteAddon>> {

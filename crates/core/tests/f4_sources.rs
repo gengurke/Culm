@@ -2,7 +2,7 @@
 
 use addon_core::providers::{CurseForge, Hub, Provider, ScannedFolder};
 use addon_core::updates::check_updates;
-use addon_core::{Channel, Flavor, discover, http, install};
+use addon_core::{Channel, Flavor, SearchFilter, Sort, discover, http, install};
 use addon_testkit::{FakeServer, cf_envelope, cf_mod, fixture, fixture_at, hub_addon, make_zip};
 use serde_json::{Value, json};
 
@@ -10,9 +10,20 @@ mod common;
 
 const F: Flavor = Flavor::Forever;
 
+fn text(q: &str) -> SearchFilter {
+    SearchFilter {
+        text: q.into(),
+        ..SearchFilter::default()
+    }
+}
+
 fn hub(s: &FakeServer) -> Hub {
     Hub {
         base_url: format!("{}/hub", s.url()),
+        github: addon_core::providers::GitHub {
+            token: None,
+            api_base: s.url().into(),
+        },
     }
 }
 
@@ -41,7 +52,7 @@ fn f4_7_hub_search_keeps_forever_releases() {
     list["addons"].as_array_mut().unwrap().push(retail);
     s.json("GET", "/hub/addons/search/forever", &list);
 
-    let results = hub(&s).search(F, "quest").unwrap();
+    let results = hub(&s).search(F, &text("quest")).unwrap();
 
     let req = &s.requests_to("/hub/addons/search/forever")[0];
     assert_eq!(req.query_param("query").as_deref(), Some("quest"));
@@ -137,7 +148,7 @@ fn f4_7_hub_install_and_update() {
     );
     let h = hub(&s);
 
-    let remote = h.search(F, "foo").unwrap().remove(0);
+    let remote = h.search(F, &text("foo")).unwrap().remove(0);
     let mut addon = install::install_remote(&w.inst, &remote, Channel::Stable, &download).unwrap();
     assert_eq!(addon.provider.as_deref(), Some("WowUpHub"));
     assert_eq!(addon.folders, ["Foo"]);
@@ -288,7 +299,7 @@ fn f4_8_merges_curseforge_and_hub_on_exact_github_repo() {
         vec![hub_repo(47671, "questie/questie"), hub_repo(2, "me/Other")],
     );
 
-    let d = discover::search(F, &providers, "questie");
+    let d = discover::search(F, &providers, &text("questie"));
 
     assert!(d.errors.is_empty(), "{:?}", d.errors);
     assert_eq!(
@@ -297,7 +308,10 @@ fn f4_8_merges_curseforge_and_hub_on_exact_github_repo() {
     );
     let e = &d.entries[0];
     assert_eq!(e.preferred().provider, "CurseForge");
-    assert_eq!(e.ids, ["curse:100", "github:questie/questie", "hub:47671"]);
+    assert_eq!(
+        e.ids,
+        ["curseforge:100", "github:questie/questie", "wowuphub:47671"]
+    );
 }
 
 #[test]
@@ -320,7 +334,7 @@ fn f4_8_same_name_with_different_repos_is_not_merged() {
         ],
     );
 
-    let d = discover::search(F, &providers, "x");
+    let d = discover::search(F, &providers, &text("x"));
 
     assert_eq!(d.entries.len(), 6, "{:?}", shape(&d));
     assert!(d.entries.iter().all(|e| e.sources.len() == 1));
@@ -337,7 +351,7 @@ fn f4_8_conflicting_ids_are_not_merged() {
         vec![hub_repo(47671, "Questie/Questie")],
     );
 
-    let d = discover::search(F, &providers, "questie");
+    let d = discover::search(F, &providers, &text("questie"));
 
     assert_eq!(d.entries.len(), 3, "{:?}", shape(&d));
     assert!(d.entries.iter().all(|e| e.sources.len() == 1));
@@ -348,7 +362,7 @@ fn f4_8_failing_provider_returns_partial_results() {
     let (s, providers) = sources(vec![], vec![hub_repo(1, "me/Foo")]);
     s.respond("GET", "/v1/mods/search", 500, "text/plain", "boom");
 
-    let d = discover::search(F, &providers, "foo");
+    let d = discover::search(F, &providers, &text("foo"));
 
     assert_eq!(shape(&d), [vec!["WowUpHub:1"]]);
     assert_eq!(d.errors.len(), 1);
@@ -371,6 +385,89 @@ fn f4_8_failing_provider_returns_partial_results() {
     let d = discover::featured(F, &keyless);
     assert!(d.errors.is_empty());
     assert_eq!(shape(&d), [vec!["WowUpHub:1"]]);
+}
+
+#[test]
+fn f4_6_a_category_asks_curseforge_alone_and_text_orders_the_grouped_list() {
+    let (s, providers) = sources(
+        vec![cf_with_source(1, "Zeta", None)],
+        vec![hub_repo(2, "me/Alpha")],
+    );
+    let category = SearchFilter {
+        text: "a".into(),
+        category: Some(1009),
+        sort: Sort::Popularity,
+    };
+    let d = discover::search(F, &providers, &category);
+    assert_eq!(
+        (shape(&d), d.asked),
+        (vec![vec!["CurseForge:1".to_string()]], 1)
+    );
+    assert!(s.requests_to("/hub/addons/search/forever").is_empty());
+
+    let by_name = SearchFilter {
+        text: "a".into(),
+        category: None,
+        sort: Sort::Name,
+    };
+    let d = discover::search(F, &providers, &by_name);
+    assert_eq!(d.asked, 2);
+    assert_eq!(
+        shape(&d),
+        [vec!["WowUpHub:2"], vec!["CurseForge:1"]],
+        "Alpha, then Zeta"
+    );
+    let req = s.requests_to("/v1/mods/search").pop().unwrap();
+    assert_eq!(
+        req.query_param("sortField").as_deref(),
+        Some("4"),
+        "CurseForge orders too"
+    );
+}
+
+#[test]
+fn f4_5_each_source_gives_its_own_description() {
+    let s = FakeServer::start();
+    s.respond(
+        "GET",
+        "/repos/me/Foo/readme",
+        200,
+        "text/plain",
+        "Foo does things.\n",
+    );
+    let mut addon = addon_core::RemoteAddon {
+        provider: "WowUpHub".into(),
+        external_id: "1".into(),
+        name: "Foo".into(),
+        author: String::new(),
+        summary: String::new(),
+        url: None,
+        thumbnail_url: None,
+        download_count: 0,
+        files: vec![],
+        source_url: None,
+        categories: vec![],
+        updated_at: None,
+    };
+    // A Hub addon is a GitHub repo: its README is the description.
+    addon.source_url = Some("https://github.com/me/Foo".into());
+    assert_eq!(
+        hub(&s).description(&addon).unwrap().as_deref(),
+        Some("Foo does things.")
+    );
+    addon.source_url = Some("https://example.invalid/me/Foo".into());
+    assert_eq!(
+        hub(&s).description(&addon).unwrap(),
+        None,
+        "no repo, no README"
+    );
+
+    assert_eq!(addon_core::providers::label("WowUpHub"), "WowUp Hub");
+    assert_eq!(addon_core::providers::label("Unknown"), "Unknown");
+    assert_eq!(
+        addon_core::providers::link_sources(),
+        "CurseForge, WowUp Hub or GitHub"
+    );
 }
 
 #[test]

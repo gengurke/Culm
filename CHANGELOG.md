@@ -25,6 +25,7 @@ or break. New changes go under "Unreleased"; a release turns that heading into i
 - One addon folder that can't be read no longer stops My Addons from loading: it is skipped with a warning.
 - A zip installed by hand is checked and installed from the same file, so a file replaced in between is never
   installed unchecked.
+- The Reinstall tooltip says what it does: it downloads the newest version and replaces the addon's folders.
 
 ## [0.2.0] - 2026-11-21
 

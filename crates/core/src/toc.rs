@@ -49,8 +49,9 @@ impl Toc {
     /// Provider ids from TOC metadata, keyed by our provider names.
     pub fn provider_ids(&self) -> Vec<(String, String)> {
         [
-            ("CurseForge", &self.curse_project_id),
-            ("WowInterface", &self.wowi_id),
+            (crate::providers::curseforge::NAME, &self.curse_project_id),
+            (crate::providers::wowinterface::NAME, &self.wowi_id),
+            // shortcut: no Wago provider yet; becomes its `NAME` when one lands.
             ("Wago", &self.wago_id),
         ]
         .into_iter()

@@ -2,13 +2,13 @@
 //! entry per addon.
 //!
 //! Grouping is deliberately strict ("rather a duplicate than a wrong merge"): results join only when
-//! they share an exact id (`curse:<id>`, `hub:<id>`, `github:<owner/repo>`, ...). A source URL counts
+//! they share an exact id (`<provider>:<id>`: `curseforge:<id>`, `wowuphub:<id>`, `github:<owner/repo>`). A source URL counts
 //! as a `github:` id only when it is exactly a GitHub repo URL. Names, slugs, authors and folders are
 //! never compared. When a merge would bring two different ids of one kind together (two CurseForge
 //! projects naming the same repo), none of those results are merged.
 
-use crate::model::{Flavor, RemoteAddon};
-use crate::providers::{Provider, curseforge};
+use crate::model::{Flavor, RemoteAddon, SearchFilter, Sort};
+use crate::providers::{Provider, curseforge, github};
 use anyhow::Result;
 use std::collections::{BTreeMap, BTreeSet, HashSet};
 
@@ -18,7 +18,8 @@ pub struct Entry {
     /// Never empty. `sources[0]` is the preferred source: CurseForge when present, else the first
     /// provider (in the order given) that has it.
     pub sources: Vec<RemoteAddon>,
-    /// The exact ids the entry was grouped by, sorted (`curse:61284`, `github:questie/questie`).
+    /// The exact ids the entry was grouped by, sorted (`curseforge:61284`, `github:questie/questie`).
+    /// In memory only: never stored.
     pub ids: Vec<String>,
 }
 
@@ -33,24 +34,54 @@ impl Entry {
 pub struct Discovery {
     pub entries: Vec<Entry>,
     pub errors: Vec<(&'static str, String)>,
+    /// How many providers were asked: when all of them failed, nothing answered.
+    pub asked: usize,
 }
 
-/// Searches every available provider in parallel and groups the results.
-pub fn search(flavor: Flavor, providers: &[Box<dyn Provider>], query: &str) -> Discovery {
-    run(providers, |p| p.search(flavor, query))
+/// Whether a search can only ask CurseForge: a category (or class) filter, or browsing without
+/// text, which only CurseForge supports.
+pub fn curseforge_only(filter: &SearchFilter) -> bool {
+    filter.category.is_some() || filter.text.trim().is_empty()
+}
+
+/// Searches every available provider in parallel (CurseForge alone when [`curseforge_only`]) and
+/// groups the results. CurseForge orders its own list; grouped lists are then ordered by
+/// [`sort_entries`].
+pub fn search(flavor: Flavor, providers: &[Box<dyn Provider>], filter: &SearchFilter) -> Discovery {
+    let only = curseforge_only(filter);
+    let asked = providers
+        .iter()
+        .filter(|p| !only || p.name() == curseforge::NAME);
+    let mut d = run(asked, |p| p.search(flavor, filter));
+    if !only {
+        sort_entries(&mut d.entries, filter.sort);
+    }
+    d
 }
 
 /// The providers' landing lists (popular / recent), grouped like [`search`].
 pub fn featured(flavor: Flavor, providers: &[Box<dyn Provider>]) -> Discovery {
-    run(providers, |p| p.featured(flavor))
+    run(providers.iter(), |p| p.featured(flavor))
 }
 
-fn run(
-    providers: &[Box<dyn Provider>],
+/// Orders grouped results for a non-default sort (the sources rank on their own; popularity keeps
+/// the grouped order). Stable, so ties keep it too.
+pub fn sort_entries(entries: &mut [Entry], sort: Sort) {
+    let newest = |e: &Entry| e.sources.iter().filter_map(|r| r.updated_at.clone()).max();
+    let downloads = |e: &Entry| e.sources.iter().map(|r| r.download_count).max();
+    match sort {
+        Sort::Popularity => {}
+        Sort::LastUpdated => entries.sort_by_key(|e| std::cmp::Reverse(newest(e))),
+        Sort::Name => entries.sort_by_key(|e| e.preferred().name.to_lowercase()),
+        Sort::TotalDownloads => entries.sort_by_key(|e| std::cmp::Reverse(downloads(e))),
+    }
+}
+
+fn run<'a>(
+    providers: impl Iterator<Item = &'a Box<dyn Provider>>,
     call: impl Fn(&dyn Provider) -> Result<Vec<RemoteAddon>> + Sync,
 ) -> Discovery {
     let available: Vec<&dyn Provider> = providers
-        .iter()
         .filter(|p| p.available())
         .map(|p| p.as_ref())
         .collect();
@@ -75,6 +106,7 @@ fn run(
     Discovery {
         entries: group(lists),
         errors,
+        asked: available.len(),
     }
 }
 
@@ -161,19 +193,19 @@ fn kind(id: &str) -> &str {
     id.split_once(':').map_or(id, |(k, _)| k)
 }
 
-/// The exact ids a result is known by: its own provider id, plus `github:<owner/repo>` when its
-/// source URL is exactly a GitHub repo.
+/// The exact ids a result is known by: its own `<provider>:<id>` (provider name lowercased), plus
+/// `github:<owner/repo>` when its source URL is exactly a GitHub repo. GitHub ids compare
+/// case-insensitively, so they are lowercased too.
 pub fn source_ids(a: &RemoteAddon) -> Vec<String> {
-    let own = match a.provider.as_str() {
-        "CurseForge" => format!("curse:{}", a.external_id),
-        "WowUpHub" => format!("hub:{}", a.external_id),
-        "WowInterface" => format!("wowi:{}", a.external_id),
-        "GitHub" => format!("github:{}", a.external_id.to_lowercase()),
-        other => format!("{}:{}", other.to_lowercase(), a.external_id),
+    let id = if a.provider == github::NAME {
+        a.external_id.to_lowercase()
+    } else {
+        a.external_id.clone()
     };
+    let own = format!("{}:{id}", a.provider.to_lowercase());
     let mut ids = vec![own];
     if let Some(repo) = a.source_url.as_deref().and_then(github_repo) {
-        let id = format!("github:{repo}");
+        let id = format!("{}:{repo}", github::NAME.to_lowercase());
         if !ids.contains(&id) {
             ids.push(id);
         }

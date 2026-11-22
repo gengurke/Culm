@@ -5,9 +5,7 @@
 use crate::theme::ThemeId;
 use addon_core::discover::Entry;
 use addon_core::self_update::Release;
-use addon_core::{
-    Addon, Category, Channel, Installation, RemoteAddon, RemoteFile, SearchFilter, Sort,
-};
+use addon_core::{Addon, Category, Channel, Installation, RemoteAddon, RemoteFile, SearchFilter};
 use anyhow::Result;
 use std::path::{Path, PathBuf};
 
@@ -80,32 +78,9 @@ pub struct Found {
     pub failed: Vec<(String, String)>,
 }
 
-/// Whether a search can only ask CurseForge: a category (or class) filter, or browsing without
-/// text, which only CurseForge supports.
-pub fn curseforge_only(filter: &SearchFilter) -> bool {
-    filter.category.is_some() || filter.text.trim().is_empty()
-}
-
-/// Orders grouped results for a non-default sort (the sources rank on their own; popularity keeps
-/// the grouped order). Stable, so ties keep it too.
-pub fn sort_entries(entries: &mut [Entry], sort: Sort) {
-    let newest = |e: &Entry| e.sources.iter().filter_map(|r| r.updated_at.clone()).max();
-    let downloads = |e: &Entry| e.sources.iter().map(|r| r.download_count).max();
-    match sort {
-        Sort::Popularity => {}
-        Sort::LastUpdated => entries.sort_by_key(|e| std::cmp::Reverse(newest(e))),
-        Sort::Name => entries.sort_by_key(|e| e.preferred().name.to_lowercase()),
-        Sort::TotalDownloads => entries.sort_by_key(|e| std::cmp::Reverse(downloads(e))),
-    }
-}
-
-/// A provider's name as people read it ("WowUpHub" → "WowUp Hub").
-pub fn source_label(provider: &str) -> &str {
-    match provider {
-        addon_core::providers::hub::NAME => "WowUp Hub",
-        other => other,
-    }
-}
+// The search policy and source labels live with the sources in core; re-exported for the views.
+pub use addon_core::discover::{curseforge_only, sort_entries};
+pub use addon_core::providers::label as source_label;
 
 /// A housekeeping job on the selected installation (F6).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -138,14 +113,8 @@ pub trait Backend: Send + Sync {
     fn scan(&self, inst: &Installation) -> Result<Warned<Vec<Addon>>>;
     /// Returns `addons` with `latest` refreshed.
     fn check_updates(&self, inst: &Installation, addons: &[Addon]) -> Result<Warned<Vec<Addon>>>;
-    /// Install (or re-download, `reinstall`) the latest file for the addon's channel.
-    fn update(
-        &self,
-        inst: &Installation,
-        addon: &Addon,
-        reinstall: bool,
-        progress: &dyn Fn(f32),
-    ) -> Result<Addon>;
+    /// Install `addon.latest`, the newest file for its channel (update and reinstall alike).
+    fn update(&self, inst: &Installation, addon: &Addon, progress: &dyn Fn(f32)) -> Result<Addon>;
     /// The zip of `file` the user downloaded by hand, if it sits in their Downloads folder with
     /// exactly the size and SHA-1 its source publishes (F3.5).
     fn find_download(&self, file: &RemoteFile) -> Option<PathBuf>;

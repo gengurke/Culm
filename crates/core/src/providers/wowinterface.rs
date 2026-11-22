@@ -18,10 +18,6 @@ impl Provider for WowInterface {
         NAME
     }
 
-    fn search(&self, _flavor: Flavor, _query: &str) -> Result<Vec<RemoteAddon>> {
-        Ok(vec![])
-    }
-
     fn get_many(&self, _flavor: Flavor, external_ids: &[String]) -> Result<Vec<RemoteAddon>> {
         // Ids end up in the URL path: only digits are valid.
         let ids: Vec<&str> = external_ids
