@@ -7,7 +7,7 @@ use crate::icons;
 use crate::state::{AddonUi, Intent, Job, Op, Screen, State, Status, dispatch};
 use crate::theme::{self, StyleExt, SurfaceExt, pal, t};
 use crate::ui::{self, Kind, Mark, Themed};
-use addon_core::{Channel, IgnoreReason};
+use addon_core::IgnoreReason;
 use rune::{Cursor, El, GrowthSpec, Tx, col, el, icon, rich, row, text};
 use std::borrow::Cow;
 
@@ -23,7 +23,7 @@ pub fn page(s: &State) -> El {
     // Without a key CurseForge addons only carry the imported last known release: don't claim more.
     let cf_unchecked = s.curseforge_unchecked();
     let state = match (n, unchecked) {
-        (1.., _) => format!("{n} update{} available", if n == 1 { "" } else { "s" }),
+        (1.., _) => format!("{} available", ui::plural(n, "update")),
         _ if cf_unchecked => "CurseForge updates not checked".to_string(),
         (0, 1..) => format!("{unchecked} not checked"),
         (0, 0) => "Everything up to date".to_string(),
@@ -32,7 +32,7 @@ pub fn page(s: &State) -> El {
     let meta = || match s.installation() {
         Some(i) if reading => vec![band_note(format!("Reading {}…", s.inst_name(i)))],
         Some(_) => {
-            let count = format!("{installed} addon{}", if installed == 1 { "" } else { "s" });
+            let count = ui::plural(installed, "addon");
             let state = band_note(state);
             vec![
                 band_note(count),
@@ -128,15 +128,7 @@ fn toolbar(s: &State) -> El {
         );
     }
     if let Some(label) = status {
-        bar = bar.child(
-            row()
-                .key("my-addons/job")
-                .gap(8.0)
-                .center_y()
-                .pr(8.0)
-                .child(ui::spinner(14.0, p.accent))
-                .child(text(label).font(t().ty.small).color(p.text_dim)),
-        );
+        bar = bar.child(ui::busy(label, p.accent).key("my-addons/job").pr(8.0));
     }
     bar.child(
         ui::button(
@@ -254,7 +246,6 @@ fn header(s: &State) -> El {
 }
 
 fn list(s: &State) -> El {
-    let p = pal();
     let visible = s.visible_addons();
     let rows: El = if visible.is_empty() {
         // Nothing installed is not a filter miss.
@@ -269,14 +260,10 @@ fn list(s: &State) -> El {
                 "Clear the filter to see everything.",
             )
         };
-        col()
-            .key("my-addons/empty")
+        ui::empty("my-addons/empty", title, hint)
             .w_full()
             .py(48.0)
             .center()
-            .gap(6.0)
-            .child(text(title).font(t().ty.body).color(p.text_dim))
-            .child(text(hint).font(t().ty.small).color(p.text_muted))
     } else {
         col()
             .key("my-addons/rows")
@@ -482,17 +469,9 @@ pub(crate) fn status_badge(a: &AddonUi) -> El {
 fn status_cell(a: &AddonUi) -> El {
     let p = pal();
     match &a.op {
-        Some(Op::AwaitingDownload { .. }) => row()
+        Some(Op::AwaitingDownload { .. }) => ui::busy("Waiting for download…", p.accent)
             .key(format!("addon/{}/awaiting", a.addon.id))
-            .gap(8.0)
-            .center_y()
-            .help(super::AWAITING_HELP)
-            .child(ui::spinner(12.0, p.accent))
-            .child(
-                text("Waiting for download…")
-                    .font(t().ty.small)
-                    .color(p.text_dim),
-            ),
+            .help(super::AWAITING_HELP),
         Some(Op::Downloading(done)) => col()
             .key(format!("addon/{}/progress", a.addon.id))
             .gap(6.0)
@@ -507,21 +486,9 @@ fn status_cell(a: &AddonUi) -> El {
                     ),
             )
             .child(ui::progress_line(*done, 2.0)),
-        Some(Op::Checking) => row()
-            .gap(8.0)
-            .center_y()
-            .child(ui::spinner(12.0, p.accent))
-            .child(text("Checking…").font(t().ty.small).color(p.text_dim)),
-        Some(Op::Installing) => row()
-            .gap(8.0)
-            .center_y()
-            .child(ui::spinner(12.0, p.accent))
-            .child(text("Installing…").font(t().ty.small).color(p.text_dim)),
-        Some(Op::Removing) => row()
-            .gap(8.0)
-            .center_y()
-            .child(ui::spinner(12.0, p.danger.ink))
-            .child(text("Removing…").font(t().ty.small).color(p.text_dim)),
+        Some(Op::Checking) => ui::busy("Checking…", p.accent),
+        Some(Op::Installing) => ui::busy("Installing…", p.accent),
+        Some(Op::Removing) => ui::busy("Removing…", p.danger.ink),
         Some(Op::Failed(e)) => row().help(e.clone()).child(status_badge(a)),
         None => row().child(status_badge(a)),
     }
@@ -591,27 +558,6 @@ fn detail(s: &State, a: &AddonUi) -> El {
     let addon = &a.addon;
     let id = addon.id.clone();
     let key = |part: &str| format!("detail/{part}");
-    let fact = |label: &str, value: String, mono: bool| {
-        row()
-            .w_full()
-            .py(7.0)
-            .gap(12.0)
-            .border_sides([0.0, 0.0, 1.0, 0.0], p.divider)
-            .child(
-                text(label.to_string())
-                    .font(t().ty.small)
-                    .color(p.text_muted)
-                    .w(96.0),
-            )
-            .child(
-                text(value)
-                    .font(if mono { t().ty.mono } else { t().ty.small })
-                    .color(p.text_dim)
-                    .grow(1.0)
-                    .min_w(0.0)
-                    .truncate(),
-            )
-    };
     let managed = addon.external_id.is_some();
     let ignored = addon.ignored.is_some();
     let busy = a.op.as_ref().is_some_and(Op::busy);
@@ -740,9 +686,9 @@ fn detail(s: &State, a: &AddonUi) -> El {
         ui::notice(col().key(key("confirm")).gap(10.0), Mark::Bad)
             .child(
                 text(format!(
-                    "Delete {} and its {folders} folder{} from AddOns?",
+                    "Delete {} and its {} from AddOns?",
                     addon.name,
-                    if folders == 1 { "" } else { "s" }
+                    ui::plural(folders, "folder")
                 ))
                 .font(t().ty.note)
                 .color(p.text)
@@ -789,11 +735,7 @@ fn detail(s: &State, a: &AddonUi) -> El {
 
     let channel = ui::segmented(
         "detail/channel",
-        &[
-            (Channel::Stable, "Stable", ui::CHANNEL_HELP[0]),
-            (Channel::Beta, "Beta", ui::CHANNEL_HELP[1]),
-            (Channel::Alpha, "Alpha", ui::CHANNEL_HELP[2]),
-        ],
+        &ui::CHANNELS,
         addon.channel,
         managed && !busy,
         {
@@ -811,46 +753,22 @@ fn detail(s: &State, a: &AddonUi) -> El {
         .w_full()
         .gap(18.0)
         .padding(24.0)
-        .child(
-            row()
-                .w_full()
-                .gap(14.0)
-                .items_start()
-                .child(ui::addon_tile(
-                    &addon.name,
-                    48.0,
-                    s.thumb(addon.thumbnail_url.as_deref()),
-                    format!("detail/{id}/thumb"),
-                ))
-                .child(
-                    col()
-                        .grow(1.0)
-                        .min_w(0.0)
-                        .gap(4.0)
-                        .child(
-                            text(addon.name.clone())
-                                .font(t().ty.title)
-                                .color(p.heading)
-                                .wrap(),
-                        )
-                        .child(
-                            text(addon.author.clone())
-                                .font(t().ty.small)
-                                .color(p.text_muted)
-                                .truncate(),
-                        )
-                        .child(row().pt(6.0).child(status_badge(a))),
-                )
-                .child(ui::icon_button(
-                    key("close"),
-                    "Close details",
-                    &icons::CLOSE,
-                    |s, _| {
-                        s.selected = None;
-                        s.confirm_remove = None;
-                    },
-                )),
-        )
+        .child(ui::detail_header(
+            ui::addon_tile(
+                &addon.name,
+                48.0,
+                s.thumb(addon.thumbnail_url.as_deref()),
+                format!("detail/{id}/thumb"),
+            ),
+            &addon.name,
+            &addon.author,
+            Some(status_badge(a)),
+            key("close"),
+            |s, _| {
+                s.selected = None;
+                s.confirm_remove = None;
+            },
+        ))
         .child(if addon.summary.is_empty() {
             text("No description: this folder isn't matched to a provider.")
                 .font(t().ty.note)
@@ -865,7 +783,7 @@ fn detail(s: &State, a: &AddonUi) -> El {
         .child(
             col()
                 .w_full()
-                .child(fact(
+                .child(ui::fact(
                     "Installed",
                     addon
                         .installed_version
@@ -873,17 +791,19 @@ fn detail(s: &State, a: &AddonUi) -> El {
                         .unwrap_or_else(|| "—".into()),
                     true,
                 ))
-                .child(fact("Latest", latest, true))
+                .child(ui::fact("Latest", latest, true))
                 .child({
                     let game = addon.game_version.clone().unwrap_or_else(|| "—".into());
                     match out_of_date_help(s, a) {
-                        Some(help) => fact("Game version", format!("{game} (out of date)"), true)
-                            .key("detail/out-of-date")
-                            .help(help),
-                        None => fact("Game version", game, true),
+                        Some(help) => {
+                            ui::fact("Game version", format!("{game} (out of date)"), true)
+                                .key("detail/out-of-date")
+                                .help(help)
+                        }
+                        None => ui::fact("Game version", game, true),
                     }
                 })
-                .child(fact(
+                .child(ui::fact(
                     "Provider",
                     addon
                         .provider
@@ -891,7 +811,7 @@ fn detail(s: &State, a: &AddonUi) -> El {
                         .unwrap_or_else(|| "Not matched".into()),
                     false,
                 ))
-                .child(fact("Folders", addon.folders.join(", "), true)),
+                .child(ui::fact("Folders", addon.folders.join(", "), true)),
         )
         .child(
             col()
@@ -906,25 +826,11 @@ fn detail(s: &State, a: &AddonUi) -> El {
         .child(actions)
         .child(remove);
     let body = match &a.op {
-        Some(Op::Failed(e)) => body.child(
-            ui::notice(row().gap(8.0), Mark::Bad)
-                .child(rune::icon(&icons::ALERT, 14.0).color(p.danger.ink))
-                .child(
-                    text(e.clone())
-                        .font(t().ty.small.size_of(12.0))
-                        .color(p.danger.ink)
-                        .wrap_anywhere()
-                        .grow(1.0)
-                        .min_w(0.0),
-                ),
-        ),
+        Some(Op::Failed(e)) => body.child(ui::notice(
+            ui::error_line(e.clone(), t().ty.small.size_of(12.0)),
+            Mark::Bad,
+        )),
         _ => body,
     };
-    col()
-        .key(format!("detail/{id}"))
-        .w(340.0)
-        .h_full()
-        .min_h(0.0)
-        .skin(&t().skin.detail)
-        .child(ui::scroll(col().grow(1.0).min_h(0.0).w_full().child(body)))
+    ui::detail_panel(format!("detail/{id}"), body)
 }

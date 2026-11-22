@@ -1,9 +1,11 @@
-//! Canned World of Warcraft: Forever data behind [`Backend`], for snapshots, tests and running the
-//! UI before the core is wired. Names and versions come from a real Forever install.
+//! Canned World of Warcraft: Forever data behind [`Backend`], for the headless scenes (`--snap`,
+//! `--script`), the theme tests and UI tests that need no disk or network. Names and versions come
+//! from a real Forever install.
 
 use crate::backend::{
     Backend, Backup, Found, Maintenance, Settings, Warned, curseforge_only, sort_entries,
 };
+use crate::ui::slug;
 use addon_core::discover::group;
 use addon_core::{
     Addon, Category, Channel, Flavor, IgnoreReason, Installation, RemoteAddon, RemoteFile,
@@ -872,13 +874,6 @@ pub fn installation() -> Installation {
         ),
         version: Some("1.60.1.70938".into()),
     }
-}
-
-fn slug(name: &str) -> String {
-    name.chars()
-        .filter(|c| c.is_ascii_alphanumeric())
-        .collect::<String>()
-        .to_lowercase()
 }
 
 fn file(id: &str, version: &str, channel: Channel) -> RemoteFile {

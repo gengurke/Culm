@@ -6,7 +6,6 @@ use crate::icons;
 use crate::state::{AppUpdate, Intent, State, dispatch};
 use crate::theme::{self, StyleExt, SurfaceExt, ThemeId, pal, t};
 use crate::ui::{self, Kind, Themed};
-use addon_core::Channel;
 use rune::{Cursor, El, Tx, col, el, icon, row, text};
 
 pub fn page(s: &State) -> El {
@@ -62,11 +61,7 @@ pub fn page(s: &State) -> El {
         "Release channel for newly installed addons. Beta also accepts stable files, Alpha accepts everything.",
         ui::segmented(
             "settings/channel",
-            &[
-                (Channel::Stable, "Stable", ui::CHANNEL_HELP[0]),
-                (Channel::Beta, "Beta", ui::CHANNEL_HELP[1]),
-                (Channel::Alpha, "Alpha", ui::CHANNEL_HELP[2]),
-            ],
+            &ui::CHANNELS,
             s.settings.default_channel,
             true,
             |s: &mut State, c, tx: &mut Tx| dispatch(s, Intent::SetDefaultChannel(c), tx),
