@@ -171,7 +171,7 @@ const SCENES: &[Scene] = &[
             "20261113.15433",
         );
     }),
-    // Every toast tone at once (other looks: ADDONS_TOAST_STYLE).
+    // Every toast tone at once.
     ("toasts", |s| {
         loaded(s);
         s.toast(Tone::Info, "3 updates available", "");

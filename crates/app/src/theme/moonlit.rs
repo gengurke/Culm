@@ -1,7 +1,7 @@
 //! Moonlit: a calm navy night sky with one warm gold star. Square
 //! hairline boxes, Inter, a starry header band. The default theme.
 
-use super::{BASE_TYPE, BandDeco, Border, Medal, Overlay, Pal, Skin, Surface, Theme, drop, face, h, ink, inner_ring, inset, outer_ring};
+use super::{BASE_TYPE, BandDeco, Border, Medal, Overlay, Pal, Skin, Surface, Theme, drop, face, h, ink, inner_ring, inset};
 use rune::oklcha;
 use std::sync::LazyLock;
 
@@ -40,6 +40,7 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
         danger_line: h("#f57373").alpha(0.45),
     };
     let hairline = Some(Border::all(1.0, p.border));
+    let panel = Surface { fill: p.panel, border: hairline, ..Default::default() };
     let skin = Skin {
         sidebar: Surface { fill: sidebar, border: Some(Border::sides([0.0, 1.0, 0.0, 0.0], p.divider)), ..Default::default() },
         band: Surface {
@@ -48,7 +49,7 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
             ..Default::default()
         },
         band_deco: BandDeco::Stars,
-        panel: Surface { fill: p.panel, border: hairline, ..Default::default() },
+        panel: panel.clone(),
         detail: Surface { fill: sidebar, border: Some(Border::sides([0.0, 0.0, 0.0, 1.0], p.divider)), ..Default::default() },
         // Floating (dropdowns, the installation menu): a hairline box lifted off the page.
         menu: Surface {
@@ -61,6 +62,7 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
         row_selected: Surface { fill: p.accent.alpha(0.07), border: Some(Border::sides([0.0, 0.0, 1.0, 0.0], p.divider)), shadows: vec![inner_ring(p.accent.alpha(0.32))], hover: p.hover, ..Default::default() },
         // A gold-tinted plaque inset from the sidebar's edges.
         nav_active: Surface {
+            ink: p.heading,
             border: Some(Border::margin([2.0, 10.0, 2.0, 10.0])),
             radius: 2.0,
             shadows: vec![face(p.accent.alpha(0.11)), inner_ring(p.accent.alpha(0.24))],
@@ -81,7 +83,7 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
         tile: Surface { fill: panel_alt, ink: p.text_dim, border: hairline, ..Default::default() },
         segments: Surface { border: hairline, ..Default::default() },
         segment_on: Surface { fill: panel_alt, ink: p.text, border: Some(Border::all(1.0, ink(0.22))), ..Default::default() },
-        toast: Surface { fill: p.panel, shadows: vec![outer_ring(p.border)], ..Default::default() },
+        toast: Surface { shadows: vec![drop(6.0, 18.0, 0.5)], ..panel },
         medal: Medal { ring: [h("#d4dcf0"), h("#6c7a9e"), h("#262e48")], ring_on: [h("#fff1c4"), h("#e6ba66"), h("#7a5418")], outline: h("#05080f") },
         ..Skin::base(&p, 0.0)
     };

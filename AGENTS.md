@@ -107,7 +107,6 @@ publishes the release. Never mark a release "pre-release": the AppImage's zsync 
 - `Runtime::new` has no setup/poll: set `rt.poll` (see `addon_app::runtime`); `setup` doesn't run in tests, so
   anything created there (the thumbnail `ImageCache`) must be set by the test.
 - `resolve_file_dialog` returns a `#[must_use]` Result.
-- rune-kit `Toast` hard-codes radius 8: override with `.radius(0.0)`.
 - A clear border insets a box's children and inset shadows, not its fill or gradient: an inset plaque (`nav_active`) paints
   its face with a wide inset shadow (`spread` past half its height).
 - Tooltips (`.help(..)`) take the theme through `cx.help_look(ui::help_look())` in `view`; tests read them as
@@ -125,8 +124,7 @@ publishes the release. Never mark a release "pre-release": the AppImage's zsync 
   gradient, procedural texture, border/bevel, radius, shadows, hover, corner ornaments). Views and `ui.rs` ask the
   current theme (`theme::t()`, `pal()`) and paint boxes with `.skin(&t().skin.panel)`: no raw hex, no theme checks.
   Sizes and spacing (`theme::PAD`, `ROW_H`, …) are global, so layout is the same in every theme.
-- `.skin()` adds the texture and ornaments as pinned children: call it before `.child(..)`. Toasts are skinned after the
-  kit built them, so their surface has no texture or corners.
+- `.skin()` adds the texture and ornaments as pinned children: call it before `.child(..)`.
 - The current theme is a thread-local set by `theme::begin` at the top of `view` (tests run windows on parallel threads).
   Textures (`theme/texture.rs`, value-noise fBm, no image files) are generated once per process on background threads (`theme::prewarm` from `setup`; synchronously in tests and headless runs) and registered per thread through `State::images`;
   without a cache surfaces keep their base colour.
@@ -137,8 +135,9 @@ publishes the release. Never mark a release "pre-release": the AppImage's zsync 
   `assets/fonts/<family>/` and listed in `theme::FONTS`, so text looks identical on every OS
   (`f7_3_every_theme_font_is_bundled`); never rely on system fonts, and never bundle proprietary game fonts or assets.
 - A light-paged theme (Grimoire) sets `Theme::frame` to a second, dark theme: views build the sidebar and the header band
-  inside `theme::framed(|| ..)`, where `t()`/`pal()` return the frame. `Skin::glyphs` swaps stock glyphs per theme
-  (`theme::glyph`, applied in `ui::button`/`icon_button`/`glyph_tile` and the nav). `Surface::press` sets the pressed wash.
+  inside `theme::framed(|| ..)`, where `t()`/`pal()` return the frame (`Theme::frame_look`). `Skin::glyphs` swaps stock glyphs per theme
+  (`theme::glyph`, applied in `ui::button`/`icon_button`/`glyph_tile` and the nav). Theme-only glyphs (emblems, corner
+  studs, swaps) live in `theme/glyphs.rs`, the band decoration's drawing in `theme/deco.rs`, never in `icons.rs` or `view/`. `Surface::press` sets the pressed wash.
   `skin.menu` is the floating popup (dropdowns, installation menu): give it a full border and a drop shadow.
 - Keep textures on big surfaces (window, sidebar, band, detail); cards use gradients and bevels (GPU cost per textured box).
   `f7_3_every_theme_keeps_text_readable` checks palette contrast. `Skin::medal` holds the class medallions' ring tones.

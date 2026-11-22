@@ -328,8 +328,8 @@ stars in Moonlit; My Addons: addon count and update state, the game version stay
 card, locked while the game runs), Settings (theme, API key, default channel, installations, WowUp import),
 toasts and onboarding. Meaningful actions explain themselves in a short tooltip after a rest of the pointer, drawn in
 the theme's floating (menu) look (`ui_buttons_explain_themselves`). Active nav rows are inset plaques and the selected row a
-tinted line in a thin ring: no coloured side stripes. Toasts are framed alerts; five other looks are kept as
-alternatives (`ADDONS_TOAST_STYLE=0..5`, scene `toasts`). The sidebar wordmark is "Culm" over "Addon Manager" in Inter. Every scroll area (`ui::scroll`) has a thin overlay scroll bar: hidden at rest, shown while the pointer is over it or it
+tinted line in a thin ring: no coloured side stripes. Toasts are framed alerts in the theme's toast surface,
+crowned by its corner glyph as a gem when it has one (scene `toasts`). The sidebar wordmark is "Culm" over "Addon Manager" in Inter. Every scroll area (`ui::scroll`) has a thin overlay scroll bar: hidden at rest, shown while the pointer is over it or it
 scrolls, a 3 pt pill in the theme's `border_strong` that widens to 6 pt in its `accent` under the pointer (`ui_every_page_scrolls_with_a_thin_scroll_bar`).
 Every scene has a `<scene>@<theme>` variant (`--snap x.png --scene settings@hearthwood`).
 The header band (with the sidebar's brand block beside it) moves the window on every OS: drag its empty parts, double-press

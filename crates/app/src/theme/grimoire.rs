@@ -4,7 +4,8 @@
 //! top left: raised parts catch it on their top-left edge and cast their shadow down-right,
 //! fields and wells sink, pressed buttons darken. Textures are generated (texture.rs).
 
-use super::{BASE_TYPE, BandDeco, Border, Corners, Medal, Overlay, Pal, Skin, Surface, Tex, Theme, Type, h, inner_ring, outer_ring};
+use super::{BASE_TYPE, BandDeco, Border, Corners, Medal, Overlay, Pal, Skin, Surface, Tex, Theme, Type, drop, h, inner_ring, outer_ring};
+use super::glyphs;
 use crate::icons;
 use rune::tok::{Family, TextStyle};
 use rune::{Color, Shadow};
@@ -79,7 +80,7 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
     };
     // Gold-rimmed: light gold catching the light on top, dark bronze below.
     let gilt = Border::bevel(1.0, h("#e8c870"), h("#6a4a18"));
-    let studs = Some(Corners { glyph: &icons::STUD, size: 8.0, inset: 4.0, color: h("#8a6428") });
+    let studs = Some(Corners { glyph: &glyphs::STUD, size: 8.0, inset: 4.0, color: h("#8a6428") });
     // A raised page: lighter vellum, a brown rule, lit top left, shadow down right.
     let page = Surface {
         fill: p.panel,
@@ -111,6 +112,7 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
         shadows: vec![sunk(2.0, 0.6), outer_ring(h("#1a0d04").alpha(0.35))],
         ..Default::default()
     };
+    let panel = Surface { corners: studs, ..page.clone() };
     let skin = Skin {
         window: Surface { fill: p.bg, ink: p.text, texture: Some((Tex::Parchment, 0.45)), ..Default::default() },
         // Frame parts are drawn by FRAME (sidebar, band); these are its fallbacks.
@@ -118,7 +120,7 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
         band: Surface { fill: sky, ..Default::default() },
         band_deco: BandDeco::None,
         toolbar: Surface { border: Some(Border::sides([0.0, 0.0, 1.0, 0.0], rim.alpha(0.3))), ..Default::default() },
-        panel: Surface { corners: studs, ..page.clone() },
+        panel: panel.clone(),
         detail: Surface {
             fill: h("#e9d8ae"),
             texture: Some((Tex::Parchment, 0.5)),
@@ -126,7 +128,7 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
             shadows: vec![Shadow { x: 1.5, color: h("#c8a050"), inset: true, ..Shadow::default() }],
             ..Default::default()
         },
-        menu: Surface { shadows: vec![lit(0.7), shade(0.12), cast(4.0, 12.0, 0.45)], ..page.clone() },
+        menu: Surface { shadows: vec![lit(0.7), shade(0.12), cast(4.0, 12.0, 0.45)], ..page },
         list_header: Surface { fill: rim.alpha(0.1), border: Some(Border::sides([0.0, 0.0, 1.0, 0.0], rim.alpha(0.35))), ..Default::default() },
         // The quest log's highlight: a warm wash over the whole line in a bronze rule.
         row_selected: Surface {
@@ -136,7 +138,7 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
             hover: p.hover,
             ..Default::default()
         },
-        nav_active: Surface { fill: p.selected, ..Default::default() },
+        nav_active: Surface { fill: p.selected, ink: p.heading, ..Default::default() },
         primary: lacquer.clone(),
         secondary: Surface {
             fill: h("#3a2c1e"),
@@ -173,10 +175,10 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
         segments: Surface { fill: rim.alpha(0.12), border: Some(Border::bevel(1.0, h("#6a4a24"), h("#c8aa70"))), radius: 3.0, shadows: vec![sunk(2.0, 0.22)], ..Default::default() },
         // The spellbook's open tab: red-brown with gold lettering, standing out of the page.
         segment_on: Surface { radius: 2.0, ..lacquer.clone() },
-        toast: Surface { shadows: vec![lit(0.7), cast(4.0, 14.0, 0.5)], ..page },
+        toast: Surface { shadows: vec![lit(0.7), shade(0.12), cast(3.0, 7.0, 0.35), drop(6.0, 18.0, 0.5)], ..panel },
         kbd: Surface { ink: p.text_muted, border: Some(Border::bevel(1.0, h("#a8885a"), h("#5a3e1e"))), radius: 2.0, ..Default::default() },
         medal: Medal { ring: [h("#c4c0b8"), h("#68625a"), h("#24201c")], ring_on: [h("#ffe38a"), h("#c8961e"), h("#5a3606")], outline: h("#2a1a0a") },
-        emblem: &icons::TOME_EMBLEM,
+        emblem: &glyphs::TOME_EMBLEM,
         glyphs: GLYPHS,
         ..Skin::base(&p, 3.0)
     };
@@ -193,12 +195,12 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
 });
 
 const GLYPHS: &[(&rune::Icon, &rune::Icon)] = &[
-    (&icons::PACKAGE, &icons::TOME),
-    (&icons::COMPASS, &icons::SCROLL),
-    (&icons::WRENCH, &icons::ANVIL),
-    (&icons::SLIDERS, &icons::COG),
-    (&icons::DRIVE, &icons::CHEST),
-    (&icons::DOWNLOAD, &icons::POUCH),
+    (&icons::PACKAGE, &glyphs::TOME),
+    (&icons::COMPASS, &glyphs::SCROLL),
+    (&icons::WRENCH, &glyphs::ANVIL),
+    (&icons::SLIDERS, &glyphs::COG),
+    (&icons::DRIVE, &glyphs::CHEST),
+    (&icons::DOWNLOAD, &glyphs::POUCH),
 ];
 
 /// The frame round the pages: dark stone, gold rims and the red-brown title banner.
@@ -259,9 +261,10 @@ static FRAME: LazyLock<Theme> = LazyLock::new(|| {
             ..Default::default()
         },
         band_deco: BandDeco::None,
-        nav: Surface { hover: p.hover, ..Default::default() },
+        nav: Surface { ink: p.text_dim, hover: p.hover, ..Default::default() },
         // The open tab: a lit stone plaque with a gold rim, sitting proud of the frame.
         nav_active: Surface {
+            ink: p.heading,
             fill: h("#3e3428"),
             vertical: Some((h("#4c4032"), h("#2e261c"))),
             border: Some(Border::margin([3.0, 10.0, 3.0, 10.0])),

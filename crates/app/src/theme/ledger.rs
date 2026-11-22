@@ -69,8 +69,8 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
         menu: Surface { fill: h("#24201f"), border: frame, radius: 8.0, shadows: vec![lip, drop(6.0, 18.0, 0.6)], ..Default::default() },
         list_header: Surface { fill: Color::WHITE.alpha(0.025), border: under, ..Default::default() },
         row_selected: Surface { fill: p.selected, border: under, shadows: vec![inner_ring(gold.alpha(0.35))], hover: p.hover, ..Default::default() },
-        nav: Surface { fill: tile, border: gap(sidebar), radius: 14.0, hover: p.hover, ..Default::default() },
-        nav_active: Surface { fill: lifted, border: gap(sidebar), radius: 14.0, shadows: vec![inner_ring(gold.alpha(0.35))], hover: p.hover, ..Default::default() },
+        nav: Surface { fill: tile, ink: p.text_dim, border: gap(sidebar), radius: 14.0, hover: p.hover, ..Default::default() },
+        nav_active: Surface { fill: lifted, ink: p.heading, border: gap(sidebar), radius: 14.0, shadows: vec![inner_ring(gold.alpha(0.35))], hover: p.hover, ..Default::default() },
         primary: Surface {
             fill: h("#6e0808"),
             ink: p.heading,
@@ -94,7 +94,7 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
         tile: Surface { fill: tile, ink: gold, border: frame, radius: 6.0, ..Default::default() },
         segments: Surface { fill: deep, border: Some(Border::all(1.0, ink(0.08))), radius: 8.0, ..Default::default() },
         segment_on: Surface { fill: lifted, ink: gold, border: Some(Border::all(1.0, gold.alpha(0.45))), radius: 7.0, ..Default::default() },
-        toast: Surface { shadows: vec![drop(4.0, 16.0, 0.6)], ..panel },
+        toast: Surface { shadows: vec![lip, drop(2.0, 6.0, 0.5), drop(6.0, 18.0, 0.5)], ..panel },
         kbd: Surface { ink: p.text_muted, border: Some(Border::all(1.0, ink(0.16))), radius: 4.0, ..Default::default() },
         medal: Medal { ring: [h("#dadada"), h("#7a7a7a"), h("#2a2a2a")], ring_on: [h("#fff0b8"), h("#ccaa44"), h("#6a5010")], outline: h("#000000") },
         ..Skin::base(&p, 6.0)

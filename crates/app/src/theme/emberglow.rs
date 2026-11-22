@@ -3,7 +3,7 @@
 //! glow amber from below. Textures are generated (texture.rs).
 
 use super::{BASE_TYPE, BandDeco, Border, Corners, Medal, Overlay, Pal, Skin, Surface, Tex, Theme, Type, drop, h, inner_ring, inset, outer_ring};
-use crate::icons;
+use super::glyphs;
 use rune::tok::{Family, TextStyle};
 use rune::{Color, Shadow};
 use std::f32::consts::PI;
@@ -63,7 +63,7 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
     let under = Some(Border::sides([0.0, 0.0, 1.0, 0.0], p.divider));
     // Carved stone: a lit top lip, a dark bottom, a black outer ring.
     let carved = Some(Border::bevel(2.0, h("#6e6640"), h("#23251a")));
-    let studs = Some(Corners { glyph: &icons::STUD, size: 7.0, inset: 4.0, color: bronze.alpha(0.85) });
+    let studs = Some(Corners { glyph: &glyphs::STUD, size: 7.0, inset: 4.0, color: bronze.alpha(0.85) });
     // Cards stay untextured (many on screen); the frame does the work: a carved olive-bronze
     // rim, a fine gold line inside it, a black outer ring and a soft drop.
     let stone = Surface {
@@ -82,6 +82,7 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
     };
     let slab = Surface { fill: sidebar, vertical: Some((h("#0d130a"), h("#080c06"))), texture: Some((Tex::Moss, 0.42)), ..Default::default() };
     let press = Color::BLACK.alpha(0.22);
+    let panel = Surface { corners: studs, ..stone.clone() };
     let skin = Skin {
         window: Surface { fill: p.bg, ink: p.text, texture: Some((Tex::Moss, 0.42)), ..Default::default() },
         sidebar: Surface { border: Some(Border::sides([0.0, 1.0, 0.0, 0.0], bronze.alpha(0.45))), ..slab.clone() },
@@ -96,13 +97,13 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
         },
         band_deco: BandDeco::Embers,
         toolbar: Surface { fill: Color::BLACK.alpha(0.25), border: Some(Border::sides([0.0, 0.0, 1.0, 0.0], bronze.alpha(0.25))), ..Default::default() },
-        panel: Surface { corners: studs, ..stone.clone() },
+        panel: panel.clone(),
         detail: Surface { border: Some(Border::sides([0.0, 0.0, 0.0, 1.0], bronze.alpha(0.45))), ..slab },
         menu: Surface {
             overlay: None,
             border: Some(Border::bevel(1.0, h("#a08048"), h("#3a3018"))),
             shadows: vec![inset(1.0, h("#ffe0a0").alpha(0.08)), outer_ring(Color::BLACK.alpha(0.75)), drop(6.0, 18.0, 0.7)],
-            ..stone.clone()
+            ..stone
         },
         list_header: Surface { fill: Color::BLACK.alpha(0.3), border: Some(Border::sides([0.0, 0.0, 1.0, 0.0], bronze.alpha(0.3))), ..Default::default() },
         // Lit amber from below, like the open tab, in a thin gold ring.
@@ -115,6 +116,7 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
             ..Default::default()
         },
         nav_active: Surface {
+            ink: p.heading,
             fill: h("#0d1209").alpha(0.9),
             overlay: Some(Overlay::Radial { center: [0.5, 1.15], radius: [150.0, 34.0], stops: vec![(0.0, amber.alpha(0.42)), (1.0, amber.alpha(0.0))] }),
             border: Some(Border::margin([3.0, 10.0, 3.0, 10.0])),
@@ -190,11 +192,10 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
             shadows: vec![inset(2.0, Color::BLACK.alpha(0.55)), glow(12.0, h("#ff9632").alpha(0.4))],
             ..Default::default()
         },
-        // No texture on toasts: the kit builds their content before the skin is applied.
-        toast: Surface { texture: None, shadows: vec![outer_ring(Color::BLACK.alpha(0.7)), drop(4.0, 16.0, 0.65)], ..stone },
+        toast: Surface { shadows: [panel.shadows.clone(), vec![drop(6.0, 18.0, 0.5)]].concat(), ..panel },
         kbd: Surface { ink: p.text_muted, border: Some(Border::all(1.0, bronze.alpha(0.45))), radius: 3.0, ..Default::default() },
         medal: Medal { ring: [h("#d9c08a"), h("#7d6a44"), h("#2b2414")], ring_on: [h("#fff0b8"), h("#f0b84f"), h("#7a4e10")], outline: h("#020301") },
-        emblem: &icons::CREST,
+        emblem: &glyphs::CREST,
         ..Skin::base(&p, 5.0)
     };
     Theme {
