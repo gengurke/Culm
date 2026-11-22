@@ -302,10 +302,7 @@ pub fn build_addons(
     result
 }
 
-/// The folder that represents a group: the shortest name (the parent of `Foo_Options` etc.).
+/// The folder that represents a group (`util::main_folder`).
 fn main_folder<'a>(locals: &[&'a LocalFolder]) -> Option<&'a LocalFolder> {
-    locals
-        .iter()
-        .copied()
-        .min_by(|a, b| a.name.len().cmp(&b.name.len()).then(a.name.cmp(&b.name)))
+    crate::util::main_folder(locals.iter().copied(), |l| &l.name)
 }

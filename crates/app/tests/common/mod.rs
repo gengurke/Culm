@@ -7,7 +7,7 @@ use addon_app::core_backend::{Config, CoreBackend};
 use addon_app::mock::MockBackend;
 use addon_app::state::{Op, Status};
 use addon_app::{Job, State, runtime};
-use addon_core::fingerprint::folder_fingerprint;
+use addon_core::fingerprint::folder_fingerprints;
 use addon_core::providers::ProviderConfig;
 use addon_testkit::{
     BUILD_INFO_MIN, FakeServer, cf_envelope, cf_file, cf_mod_with_files, fixture, fixture_at,
@@ -111,7 +111,9 @@ impl World {
     }
 
     fn fp(&self, folder: &str) -> u32 {
-        folder_fingerprint(&self.addons_dir().join(folder)).unwrap()
+        folder_fingerprints(&self.addons_dir().join(folder))
+            .unwrap()
+            .0
     }
 
     fn serve(&self) {

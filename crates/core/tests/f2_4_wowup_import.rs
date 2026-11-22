@@ -1,6 +1,7 @@
 mod common;
-use addon_core::{Channel, DependencyKind, IgnoreReason, scan, store, wowup_import};
-use addon_testkit::{toc, write};
+use addon_core::providers::{GitHub, Hub, Provider};
+use addon_core::{Channel, DependencyKind, Flavor, IgnoreReason, scan, store, wowup_import};
+use addon_testkit::{FakeServer, hub_addon, toc, write};
 use common::*;
 
 #[test]
@@ -80,6 +81,83 @@ fn f2_4_imports_wowup_records() {
             ("Local", false),
             ("Questie", true)
         ]
+    );
+}
+
+#[test]
+fn f2_4_wowup_hub_records_keep_their_link_and_bad_folder_names_are_dropped() {
+    // WowUp calls the Hub "WowUpHub" ("Hub" in older versions); its id is the Hub addon id.
+    let w = fake_wow();
+    w.add_folder("Alpha", "Alpha.toc", &toc("Alpha", "1"), &[]);
+    w.add_folder("Beta", "Beta.toc", &toc("Beta", "1"), &[]);
+    let wowup = w.tmp.path().join("WowUp");
+    let client = w.inst.root.display().to_string();
+    let prefs = serde_json::json!({
+        "wow_installations": [{"id": "fev", "clientType": 10, "location": format!("{client}/Wow.exe")}]
+    });
+    // WowUp keeps the Hub's own release id (252933) and the Forever TOC version.
+    let rec = |id: &str, folders: &[&str], provider: &str| {
+        serde_json::json!({
+            "id": id, "name": id, "providerName": provider, "externalId": "47671",
+            "installedFolderList": folders, "clientType": 10, "installationId": "fev",
+            "installedVersion": "1.2.0", "installedExternalReleaseId": "252933",
+            "latestVersion": "1.3.0", "externalLatestReleaseId": "252999"
+        })
+    };
+    let addons = serde_json::json!({
+        "a": rec("Alpha", &["Alpha", "."], "WowUpHub"),
+        "b": rec("Beta", &["Beta"], "Hub"),
+    });
+    write(&wowup.join("preferences.json"), prefs.to_string());
+    write(&wowup.join("addons.json"), addons.to_string());
+
+    let imported = wowup_import::import_wowup(&wowup, &w.inst).unwrap();
+    let got: Vec<(&str, Option<&str>, &[String])> = imported
+        .iter()
+        .map(|a| (a.name.as_str(), a.provider.as_deref(), &a.folders[..]))
+        .collect();
+    assert_eq!(
+        got,
+        [
+            ("Alpha", Some("WowUpHub"), &["Alpha".to_string()][..]),
+            ("Beta", Some("WowUpHub"), &["Beta".to_string()][..]),
+        ]
+    );
+    // Our Hub file ids are GitHub asset ids, so WowUp's release ids are not kept.
+    let mut a = imported[0].clone();
+    assert_eq!(
+        (a.installed_file_id.as_deref(), a.latest.as_ref()),
+        (None, None)
+    );
+
+    // The Hub's current release is what is installed: asset id 778295167, TOC version 1.2.0.
+    let s = FakeServer::start();
+    let mut hub_json = hub_addon(
+        47671,
+        "me/Alpha",
+        &["Alpha"],
+        778295167,
+        "https://dl.example/a.zip",
+    );
+    hub_json["releases"][0]["id"] = 252933.into();
+    hub_json["releases"][0]["game_versions"][0]["version"] = "1.2.0".into();
+    s.json(
+        "POST",
+        "/addons/batch/forever",
+        &serde_json::json!({ "addons": [hub_json] }),
+    );
+    let hub = Hub {
+        base_url: s.url().into(),
+        github: GitHub {
+            api_base: s.url().into(),
+        },
+    };
+    let remote = &hub.get_many(Flavor::Forever, &["47671".into()]).unwrap()[0];
+    a.latest = remote.latest_for(a.channel).cloned();
+    assert_eq!(a.latest.as_ref().map(|l| l.id.as_str()), Some("778295167"));
+    assert!(
+        !a.update_available(),
+        "the installed release is not an update"
     );
 }
 

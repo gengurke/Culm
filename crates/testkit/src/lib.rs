@@ -363,7 +363,7 @@ pub fn hub_addon(
             "prerelease": false,
             "published_at": format!("2026-11-{:02}T00:00:00.000Z", 1 + asset_id % 28),
             "game_type": "forever",
-            "game_versions": [{ "game_type": "forever", "interface": "16001", "title": name, "version": "1", "authors": owner }],
+            "game_versions": [{ "game_type": "forever", "interface": "16001", "title": name, "version": "", "authors": owner }],
             "addonFolders": folders.iter().map(|f| json!({ "folder_name": f, "fingerprint": "00" })).collect::<Vec<_>>()
         }]
     })

@@ -21,7 +21,6 @@ fn hub(s: &FakeServer) -> Hub {
     Hub {
         base_url: format!("{}/hub", s.url()),
         github: addon_core::providers::GitHub {
-            token: None,
             api_base: s.url().into(),
         },
     }
@@ -86,20 +85,20 @@ fn f4_7_hub_search_keeps_forever_releases() {
     let stable = q.latest_for(Channel::Stable).unwrap();
     assert_eq!(
         (stable.id.as_str(), stable.version.as_str()),
-        ("745727013", "bundle/v12.9.0+v1.1.1"),
-        "file id is the GitHub asset id, version the tag"
+        ("745727013", "12.9.0"),
+        "file id is the GitHub asset id, version the Forever TOC version (not the tag)"
     );
     assert_eq!(stable.folders, ["Questie", "QuestieDB", "QuestieTrace"]);
     assert_eq!(stable.game_versions[0], "1.60.1");
     let x = &results[1];
-    assert_eq!(x.latest_for(Channel::Beta).unwrap().version, "v1.0.4");
+    assert_eq!(x.latest_for(Channel::Beta).unwrap().version, "1.0.4");
     assert_eq!(
         x.files
             .iter()
             .find(|f| f.channel == Channel::Beta)
             .unwrap()
             .version,
-        "v0.2.14-beta"
+        "0.2.14-beta"
     );
 }
 
@@ -224,7 +223,7 @@ fn f4_7_hub_fingerprint_matches_folders() {
     assert_eq!(m.installed_file.as_ref().unwrap().id, "713233517");
     assert_eq!(
         m.addon.latest_for(Channel::Stable).unwrap().version,
-        "v1.0.4"
+        "1.0.4"
     );
 }
 

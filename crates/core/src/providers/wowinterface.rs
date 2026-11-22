@@ -73,7 +73,7 @@ impl Provider for WowInterface {
 
 /// `https://www.wowinterface.com/downloads/info<ID>-Name.html` (or `download<ID>-...`) → ID.
 fn parse_url(url: &str) -> Option<String> {
-    let rest = url.split_once("wowinterface.com/downloads/")?.1;
+    let rest = crate::util::url_segment(url, "wowinterface.com/downloads/")?;
     let rest = rest
         .strip_prefix("info")
         .or_else(|| rest.strip_prefix("download"))?;

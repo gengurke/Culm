@@ -41,7 +41,8 @@ What the addon manager does, one short paragraph per feature. Ids are referenced
   git checkouts are ignored as such. CurseForge `POST /v1/fingerprints/1` maps matched files' `modules[].name` to folders. (`f2_3_fingerprint_match_maps_modules_to_folders`, `f2_3_wowinterface_matches_toc_ids`, `f2_3_fingerprint_matches_golden_value`, `f2_3_unmatched_are_unknown_and_provider_errors_are_reported`, `f2_3_fingerprint_follows_flavor_tocs_case_insensitively_and_skips_media`)
 - **F2.4 WowUp import** ✅ — Imports addon records (WowUp's config folders `WowUpCf`, `WowUp` via `rune::dirs`: `~/.config` on Linux,
   `%APPDATA%` on Windows, `~/Library/Application Support` on macOS) of the WowUp installation in the same
-  client folder, so switching from WowUp keeps provider links without rescanning online. Runs automatically on the first
+  client folder, so switching from WowUp keeps provider links (CurseForge, WowUp Hub, GitHub, WowInterface) without
+  rescanning online; folder names that could leave `AddOns` are dropped. Runs automatically on the first
   scan of an installation (and from Settings). A folder belongs to one record: when WowUp lists it under two addons
   (Questie also lists QuestieTrace), the record with fewer folders keeps it.
   A WowUp link is not taken over by another provider's TOC-id match (WowInterface's file for Enhance QoL is not the
@@ -50,7 +51,7 @@ What the addon manager does, one short paragraph per feature. Ids are referenced
   so those addons show "Not checked" until a CurseForge key lets us check.
   (`f2_4_imports_wowup_records`, `f2_4_overlapping_wowup_records_get_one_owner_per_folder`,
   `f2_4_wowup_link_is_not_taken_over_by_another_providers_toc_match`, `f2_4_zip_file_name_versions_show_the_toc_version`,
-  e2e `f2_4_first_scan_imports_wowup_records_without_a_key`, `f2_4_import_from_wowup_in_settings_takes_over_its_links`)
+  `f2_4_wowup_hub_records_keep_their_link_and_bad_folder_names_are_dropped`, e2e `f2_4_first_scan_imports_wowup_records_without_a_key`, `f2_4_import_from_wowup_in_settings_takes_over_its_links`)
 - **F2.5 Persistence** ✅ — The addon list per installation is stored as JSON (`<data>/addons/<id>.json`, atomic write);
   a rescan refreshes it, keeping ids, channel, auto-update, user ignores and offline provider links. On a shared folder a
   fresh match of the same provider wins, a link to another provider stays with the stored record. Store writes are
@@ -185,7 +186,7 @@ in the theme's tones, gilded on the active chip, around a disc showing the origi
   `ProviderConfig::hub_base_url`): search, featured (popular + recent, deduped), batch `get_many` for update checks,
   `wowup.io/addons/<id>` URLs, and folder matching by WowUp's md5 fingerprint (`POST /addons/fingerprint`, exact matches
   of a Forever release only; scans now compute it next to the CurseForge one). Only releases with a `forever` game version
-  and an http(s) download count; file id = GitHub asset id, version = tag, folders from `addonFolders`. In
+  and an http(s) download count; file id = GitHub asset id, version = the Forever TOC version (else the tag, as WowUp shows it), folders from `addonFolders`. In
   `providers::all` between CurseForge and GitHub (scans, update checks, search); `ADDONS_HUB_URL` points it elsewhere. (`f4_7_hub_search_keeps_forever_releases`,
   `f4_7_hub_featured_dedupes_popular_and_recent`, `f4_7_hub_install_and_update`, `f4_7_hub_fingerprint_matches_folders`,
   `f4_7_hub_url_resolves_id`, `f2_3_fingerprint_matches_golden_value`)

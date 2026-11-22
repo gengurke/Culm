@@ -18,6 +18,7 @@ sha2 = "0.11"
 # Recognises a zip fetched by hand from the SHA-1 its source publishes (F3.5).
 sha1 = "0.11"
 zip = { version = "9.5.1", default-features = false, features = ["deflate"] }
+md-5 = "0.11"
 
 # Lists running programs on Windows and macOS for the game check (Linux reads /proc itself).
 [target.'cfg(not(target_os = "linux"))'.dependencies]

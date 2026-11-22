@@ -4107,7 +4107,7 @@ DEALINGS IN THE SOFTWARE.
 
 ### MIT License
 
-Used by: sha1 0.11.0, sha2 0.11.1
+Used by: md-5 0.11.0, sha1 0.11.0, sha2 0.11.1
 
 ~~~~text
 Copyright (c) 2016-2026 The RustCrypto Project Developers

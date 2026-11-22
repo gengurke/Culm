@@ -115,7 +115,7 @@ pub fn replace(
         };
         http::download_to(url, None, &mut out, progress)?;
         out.file.sync_all()?;
-        let got = hex(&out.hash.finalize());
+        let got = crate::util::hex(&out.hash.finalize());
         ensure!(
             got == expected,
             "the download of {name} is damaged (checksum mismatch)"
@@ -141,10 +141,6 @@ fn expected_sum(sums: &str, name: &str) -> Option<String> {
         (file == name && hash.len() == 64 && hash.bytes().all(|b| b.is_ascii_hexdigit()))
             .then(|| hash.to_ascii_lowercase())
     })
-}
-
-fn hex(bytes: &[u8]) -> String {
-    bytes.iter().map(|b| format!("{b:02x}")).collect()
 }
 
 struct HashingWriter {

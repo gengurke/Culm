@@ -21,7 +21,6 @@ pub use wowinterface::WowInterface;
 pub struct ProviderConfig {
     pub curseforge_api_key: Option<String>,
     pub curseforge_base_url: String,
-    pub github_token: Option<String>,
     pub github_base_url: String,
     pub hub_base_url: String,
     pub wowinterface_base_url: String,
@@ -32,7 +31,6 @@ impl Default for ProviderConfig {
         Self {
             curseforge_api_key: None,
             curseforge_base_url: curseforge::DEFAULT_BASE_URL.into(),
-            github_token: None,
             github_base_url: github::DEFAULT_API_BASE.into(),
             hub_base_url: hub::DEFAULT_BASE_URL.into(),
             wowinterface_base_url: wowinterface::DEFAULT_BASE_URL.into(),
@@ -50,14 +48,12 @@ pub fn all(config: &ProviderConfig) -> Vec<Box<dyn Provider>> {
         Box::new(Hub {
             base_url: config.hub_base_url.clone(),
             github: GitHub {
-                token: config.github_token.clone(),
                 api_base: config.github_base_url.clone(),
             },
         }),
         // shortcut: WowInterface is left out because its files carry no game-version info, so
         // for Forever it could offer a retail build. Re-add once it can be filtered per flavor.
         Box::new(GitHub {
-            token: config.github_token.clone(),
             api_base: config.github_base_url.clone(),
         }),
     ]

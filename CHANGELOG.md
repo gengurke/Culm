@@ -18,12 +18,16 @@ or break. New changes go under "Unreleased"; a release turns that heading into i
   is drawn inside the frame instead of replacing it. Warnings, errors and delete confirmations share one notice look
   in each theme's status colours, the theme picker's cards wear each theme's panel frame, and class chips take each
   theme's own corner radius.
+- WowUp Hub addons show the addon's own version ("12.9.0") instead of the release tag ("bundle/v12.9.0+v1.1.1"),
+  as WowUp does.
 
 ### Security
 - Your CurseForge key is sent only to CurseForge, also when its server redirects a search or update check elsewhere
   (downloads already worked this way).
 
 ### Fixed
+- Importing from WowUp keeps addons WowUp installed from the WowUp Hub, with their channel, auto-update and ignore
+  setting, instead of re-matching them from scratch.
 - Esc closes the installation menu in the sidebar.
 - Saving a CurseForge key while Culm is still scanning or checking for updates now rescans once that finishes, so
   CurseForge matches and updates show without pressing Rescan; a key saved while Culm starts is no longer lost.

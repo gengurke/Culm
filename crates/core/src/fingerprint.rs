@@ -3,6 +3,7 @@
 
 use crate::util::walk_files;
 use anyhow::Result;
+use md5::Digest;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
@@ -31,11 +32,6 @@ pub fn murmur2(data: &[u8]) -> u32 {
     h ^ (h >> 15)
 }
 
-/// The fingerprint CurseForge knows the folder by.
-pub fn folder_fingerprint(folder: &Path) -> Result<u32> {
-    Ok(folder_fingerprints(folder)?.0)
-}
-
 /// The CurseForge fingerprint and the Hub's md5 fingerprint, reading each file once.
 /// md5: hex md5 per file, hex strings sorted and concatenated, md5 of that.
 // shortcut: the md5 uses the CurseForge file selection; the Hub's scanner takes every XML include of
@@ -56,56 +52,10 @@ pub fn folder_fingerprints(folder: &Path) -> Result<(u32, String)> {
     ))
 }
 
-/// MD5 (RFC 1321) as lowercase hex. Not for security, only to match the Hub's fingerprints.
-pub fn md5_hex(data: &[u8]) -> String {
-    const S: [u32; 64] = [
-        7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22, 5, 9, 14, 20, 5, 9, 14, 20, 5,
-        9, 14, 20, 5, 9, 14, 20, 4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23, 6, 10,
-        15, 21, 6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21,
-    ];
-    let k: Vec<u32> = (0..64)
-        .map(|i| ((i as f64 + 1.0).sin().abs() * 4294967296.0) as u32)
-        .collect();
-    let mut msg = data.to_vec();
-    msg.push(0x80);
-    while msg.len() % 64 != 56 {
-        msg.push(0);
-    }
-    msg.extend_from_slice(&((data.len() as u64).wrapping_mul(8)).to_le_bytes());
-    let mut h: [u32; 4] = [0x67452301, 0xefcdab89, 0x98badcfe, 0x10325476];
-    for chunk in msg.chunks(64) {
-        let m: Vec<u32> = chunk
-            .chunks(4)
-            .map(|w| u32::from_le_bytes([w[0], w[1], w[2], w[3]]))
-            .collect();
-        let [mut a, mut b, mut c, mut d] = h;
-        for i in 0..64 {
-            let (f, g) = match i / 16 {
-                0 => ((b & c) | (!b & d), i),
-                1 => ((d & b) | (!d & c), (5 * i + 1) % 16),
-                2 => (b ^ c ^ d, (3 * i + 5) % 16),
-                _ => (c ^ (b | !d), (7 * i) % 16),
-            };
-            let f = f.wrapping_add(a).wrapping_add(k[i]).wrapping_add(m[g]);
-            a = d;
-            d = c;
-            c = b;
-            b = b.wrapping_add(f.rotate_left(S[i]));
-        }
-        for (x, y) in h.iter_mut().zip([a, b, c, d]) {
-            *x = x.wrapping_add(y);
-        }
-    }
-    h.iter()
-        .flat_map(|x| x.to_le_bytes())
-        .map(|b| format!("{b:02x}"))
-        .collect()
+/// MD5 as lowercase hex. Not for security, only to match the Hub's fingerprints.
+fn md5_hex(data: &[u8]) -> String {
+    crate::util::hex(&md5::Md5::digest(data))
 }
-
-const TOC_SUFFIXES: [&str; 11] = [
-    "mainline", "bcc", "tbc", "classic", "vanilla", "wrath", "wotlkc", "cata", "mists", "forever",
-    "camelot",
-];
 
 /// The files that go into the fingerprint (absolute paths, sorted case-insensitively).
 pub fn fingerprint_files(folder: &Path) -> Result<Vec<PathBuf>> {
@@ -151,7 +101,7 @@ fn is_root_toc(folder_lc: &str, name_lc: &str) -> bool {
     rest.is_empty()
         || rest
             .strip_prefix(['-', '_', '|'])
-            .is_some_and(|s| TOC_SUFFIXES.contains(&s))
+            .is_some_and(|s| crate::toc::FLAVOR_SUFFIXES.contains(&s))
 }
 
 fn process_include(
