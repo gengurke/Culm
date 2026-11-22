@@ -208,7 +208,7 @@ There is no router. Keep an `enum Screen { MyAddons, GetAddons, Settings }` in s
 
 | Need | Rune provides | Use |
 | --- | --- | --- |
-| Filesystem read/write/delete dirs | No fs API, by design ("keep persistence APIs free of std::fs" applies to Rune internals) | `std::fs` (`create_dir_all`, `remove_dir_all`, `rename`) **on a worker thread**, never in handlers or frames. `rune::dirs::AppDirs::new("dev.x.culm")` gives XDG `config()/data()/cache()/state()/logs()` plus home and Downloads. `RUNE_DIRS_ROOT=/tmp/x` relocates all of them for tests. |
+| Filesystem read/write/delete dirs | No fs API, by design ("keep persistence APIs free of std::fs" applies to Rune internals) | `std::fs` (`create_dir_all`, `remove_dir_all`, `rename`) **on a worker thread**, never in handlers or frames. `rune::dirs::AppDirs::new(brand::APP_ID)` (`"dev.culm.app"`) gives XDG `config()/data()/cache()/state()/logs()` plus home and Downloads. `RUNE_DIRS_ROOT=/tmp/x` relocates all of them for tests. |
 | Folder picker (WoW install dir) | `tx.open_folder(FileDialogOptions{..}, \|s, res, tx\| ..)` with rune feature `native-file-dialog` (XDG portal over zbus on Linux) | Without the feature the callback gets an error. Headless/test: `Runtime::file_dialog()` + `resolve_file_dialog(Some(path))`. |
 | HTTP (JSON, binary download) | **None.** The changelog says "Rune has no HTTP client"; `ImageCache::url` refuses network URLs natively | Add `ureq` (blocking, simple) + `serde_json`. Run it on `rune::Latest`, `rune::task::spawn` or a thread, and post results back (see below). |
 | Zip extraction | None | `zip` crate (pure Rust) on a worker thread. Extract to a temp dir under cache, then `rename` into `Interface/AddOns`. |
@@ -218,7 +218,7 @@ There is no router. Keep an `enum Screen { MyAddons, GetAddons, Settings }` in s
 | System tray | `rune::Tray::new(TraySpec::new(id, title, TrayIcon::rgba(w, h, px)).menu(vec![TrayItem::action("quit", "Quit")]), \|ev\| ..)`: StatusNotifierItem over D-Bus (default `dbus` feature), Linux and Windows only | GNOME needs an extension to show it. The callback runs on the tray's thread, so forward events with `AppHandle::update`. Combine with `App::keep_running()`. |
 | Notifications | `rune-notify`: **macOS and Windows only**; `available()` is false on Linux | On Linux, use the `notify-rust` crate, or skip notifications and use in-app `Toast`. |
 | Window management | `App::keep_running/windowless`; `AppHandle::{open, show, hide, focus, close, minimize, quit, update, is_visible}`; `tx.resize_window/center_window/set_title/toggle_maximized`; `WindowOptions { min_size, max_size, resizable, borderless, always_on_top, visible, transparent, .. }`; `App::titlebar(Titlebar::new(h))` for a custom title bar; `.window_drag()` regions | Placement and topmost are no-ops on Wayland. A custom titlebar on GNOME is buggy (#993). |
-| Single instance | `rune::single_instance("dev.x.culm")` first in `main`: Windows and Linux; returns false when another instance runs (it forwards args/links and raises the window) | |
+| Single instance | `rune::single_instance(brand::APP_ID)` first in `main`: Windows and Linux; returns false when another instance runs (it forwards args/links and raises the window) | |
 | Images (addon thumbnails) | `ImageCache` (`file`, `rgba`, `load` bytes); native `url` takes only paths or `file:` | Download the bytes yourself, then call `ImageCache::load(bytes)` or write to cache and use `file`. |
 | Clipboard | `tx.copy(text)`, `tx.read_clipboard(..)` | |
 | Drag-in files | `.on_drop_files(..)`: X11 only on Linux (Wayland is not reported by winit 0.30) | |
@@ -368,7 +368,7 @@ Rune ships **no packaging tooling for Linux**; `scripts/mac-app` is macOS only. 
 - AppImage (`cargo-appimage` or linuxdeploy).
 - Flatpak (needs the portal for the folder picker, which Rune already uses).
 
-Window class / app id: call `rune::set_app_id("dev.x.culm")` before `run` (Wayland `app_id`, X11 `WM_CLASS`); name the `.desktop` file to match so the compositor picks up icon and name.
+Window class / app id: call `rune::set_app_id(brand::APP_ID)` (`"dev.culm.app"`) before `run` (Wayland `app_id`, X11 `WM_CLASS`); name the `.desktop` file to match so the compositor picks up icon and name.
 
 ## 7. Gotchas, limitations, unstable areas
 
@@ -388,7 +388,9 @@ Window class / app id: call `rune::set_app_id("dev.x.culm")` before `run` (Wayla
   - `drop_files`, window placement and topmost don't work on Wayland.
   - `App::titlebar` on GNOME gives a grey Adwaita bar (#993).
   - No app-drawn frame or edge resizing yet (#915).
-  - The wheel jumps the whole notch distance (#898).
+  - Rune #898 (still open) says a wheel notch jumps its whole distance on Linux, and trackpad scrolls stop dead on
+    lift and at list ends; Culm's CHANGELOG 0.2.0 reports a notched mouse wheel scrolling smoothly on Windows and
+    Linux after a Rune update.
   - Wayland wheel scrolling snaps back in a focused field (#992).
   - Only "Noto Color Emoji" is used for emoji (#973).
   - Without the `dbus` feature, dark mode detection falls back to dark.

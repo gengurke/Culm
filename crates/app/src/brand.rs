@@ -1,4 +1,4 @@
-//! Product naming lives here only.
+//! The product's name, ids and links: code refers to these instead of spelling them out.
 pub const APP_NAME: &str = "Culm";
 /// The line under the wordmark.
 pub const TAGLINE: &str = "Addon Manager";
