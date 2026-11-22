@@ -1,19 +1,20 @@
 mod common;
 use addon_core::{Channel, DependencyKind, IgnoreReason, scan, store, wowup_import};
+use addon_testkit::{toc, write};
 use common::*;
 
 #[test]
 fn f2_4_imports_wowup_records() {
     let w = fake_wow();
-    w.add_folder("Details", "Details.toc", &simple_toc("Details!", "1"), &[]);
+    w.add_folder("Details", "Details.toc", &toc("Details!", "1"), &[]);
     w.add_folder(
         "Details_TinyThreat",
         "Details_TinyThreat.toc",
         "## RequiredDeps: Details\n",
         &[],
     );
-    w.add_folder("Questie", "Questie.toc", &simple_toc("Questie", "1"), &[]);
-    w.add_folder("Local", "Local.toc", &simple_toc("Local", "1"), &[]);
+    w.add_folder("Questie", "Questie.toc", &toc("Questie", "1"), &[]);
+    w.add_folder("Local", "Local.toc", &toc("Local", "1"), &[]);
 
     let wowup = w.tmp.path().join("WowUpCf");
     let client = w.inst.root.display().to_string();
@@ -86,7 +87,7 @@ fn f2_4_imports_wowup_records() {
 fn f2_4_overlapping_wowup_records_get_one_owner_per_folder() {
     let w = fake_wow();
     for f in ["Questie", "QuestieTrace"] {
-        w.add_folder(f, &format!("{f}.toc"), &simple_toc(f, "1"), &[]);
+        w.add_folder(f, &format!("{f}.toc"), &toc(f, "1"), &[]);
     }
     let wowup = w.tmp.path().join("WowUpCf");
     let client = w.inst.root.display().to_string();
@@ -130,7 +131,7 @@ fn f2_4_overlapping_wowup_records_get_one_owner_per_folder() {
 fn f2_4_wowup_link_is_not_taken_over_by_another_providers_toc_match() {
     let w = fake_wow();
     for f in ["EnhanceQoL", "EnhanceQoLBags"] {
-        w.add_folder(f, &format!("{f}.toc"), &simple_toc(f, "13.21.3"), &[]);
+        w.add_folder(f, &format!("{f}.toc"), &toc(f, "13.21.3"), &[]);
     }
     let wowup = w.tmp.path().join("WowUpCf");
     let client = w.inst.root.display().to_string();
@@ -174,7 +175,7 @@ fn f2_4_wowup_link_is_not_taken_over_by_another_providers_toc_match() {
 #[test]
 fn f2_4_zip_file_name_versions_show_the_toc_version() {
     let w = fake_wow();
-    w.add_folder("Tint", "Tint.toc", &simple_toc("Tint", "0.7.3"), &[]);
+    w.add_folder("Tint", "Tint.toc", &toc("Tint", "0.7.3"), &[]);
     w.add_folder("NoVer", "NoVer.toc", "## Title: NoVer\n", &[]);
     let wowup = w.tmp.path().join("WowUpCf");
     let client = w.inst.root.display().to_string();

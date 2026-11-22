@@ -1,8 +1,9 @@
 //! Test helpers shared by `addon-core` and `addon-app` tests:
-//! a local fake HTTP server, provider-shaped JSON builders, fixtures and a zip builder.
+//! a local fake HTTP server, provider-shaped JSON builders, fixtures, file and TOC builders and a zip builder.
 
 use serde_json::{Value, json};
 use std::io::{Cursor, Write};
+use std::path::Path;
 use std::sync::{Arc, Mutex};
 
 /// Forever's CurseForge game version type id.
@@ -409,6 +410,30 @@ pub fn serve_app_release(
         "text/plain",
         sums,
     );
+}
+
+/// A minimal `.build.info`: a retail row and the active Forever row (client `1.60.1.70938`).
+pub const BUILD_INFO_MIN: &str = "Branch!STRING:0|Active!DEC:1|Version!STRING:0|Product!STRING:0\n\
+eu|1|11.2.7.64000|wow\neu|1|1.60.1.70938|wowf\n";
+
+/// A `.build.info` in the launcher's real format (every column) with one active Forever row.
+pub const BUILD_INFO_REAL: &str = "Branch!STRING:0|Active!DEC:1|Build Key!HEX:16|CDN Key!HEX:16|Install Key!HEX:16|IM Size!DEC:4|CDN Path!STRING:0|CDN Hosts!STRING:0|CDN Servers!STRING:0|Tags!STRING:0|Armadillo!STRING:0|Last Activated!STRING:0|Version!STRING:0|KeyRing!HEX:16|Product!STRING:0\n\
+eu|1|3627b099867bfde3e37a17cf44f69cdc|3363ac656da5f261cdc675ab28b2744c|||tpr/wow|level3.blizzard.com|http://level3.blizzard.com/?maxhosts=8|Windows x86_64 EU? enUS speech?:Windows x86_64 EU? enUS text?|||1.60.1.70938||wowf\n";
+
+/// Writes `content` to `path`, creating its folders.
+pub fn write(path: &Path, content: impl AsRef<[u8]>) {
+    std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+    std::fs::write(path, content).unwrap();
+}
+
+/// A TOC with a title and version (LF line ends; CRLF parsing is covered by the fixture TOCs).
+/// `Foo_Options` requires `Foo`, so unmatched it still groups under `Foo` (F2.2).
+pub fn toc(title: &str, version: &str) -> String {
+    let deps = title
+        .split_once('_')
+        .map(|(parent, _)| format!("## RequiredDeps: {parent}\n"))
+        .unwrap_or_default();
+    format!("## Interface: 16001\n## Title: {title}\n## Version: {version}\n{deps}\nCore.lua\n")
 }
 
 /// Build an in-memory zip from `(path, contents)` pairs (deflate).

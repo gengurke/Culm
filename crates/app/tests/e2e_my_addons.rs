@@ -4,6 +4,7 @@
 mod common;
 use addon_app::state::{MaintCard, MaintPhase, Op, Status};
 use addon_core::IgnoreReason;
+use addon_testkit::{toc, write};
 use common::*;
 use rune::ImageCache;
 use std::sync::Arc;

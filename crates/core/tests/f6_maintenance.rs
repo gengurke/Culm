@@ -1,6 +1,7 @@
 mod common;
 use addon_core::maintenance::{self, Cleanup};
 use addon_core::wow;
+use addon_testkit::write;
 use common::*;
 
 #[test]
