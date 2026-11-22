@@ -2,7 +2,7 @@
 //! mossy flagstone, parchment text, warm gold serif headings, gold gradient buttons and tabs that
 //! glow amber from below. Textures are generated (texture.rs).
 
-use super::{BASE_TYPE, BandDeco, Border, Corners, Medal, Overlay, Pal, Skin, Surface, Tex, Theme, Type, drop, h, inner_ring, inset, outer_ring};
+use super::{BASE_TYPE, BandDeco, Border, Corners, Medal, Overlay, Pal, Skin, Surface, Tex, Theme, Tone, Type, drop, h, inner_ring, inset, outer_ring};
 use super::glyphs;
 use rune::tok::{Family, TextStyle};
 use rune::{Color, Shadow};
@@ -24,6 +24,7 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
     let sidebar = h("#0a0f08");
     let panel_alt = h("#1b2114");
     let on_accent = h("#1e1406");
+    let selected = amber.alpha(0.10);
     let p = Pal {
         bg: h("#070b05"),
         panel: h("#11170d"),
@@ -35,20 +36,15 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
         border_strong: bronze.alpha(0.6),
         divider: bronze.alpha(0.16),
         hover: h("#ffd98a").alpha(0.06),
-        selected: amber.alpha(0.10),
         chip: parchment.alpha(0.08),
         track: parchment.alpha(0.12),
         accent: h("#f0b84f"),
         accent_hi: h("#ffd978"),
-        accent_soft: h("#f0b84f").alpha(0.17),
         accent_focus: gold.alpha(0.85),
-        success: h("#8fd86a"),
-        success_soft: h("#8fd86a").alpha(0.14),
-        warning: h("#ffa94d"),
-        warning_soft: h("#ffa94d").alpha(0.15),
-        danger: h("#ff6b52"),
-        danger_soft: h("#ff6b52").alpha(0.10),
-        danger_line: h("#ff6b52").alpha(0.50),
+        success: Tone { ink: h("#8fd86a"), soft: h("#8fd86a").alpha(0.14), line: h("#8fd86a").alpha(0.4) },
+        warning: Tone { ink: h("#ffa94d"), soft: h("#ffa94d").alpha(0.15), line: h("#ffa94d").alpha(0.4) },
+        danger: Tone { ink: h("#ff6b52"), soft: h("#ff6b52").alpha(0.10), line: h("#ff6b52").alpha(0.50) },
+        busy: Tone { ink: h("#f0b84f"), soft: h("#f0b84f").alpha(0.17), line: h("#f0b84f").alpha(0.4) },
     };
     let ty = Type {
         display: TextStyle::new(24.0, 700.0).family(SERIF).tracking(0.6).lh(30.0),
@@ -108,7 +104,7 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
         list_header: Surface { fill: Color::BLACK.alpha(0.3), border: Some(Border::sides([0.0, 0.0, 1.0, 0.0], bronze.alpha(0.3))), ..Default::default() },
         // Lit amber from below, like the open tab, in a thin gold ring.
         row_selected: Surface {
-            fill: p.selected,
+            fill: selected,
             overlay: Some(Overlay::Radial { center: [0.5, 1.3], radius: [700.0, 50.0], stops: vec![(0.0, amber.alpha(0.2)), (1.0, amber.alpha(0.0))] }),
             border: under,
             shadows: vec![inner_ring(gold.alpha(0.45))],
@@ -166,7 +162,7 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
             shadows: vec![inset(2.0, Color::BLACK.alpha(0.6)), glow(10.0, amber.alpha(0.12))],
             ..Default::default()
         },
-        chip: Surface { radius: 4.0, ..Default::default() },
+        toggle: Surface { radius: 4.0, ..Default::default() },
         tile: Surface {
             fill: panel_alt,
             ink: h("#ecd6a4"),
@@ -183,7 +179,7 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
             shadows: vec![inset(2.0, Color::BLACK.alpha(0.5))],
             ..Default::default()
         },
-        segment_on: Surface {
+        toggle_on: Surface {
             fill: h("#0d1009").alpha(0.85),
             ink: p.heading,
             overlay: Some(Overlay::Radial { center: [0.5, 1.0], radius: [70.0, 30.0], stops: vec![(0.0, amber.alpha(0.3)), (1.0, amber.alpha(0.0))] }),
@@ -205,7 +201,6 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
         pal: p,
         ty,
         skin,
-        textures: &[Tex::Moss],
         frame: None,
     }
 });

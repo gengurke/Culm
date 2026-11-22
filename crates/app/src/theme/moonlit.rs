@@ -1,7 +1,7 @@
 //! Moonlit: a calm navy night sky with one warm gold star. Square
 //! hairline boxes, Inter, a starry header band. The default theme.
 
-use super::{BASE_TYPE, BandDeco, Border, Medal, Overlay, Pal, Skin, Surface, Theme, drop, face, h, ink, inner_ring, inset};
+use super::{BASE_TYPE, BandDeco, Border, Medal, Overlay, Pal, Skin, Surface, Theme, Tone, drop, face, h, ink, inner_ring, inset};
 use rune::oklcha;
 use std::sync::LazyLock;
 
@@ -24,20 +24,15 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
         border_strong: ink(0.20),
         divider: ink(0.08),
         hover: ink(0.07),
-        selected: ink(0.12),
         chip: ink(0.07),
         track: ink(0.10),
         accent: h("#e6ba66"),
         accent_hi: h("#f5d898"),
-        accent_soft: h("#e6ba66").alpha(0.16),
         accent_focus: h("#e6ba66").alpha(0.80),
-        success: h("#6bd999"),
-        success_soft: h("#6bd999").alpha(0.14),
-        warning: h("#fabf4d"),
-        warning_soft: h("#fabf4d").alpha(0.14),
-        danger: h("#f57373"),
-        danger_soft: h("#f57373").alpha(0.10),
-        danger_line: h("#f57373").alpha(0.45),
+        success: Tone { ink: h("#6bd999"), soft: h("#6bd999").alpha(0.14), line: h("#6bd999").alpha(0.4) },
+        warning: Tone { ink: h("#fabf4d"), soft: h("#fabf4d").alpha(0.14), line: h("#fabf4d").alpha(0.4) },
+        danger: Tone { ink: h("#f57373"), soft: h("#f57373").alpha(0.10), line: h("#f57373").alpha(0.45) },
+        busy: Tone { ink: h("#e6ba66"), soft: h("#e6ba66").alpha(0.16), line: h("#e6ba66").alpha(0.4) },
     };
     let hairline = Some(Border::all(1.0, p.border));
     let panel = Surface { fill: p.panel, border: hairline, ..Default::default() };
@@ -79,10 +74,10 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
         },
         secondary: Surface { fill: panel_alt, ink: p.text, border: hairline, hover: p.hover, ..Default::default() },
         input: Surface { fill: well, border: hairline, ..Default::default() },
-        chip: Surface { radius: 10.0, ..Default::default() },
+        toggle: Surface { radius: 10.0, ..Default::default() },
         tile: Surface { fill: panel_alt, ink: p.text_dim, border: hairline, ..Default::default() },
         segments: Surface { border: hairline, ..Default::default() },
-        segment_on: Surface { fill: panel_alt, ink: p.text, border: Some(Border::all(1.0, ink(0.22))), ..Default::default() },
+        toggle_on: Surface { fill: panel_alt, ink: p.text, border: Some(Border::all(1.0, ink(0.22))), ..Default::default() },
         toast: Surface { shadows: vec![drop(6.0, 18.0, 0.5)], ..panel },
         medal: Medal { ring: [h("#d4dcf0"), h("#6c7a9e"), h("#262e48")], ring_on: [h("#fff1c4"), h("#e6ba66"), h("#7a5418")], outline: h("#05080f") },
         ..Skin::base(&p, 0.0)
@@ -94,7 +89,6 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
         pal: p,
         ty: BASE_TYPE,
         skin,
-        textures: &[],
         frame: None,
     }
 });

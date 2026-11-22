@@ -129,6 +129,9 @@ mark a release "pre-release": the AppImage's zsync update info only follows `lat
   current theme (`theme::t()`, `pal()`) and paint boxes with `.skin(&t().skin.panel)`: no raw hex, no theme checks.
   Sizes and spacing (`theme::PAD`, `ROW_H`, …) are global, so layout is the same in every theme.
 - `.skin()` adds the texture and ornaments as pinned children: call it before `.child(..)`.
+- States draw over the skin, never replace its border: focus and selection take `ui::Themed::ring` (or `focus_look`),
+  status colours are `Tone`s (`Pal::success`, …) read through `ui::Mark`, and warnings, errors and delete confirmations
+  are `ui::notice(.., mark)` boxes. Disabled controls dim to `ui::DISABLED`.
 - The current theme is a thread-local set by `theme::begin` at the top of `view` (tests run windows on parallel threads).
   Textures (`theme/texture.rs`, value-noise fBm, no image files) are generated once per process on background threads (`theme::prewarm` from `setup`; synchronously in tests and headless runs) and registered per thread through `State::images`;
   without a cache surfaces keep their base colour.

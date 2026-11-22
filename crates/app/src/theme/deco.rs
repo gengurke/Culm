@@ -44,7 +44,7 @@ pub fn band_deco() -> Option<El> {
                     if next() > 0.8 { 3.0 } else { 2.0 },
                 );
                 let a = 0.85 - rise * 0.75;
-                let spark = p.warning.mix(p.accent_hi, next());
+                let spark = p.warning.ink.mix(p.accent_hi, next());
                 layer = layer.child(
                     el().absolute(x, BAND_H - 6.0 - rise * BAND_H * 0.9)
                         .size(size, size)

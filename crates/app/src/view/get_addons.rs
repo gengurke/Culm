@@ -9,8 +9,8 @@ use crate::state::{
     Detail, Fetch, Input, Intent, Menu, Op, Screen, State, Status, by_hand_file, dispatch,
     install_key, single,
 };
-use crate::theme::{self, Surface, SurfaceExt, pal, t};
-use crate::ui::{self, Kind};
+use crate::theme::{self, SurfaceExt, pal, t};
+use crate::ui::{self, Kind, Themed};
 use addon_core::discover::Entry;
 use addon_core::providers::{curseforge, github};
 use addon_core::{Category, Channel, RemoteAddon, Sort};
@@ -56,9 +56,9 @@ fn class_chips(s: &State, list: &[Category], enabled: bool) -> Option<El> {
         any = true;
         let (id, on) = (c.id, s.category == Some(c.id));
         let sk = if on {
-            &th.skin.segment_on
+            &th.skin.toggle_on
         } else {
-            &th.skin.chip
+            &th.skin.toggle
         };
         let ink = if on { sk.ink } else { p.text_dim };
         let mut chip = row()
@@ -72,12 +72,8 @@ fn class_chips(s: &State, list: &[Category], enabled: bool) -> Option<El> {
             .pr(11.0)
             .gap(7.0)
             .center_y()
-            .skin(&Surface {
-                // A pill around the medallion where the theme rounds chips at all.
-                radius: if sk.radius > 0.0 { 15.0 } else { 0.0 },
-                ..sk.clone()
-            })
-            .focus_ring(1.0, 2.0, p.accent_focus);
+            .skin(sk)
+            .focus_look();
         if let Some(m) = ui::class_medal(&c.slug, 24.0, on, s.class_icon(&c.slug)) {
             chip = chip.child(m);
         }
@@ -90,7 +86,7 @@ fn class_chips(s: &State, list: &[Category], enabled: bool) -> Option<El> {
                 },
             )
         } else {
-            chip.opacity(0.45)
+            chip.opacity(ui::DISABLED)
         });
     }
     any.then_some(chips)
@@ -348,11 +344,11 @@ fn error(e: &str) -> El {
     row()
         .key("get-addons/error")
         .gap(8.0)
-        .child(icon(&icons::ALERT, 14.0).color(p.danger))
+        .child(icon(&icons::ALERT, 14.0).color(p.danger.ink))
         .child(
             text(e.to_string())
                 .font(t().ty.body)
-                .color(p.danger)
+                .color(p.danger.ink)
                 .wrap_anywhere()
                 .grow(1.0)
                 .min_w(0.0),
@@ -371,7 +367,7 @@ fn no_key_hint() -> El {
         .py(12.0)
         .center_y()
         .skin(&t().skin.panel)
-        .child(ui::badge(&icons::KEY, p.accent))
+        .child(ui::badge(&icons::KEY, ui::Mark::Busy))
     .child(
         col()
             .grow(1.0)
@@ -445,7 +441,7 @@ fn dropdown(
         .gap(8.0)
         .center_y()
         .skin(sk)
-        .focus_ring(1.0, 2.0, p.accent_focus)
+        .focus_look()
         .child(icon(glyph, 14.0).color(sk.ink))
         .child(
             text(label.to_string())
@@ -456,7 +452,7 @@ fn dropdown(
         )
         .child(icon(&icons::CHEVRON_DOWN, 14.0).color(p.text_muted));
     if open {
-        b = b.border(1.0, p.accent_focus);
+        b = b.ring(p.accent_focus);
     }
     if enabled {
         b.cursor(Cursor::Pointer).on_press(move |s: &mut State| {
@@ -467,7 +463,7 @@ fn dropdown(
             };
         })
     } else {
-        b.disabled(true).opacity(0.45)
+        b.disabled(true).opacity(ui::DISABLED)
     }
 }
 
@@ -573,7 +569,7 @@ fn menu_panel(s: &State, menu: Menu) -> El {
                 items.push(
                     text(format!("Categories unavailable: {e}"))
                         .font(t().ty.small)
-                        .color(pal().danger)
+                        .color(pal().danger.ink)
                         .wrap_anywhere()
                         .px(14.0)
                         .py(6.0),
@@ -792,7 +788,7 @@ fn result_card(s: &State, entry: &Entry) -> El {
             dispatch(s, Intent::ShowRemote(e.clone()), tx)
         });
     if selected {
-        card = card.border(1.0, p.accent);
+        card = card.ring(p.accent);
     }
     card.child(
         row().w_full().gap(12.0).child(thumb).child(
@@ -1140,9 +1136,9 @@ fn source_picker(s: &State, d: &Detail) -> El {
     for (i, r) in d.entry.sources.iter().enumerate() {
         let on = i == d.source;
         let sk = if on {
-            &th.skin.segment_on
+            &th.skin.toggle_on
         } else {
-            &th.skin.chip
+            &th.skin.toggle
         };
         let ink = if on { sk.ink } else { p.text_dim };
         let version = r
@@ -1167,7 +1163,7 @@ fn source_picker(s: &State, d: &Detail) -> El {
                 .gap(8.0)
                 .center_y()
                 .skin(sk)
-                .focus_ring(1.0, 2.0, p.accent_focus)
+                .focus_look()
                 .hover(p.hover)
                 .cursor(Cursor::Pointer)
                 .on_press_tx(move |s: &mut State, tx: &mut Tx| {

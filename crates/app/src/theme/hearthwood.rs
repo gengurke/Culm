@@ -2,7 +2,7 @@
 //! dark leather panels with gold studs, gold serif headings in quest yellow, red lacquered
 //! buttons with a bevel, item-quality status colours. Textures are generated (texture.rs).
 
-use super::{BASE_TYPE, BandDeco, Border, Corners, Medal, Overlay, Pal, Skin, Surface, Tex, Theme, Type, drop, face, h, inner_ring, inset};
+use super::{BASE_TYPE, BandDeco, Border, Corners, Medal, Overlay, Pal, Skin, Surface, Tex, Theme, Tone, Type, drop, face, h, inner_ring, inset};
 use super::glyphs;
 use rune::tok::{Family, TextStyle};
 use rune::Color;
@@ -16,6 +16,7 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
     let parchment = h("#f4e7cc");
     let panel_alt = h("#3b2a1a");
     let well = h("#0b0704").alpha(0.75);
+    let selected = h("#ffc95a").alpha(0.11);
     let p = Pal {
         bg: h("#1b140e"),
         panel: h("#2a1d13"),
@@ -27,20 +28,15 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
         border_strong: gold.alpha(0.55),
         divider: gold.alpha(0.14),
         hover: h("#ffdc9a").alpha(0.07),
-        selected: h("#ffc95a").alpha(0.11),
         chip: parchment.alpha(0.08),
         track: parchment.alpha(0.12),
         accent: h("#e8b84a"),
         accent_hi: h("#ffd96b"),
-        accent_soft: h("#e8b84a").alpha(0.18),
         accent_focus: h("#ffd100").alpha(0.80),
-        success: h("#5bd65b"),
-        success_soft: h("#5bd65b").alpha(0.15),
-        warning: h("#ffa135"),
-        warning_soft: h("#ffa135").alpha(0.16),
-        danger: h("#ff5a48"),
-        danger_soft: h("#ff5a48").alpha(0.10),
-        danger_line: h("#ff5a48").alpha(0.50),
+        success: Tone { ink: h("#5bd65b"), soft: h("#5bd65b").alpha(0.15), line: h("#5bd65b").alpha(0.4) },
+        warning: Tone { ink: h("#ffa135"), soft: h("#ffa135").alpha(0.16), line: h("#ffa135").alpha(0.4) },
+        danger: Tone { ink: h("#ff5a48"), soft: h("#ff5a48").alpha(0.10), line: h("#ff5a48").alpha(0.50) },
+        busy: Tone { ink: h("#e8b84a"), soft: h("#e8b84a").alpha(0.18), line: h("#e8b84a").alpha(0.4) },
     };
     let ty = Type {
         display: TextStyle::new(24.0, 700.0).family(SERIF).tracking(0.2).lh(30.0),
@@ -84,7 +80,7 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
         list_header: Surface { fill: Color::BLACK.alpha(0.22), border: Some(Border::sides([0.0, 0.0, 1.0, 0.0], gold.alpha(0.25))), ..Default::default() },
         // A warm-lit row in a thin gold ring.
         row_selected: Surface {
-            fill: p.selected,
+            fill: selected,
             vertical: Some((gold.alpha(0.16), gold.alpha(0.07))),
             border: under,
             shadows: vec![inner_ring(gold.alpha(0.45))],
@@ -143,7 +139,7 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
         },
         tile: Surface { fill: panel_alt, ink: h("#e8d3a8"), vertical: Some((h("#4a3422"), h("#2a1d12"))), border: bevel, radius: 2.0, ..Default::default() },
         segments: Surface { fill: Color::BLACK.alpha(0.25), border: Some(Border::bevel(1.0, h("#1a1009"), h("#6a5028"))), radius: 3.0, ..Default::default() },
-        segment_on: Surface {
+        toggle_on: Surface {
             fill: h("#5a3e22"),
             ink: p.heading,
             vertical: Some((h("#6a4a28"), h("#4a3219"))),
@@ -164,7 +160,6 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
         pal: p,
         ty,
         skin,
-        textures: &[Tex::Wood, Tex::Stone, Tex::Leather],
         frame: None,
     }
 });

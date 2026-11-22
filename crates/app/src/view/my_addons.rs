@@ -6,7 +6,7 @@ use crate::brand;
 use crate::icons;
 use crate::state::{AddonUi, Intent, Job, Op, Screen, State, Status, dispatch};
 use crate::theme::{self, StyleExt, SurfaceExt, pal, t};
-use crate::ui::{self, Kind, Mark};
+use crate::ui::{self, Kind, Mark, Themed};
 use addon_core::{Channel, IgnoreReason};
 use rune::{Cursor, El, GrowthSpec, Tx, col, el, icon, rich, row, text};
 use std::borrow::Cow;
@@ -39,7 +39,7 @@ pub fn page(s: &State) -> El {
                 if n > 0 {
                     state
                         .font(t().ty.note.weight_of(600.0))
-                        .color(pal().warning)
+                        .color(pal().warning.ink)
                 } else {
                     state
                 },
@@ -220,7 +220,7 @@ fn column(s: &State, label: &str, by: Option<SortBy>) -> El {
         .gap(4.0)
         .center_y()
         .cursor(Cursor::Pointer)
-        .focus_ring(1.0, 2.0, p.accent_focus)
+        .focus_look()
         .on_press_tx(move |s: &mut State, tx: &mut Tx| dispatch(s, Intent::SortAddons(by), tx))
         .child(caption.color(if on { p.text } else { p.text_muted }))
         .child(icon(chevron, 12.0).color(if on { p.accent } else { p.accent.alpha(0.0) }))
@@ -364,7 +364,7 @@ fn addon_row(s: &State, a: &AddonUi) -> El {
         r = r.child(
             text(addon.game_version.clone().unwrap_or_else(|| "—".into()))
                 .font(t().ty.mono)
-                .color(if old { p.warning } else { p.text_muted })
+                .color(if old { p.warning.ink } else { p.text_muted })
                 .w(GAME_W),
         );
     }
@@ -385,7 +385,7 @@ fn meta_line(s: &State, a: &AddonUi, provider: &str) -> El {
             text("Out of date")
                 .key(format!("addon/{}/out-of-date", a.addon.id))
                 .font(t().ty.small)
-                .color(p.warning)
+                .color(p.warning.ink)
                 .help(help),
         );
     }
@@ -520,7 +520,7 @@ fn status_cell(a: &AddonUi) -> El {
         Some(Op::Removing) => row()
             .gap(8.0)
             .center_y()
-            .child(ui::spinner(12.0, p.danger))
+            .child(ui::spinner(12.0, p.danger.ink))
             .child(text("Removing…").font(t().ty.small).color(p.text_dim)),
         Some(Op::Failed(e)) => row().help(e.clone()).child(status_badge(a)),
         None => row().child(status_badge(a)),
@@ -737,13 +737,7 @@ fn detail(s: &State, a: &AddonUi) -> El {
 
     let remove = if s.confirm_remove.as_deref() == Some(&addon.id) {
         let folders = addon.folders.len();
-        col()
-            .key(key("confirm"))
-            .w_full()
-            .gap(10.0)
-            .padding(12.0)
-            .fill(p.danger_soft)
-            .border(1.0, p.danger_line)
+        ui::notice(col().key(key("confirm")).gap(10.0), Mark::Bad)
             .child(
                 text(format!(
                     "Delete {} and its {folders} folder{} from AddOns?",
@@ -913,16 +907,12 @@ fn detail(s: &State, a: &AddonUi) -> El {
         .child(remove);
     let body = match &a.op {
         Some(Op::Failed(e)) => body.child(
-            row()
-                .w_full()
-                .gap(8.0)
-                .padding(10.0)
-                .fill(p.danger.alpha(0.08))
-                .child(rune::icon(&icons::ALERT, 14.0).color(p.danger))
+            ui::notice(row().gap(8.0), Mark::Bad)
+                .child(rune::icon(&icons::ALERT, 14.0).color(p.danger.ink))
                 .child(
                     text(e.clone())
                         .font(t().ty.small.size_of(12.0))
-                        .color(p.danger)
+                        .color(p.danger.ink)
                         .wrap_anywhere()
                         .grow(1.0)
                         .min_w(0.0),
