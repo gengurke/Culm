@@ -191,13 +191,7 @@ fn card(
                 },
             )),
         ),
-        MaintPhase::Running => Some(
-            row()
-                .gap(8.0)
-                .center_y()
-                .child(ui::spinner(14.0, p.accent))
-                .child(text("Working…").font(t().ty.small).color(p.text_dim)),
-        ),
+        MaintPhase::Running => Some(ui::busy("Working…", p.accent)),
         MaintPhase::Done(line) => Some(
             row()
                 .key(format!("{key}/result"))
@@ -207,19 +201,9 @@ fn card(
                 .child(text(line.clone()).font(t().ty.small).color(p.success.ink)),
         ),
         MaintPhase::Failed(e) => Some(
-            row()
+            ui::error_line(e.clone(), t().ty.small)
                 .key(format!("{key}/result"))
-                .gap(8.0)
-                .center_y()
-                .child(icon(&icons::ALERT, 14.0).color(p.danger.ink))
-                .child(
-                    text(e.clone())
-                        .font(t().ty.small)
-                        .color(p.danger.ink)
-                        .wrap_anywhere()
-                        .grow(1.0)
-                        .min_w(0.0),
-                ),
+                .center_y(),
         ),
     };
     if let Some(f) = foot {

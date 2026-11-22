@@ -287,7 +287,7 @@ impl State {
         {
             self.toast(
                 Tone::Info,
-                format!("{n} update{} available", if n == 1 { "" } else { "s" }),
+                format!("{} available", crate::ui::plural(n, "update")),
                 "",
             );
         }

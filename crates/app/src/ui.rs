@@ -4,8 +4,10 @@
 use crate::icons;
 use crate::state::State;
 use crate::theme::{self, StyleExt, Surface, SurfaceExt, Tone, pal, t};
+use addon_core::Channel;
 use rune::{
-    Color, Cursor, El, HelpLook, Icon, ScrollSpec, Shadow, TextEdit, Tx, col, el, icon, row, text,
+    Color, Cursor, El, HelpLook, Icon, ScrollSpec, Shadow, TextEdit, TextStyle, Tx, col, el, icon,
+    row, text,
 };
 use rune_kit::{Kit, PaletteSeed, ScrollBar, ScrollBarStyle, TextInput};
 
@@ -62,7 +64,8 @@ pub enum Kind {
     Danger,
 }
 
-/// A 32 pt button (`small`: 28). Disabled buttons drop the handler and dim to 45%.
+/// A 32 pt button (callers make it smaller with `.h(..)`). Disabled buttons drop the handler and dim
+/// to 45%.
 pub fn button(
     key: impl Into<String>,
     label: &str,
@@ -400,12 +403,143 @@ pub fn kbd(label: &str) -> El {
         .child(text(label).font(t().ty.caption).color(sk.ink))
 }
 
-/// What each release channel means, for the channel pickers' help (Stable, Beta, Alpha).
-pub const CHANNEL_HELP: [&str; 3] = [
-    "Finished releases only",
-    "Releases and betas, which may still have bugs",
-    "Every build, even untested alphas",
+/// Each release channel, its name and what it means: the channel pickers' options and help.
+pub const CHANNELS: [(Channel, &str, &str); 3] = [
+    (Channel::Stable, "Stable", "Finished releases only"),
+    (
+        Channel::Beta,
+        "Beta",
+        "Releases and betas, which may still have bugs",
+    ),
+    (Channel::Alpha, "Alpha", "Every build, even untested alphas"),
 ];
+
+/// A channel's name ("Stable").
+pub fn channel_name(c: Channel) -> &'static str {
+    CHANNELS
+        .iter()
+        .find(|(ch, ..)| *ch == c)
+        .map_or("", |o| o.1)
+}
+
+/// `1 addon`, `3 addons`.
+pub fn plural(n: usize, noun: &str) -> String {
+    format!("{n} {noun}{}", if n == 1 { "" } else { "s" })
+}
+
+/// A spinner beside a short status line ("Installing…"), spinning in `spin`.
+pub fn busy(label: impl Into<String>, spin: Color) -> El {
+    row()
+        .gap(8.0)
+        .center_y()
+        .child(spinner(12.0, spin))
+        .child(text(label.into()).font(t().ty.small).color(pal().text_dim))
+}
+
+/// Nothing to list: what is missing and a hint what to do. Callers place it (`py`, `center`).
+pub fn empty(key: &str, title: impl Into<String>, hint: &str) -> El {
+    let p = pal();
+    col()
+        .key(key)
+        .gap(6.0)
+        .child(text(title.into()).font(t().ty.body).color(p.text_dim))
+        .child(
+            text(hint.to_string())
+                .font(t().ty.small)
+                .color(p.text_muted),
+        )
+}
+
+/// An error: the alert glyph and the wrapping message in the danger ink, set in `font`.
+pub fn error_line(e: impl Into<String>, font: TextStyle) -> El {
+    let p = pal();
+    row()
+        .gap(8.0)
+        .child(icon(&icons::ALERT, 14.0).color(p.danger.ink))
+        .child(
+            text(e.into())
+                .font(font)
+                .color(p.danger.ink)
+                .wrap_anywhere()
+                .grow(1.0)
+                .min_w(0.0),
+        )
+}
+
+/// The panel at the right of My Addons and Get Addons: the detail skin, 340 pt wide, `body` scrolling.
+#[track_caller]
+pub fn detail_panel(key: impl Into<String>, body: El) -> El {
+    col()
+        .key(key)
+        .w(340.0)
+        .h_full()
+        .min_h(0.0)
+        .skin(&t().skin.detail)
+        .child(scroll(col().grow(1.0).min_h(0.0).w_full().child(body)))
+}
+
+/// A detail panel's head: the addon's tile, name, author and an optional badge, and a close button.
+pub fn detail_header(
+    tile: El,
+    name: &str,
+    author: &str,
+    badge: Option<El>,
+    close_key: String,
+    close: impl Fn(&mut State, &mut Tx) + 'static,
+) -> El {
+    let p = pal();
+    let mut head = col().grow(1.0).min_w(0.0).gap(4.0).child(
+        text(name.to_string())
+            .font(t().ty.title)
+            .color(p.heading)
+            .wrap(),
+    );
+    head = head.child(
+        text(author.to_string())
+            .font(t().ty.small)
+            .color(p.text_muted)
+            .truncate(),
+    );
+    if let Some(b) = badge {
+        head = head.child(row().pt(6.0).child(b));
+    }
+    row()
+        .w_full()
+        .gap(14.0)
+        .items_start()
+        .child(tile)
+        .child(head)
+        .child(icon_button(
+            close_key,
+            "Close details",
+            &icons::CLOSE,
+            close,
+        ))
+}
+
+/// One line of a detail panel's facts: a muted label and its value (`mono` for versions and folders).
+pub fn fact(label: &str, value: String, mono: bool) -> El {
+    let p = pal();
+    row()
+        .w_full()
+        .py(7.0)
+        .gap(12.0)
+        .border_sides([0.0, 0.0, 1.0, 0.0], p.divider)
+        .child(
+            text(label.to_string())
+                .font(t().ty.small)
+                .color(p.text_muted)
+                .w(96.0),
+        )
+        .child(
+            text(value)
+                .font(if mono { t().ty.mono } else { t().ty.small })
+                .color(p.text_dim)
+                .grow(1.0)
+                .min_w(0.0)
+                .wrap(),
+        )
+}
 
 /// A segmented control: options (value, label, help; "" for none) in a hairline box, the
 /// active one raised.

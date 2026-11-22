@@ -104,7 +104,6 @@ fn sort_label(sort: Sort) -> Option<&'static str> {
 }
 
 pub fn page(s: &State) -> El {
-    let p = pal();
     let ready = s.curseforge_ready();
     let input = s.input();
     let placeholder = if ready {
@@ -269,12 +268,7 @@ pub fn page(s: &State) -> El {
                             "Try a shorter name, another category, or paste the addon's link above.",
                         )
                     };
-                    col()
-                        .key("get-addons/none")
-                        .py(32.0)
-                        .gap(6.0)
-                        .child(text(line).font(t().ty.body).color(p.text_dim))
-                        .child(text(hint).font(t().ty.small).color(p.text_muted))
+                    ui::empty("get-addons/none", line, hint).py(32.0)
                 }
                 Fetch::Ready(found) => grid(s, &found.entries),
             });
@@ -340,19 +334,7 @@ fn loading(label: &str) -> El {
 }
 
 fn error(e: &str) -> El {
-    let p = pal();
-    row()
-        .key("get-addons/error")
-        .gap(8.0)
-        .child(icon(&icons::ALERT, 14.0).color(p.danger.ink))
-        .child(
-            text(e.to_string())
-                .font(t().ty.body)
-                .color(p.danger.ink)
-                .wrap_anywhere()
-                .grow(1.0)
-                .min_w(0.0),
-        )
+    ui::error_line(e, t().ty.body).key("get-addons/error")
 }
 
 /// Without a key: WowUp Hub still answers, a key adds CurseForge (F7.1).
@@ -552,17 +534,9 @@ fn menu_panel(s: &State, menu: Menu) -> El {
             }
             if let Fetch::Loading | Fetch::Idle = s.categories {
                 items.push(
-                    row()
+                    ui::busy("Loading categories…", pal().accent)
                         .h(32.0)
-                        .px(14.0)
-                        .gap(10.0)
-                        .center_y()
-                        .child(ui::spinner(12.0, pal().accent))
-                        .child(
-                            text("Loading categories…")
-                                .font(t().ty.small)
-                                .color(pal().text_muted),
-                        ),
+                        .px(14.0),
                 );
             }
             if let Fetch::Failed(e) = &s.categories {
@@ -706,12 +680,7 @@ fn install_action(s: &State, remote: &RemoteAddon, key: &str, label: &str, prima
                     .color(p.text_dim),
             )
             .child(ui::progress_line(*done, 2.0)),
-        Some(_) => row()
-            .key(format!("{key}/progress"))
-            .gap(8.0)
-            .center_y()
-            .child(ui::spinner(12.0, p.accent))
-            .child(text("Installing…").font(t().ty.small).color(p.text_dim)),
+        Some(_) => ui::busy("Installing…", p.accent).key(format!("{key}/progress")),
         None => {
             let r = remote.clone();
             let source = source_label(&remote.provider);
@@ -859,14 +828,6 @@ fn date(rfc3339: &str) -> String {
     }
 }
 
-fn channel_name(c: Channel) -> &'static str {
-    match c {
-        Channel::Stable => "Stable",
-        Channel::Beta => "Beta",
-        Channel::Alpha => "Alpha",
-    }
-}
-
 /// The clicked result: what My Addons' detail panel shows for an installed addon, plus the
 /// picked source's long description. Several sources: a picker chooses the one to install from.
 fn detail(s: &State, d: &Detail) -> El {
@@ -874,27 +835,6 @@ fn detail(s: &State, d: &Detail) -> El {
     let remote = d.addon();
     let several = d.entry.sources.len() > 1;
     let key = |part: &str| format!("remote-detail/{part}");
-    let fact = |label: &str, value: String, mono: bool| {
-        row()
-            .w_full()
-            .py(7.0)
-            .gap(12.0)
-            .border_sides([0.0, 0.0, 1.0, 0.0], p.divider)
-            .child(
-                text(label.to_string())
-                    .font(t().ty.small)
-                    .color(p.text_muted)
-                    .w(96.0),
-            )
-            .child(
-                text(value)
-                    .font(if mono { t().ty.mono } else { t().ty.small })
-                    .color(p.text_dim)
-                    .grow(1.0)
-                    .min_w(0.0)
-                    .wrap(),
-            )
-    };
     let installed = s.installed_entry(&d.entry);
     let state = match installed {
         Some(a) if a.status() == Status::UpdateAvailable => {
@@ -987,34 +927,42 @@ fn detail(s: &State, d: &Detail) -> El {
     let dash = || "—".to_string();
     let mut facts = col()
         .w_full()
-        .child(fact("Downloads", ui::count(remote.download_count), false))
-        .child(fact(
+        .child(ui::fact(
+            "Downloads",
+            ui::count(remote.download_count),
+            false,
+        ))
+        .child(ui::fact(
             "Updated",
             remote.updated_at.as_deref().map_or_else(dash, date),
             false,
         ))
-        .child(fact(
+        .child(ui::fact(
             "Latest file",
             file.map_or_else(dash, |f| f.version.clone()),
             true,
         ));
     if let Some(f) = file {
         facts = facts
-            .child(fact(
+            .child(ui::fact(
                 "Released",
                 f.released_at.as_deref().map_or_else(dash, date),
                 false,
             ))
-            .child(fact("Channel", channel_name(f.channel).into(), false));
+            .child(ui::fact(
+                "Channel",
+                ui::channel_name(f.channel).into(),
+                false,
+            ));
         if !f.game_versions.is_empty() {
-            facts = facts.child(fact("Game version", f.game_versions.join(", "), true));
+            facts = facts.child(ui::fact("Game version", f.game_versions.join(", "), true));
         }
     }
     if !remote.categories.is_empty() {
-        facts = facts.child(fact("Categories", remote.categories.join(", "), false));
+        facts = facts.child(ui::fact("Categories", remote.categories.join(", "), false));
     }
     if !several {
-        facts = facts.child(fact(
+        facts = facts.child(ui::fact(
             "Source",
             source_label(&remote.provider).to_string(),
             false,
@@ -1038,16 +986,9 @@ fn detail(s: &State, d: &Detail) -> El {
     .w_full();
 
     let about = match &d.description {
-        Fetch::Idle | Fetch::Loading => row()
-            .key(key("description-loading"))
-            .gap(8.0)
-            .center_y()
-            .child(ui::spinner(12.0, p.accent))
-            .child(
-                text("Loading description…")
-                    .font(t().ty.small)
-                    .color(p.text_muted),
-            ),
+        Fetch::Idle | Fetch::Loading => {
+            ui::busy("Loading description…", p.accent).key(key("description-loading"))
+        }
         Fetch::Ready(Some(body)) => description(body).key(key("description")),
         Fetch::Ready(None) => text("No description beyond the summary.")
             .font(t().ty.small)
@@ -1059,40 +1000,23 @@ fn detail(s: &State, d: &Detail) -> El {
             .wrap(),
     };
 
-    let mut head = col().grow(1.0).min_w(0.0).gap(4.0).child(
-        text(remote.name.clone())
-            .font(t().ty.title)
-            .color(p.heading)
-            .wrap(),
-    );
-    head = head.child(
-        text(remote.author.clone())
-            .font(t().ty.small)
-            .color(p.text_muted)
-            .truncate(),
-    );
-    if let Some(b) = state {
-        head = head.child(row().pt(6.0).child(b));
-    }
-    let mut body = col().w_full().gap(18.0).padding(24.0).child(
-        row()
-            .w_full()
-            .gap(14.0)
-            .items_start()
-            .child(ui::addon_tile(
+    let mut body = col()
+        .w_full()
+        .gap(18.0)
+        .padding(24.0)
+        .child(ui::detail_header(
+            ui::addon_tile(
                 &remote.name,
                 48.0,
                 s.thumb(remote.thumbnail_url.as_deref()),
                 key("thumb"),
-            ))
-            .child(head)
-            .child(ui::icon_button(
-                key("close"),
-                "Close details",
-                &icons::CLOSE,
-                |s, tx| dispatch(s, Intent::CloseRemote, tx),
-            )),
-    );
+            ),
+            &remote.name,
+            &remote.author,
+            state,
+            key("close"),
+            |s, tx| dispatch(s, Intent::CloseRemote, tx),
+        ));
     if several {
         body = body.child(source_picker(s, d));
     }
@@ -1112,13 +1036,7 @@ fn detail(s: &State, d: &Detail) -> El {
             .child(text("ABOUT").font(t().ty.eyebrow).color(p.text_muted))
             .child(about),
     );
-    col()
-        .key("remote-detail")
-        .w(340.0)
-        .h_full()
-        .min_h(0.0)
-        .skin(&t().skin.detail)
-        .child(ui::scroll(col().grow(1.0).min_h(0.0).w_full().child(body)))
+    ui::detail_panel("remote-detail", body)
 }
 
 /// The sources that have the addon, one radio row each (name, latest version, downloads); the
