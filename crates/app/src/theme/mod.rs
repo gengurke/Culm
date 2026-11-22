@@ -248,8 +248,8 @@ pub struct Skin {
     pub band_deco: BandDeco,
     /// The strip under the band (filter, search).
     pub toolbar: Surface,
-    /// Cards: addon cards, theme picker cards, maintenance and settings cards. Notices and toasts
-    /// take its radius; Moonlit-style hairline cards need only fill and border.
+    /// Cards: addon cards, theme picker cards, maintenance and settings cards. Notices take its
+    /// radius; Moonlit-style hairline cards need only fill and border.
     pub panel: Surface,
     /// The addon detail panel at the right.
     pub detail: Surface,
@@ -279,11 +279,11 @@ pub struct Skin {
     /// Text fields (search, API key); its radius also rounds the kit's dropdowns and sliders.
     pub input: Surface,
     /// An unselected toggle (Get Addons' class chips, the source rows); also the shape of the
-    /// sidebar's update count.
+    /// sidebar's update count. Its `ink` is unused: unselected text is `Pal::text_dim`.
     pub toggle: Surface,
-    /// Square wells: initials tiles, icon boxes.
+    /// Square wells: initials tiles, glyph tiles, toast item slots; the glyph takes `ink`.
     pub tile: Surface,
-    /// The track of a segmented control.
+    /// The track of a segmented control; unselected segments are bare (`hover`, `text_muted`).
     pub segments: Surface,
     /// A selected toggle: the chosen segment, class chip or source row.
     pub toggle_on: Surface,
@@ -293,7 +293,7 @@ pub struct Skin {
     pub kbd: Surface,
     /// Round class medallions (Get Addons' class chips).
     pub medal: Medal,
-    /// The brand mark beside the wordmark and on empty states.
+    /// The emblem on the first-run welcome (`ui::emblem`); the sidebar's brand mark stays stock.
     pub emblem: &'static Icon,
     /// Glyphs this theme draws differently: `(default, own)`, looked up by [`glyph`].
     pub glyphs: &'static [(&'static Icon, &'static Icon)],
@@ -563,6 +563,7 @@ pub struct Corners {
     pub size: f32,
     /// Its distance from the two edges.
     pub inset: f32,
+    /// The glyph's colour.
     pub color: Color,
 }
 

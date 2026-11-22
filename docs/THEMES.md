@@ -42,7 +42,8 @@ colour, not the theme).
    [bundling](#fonts).
 5. Write the `Skin` as `Skin { panel: .., primary: .., ..Skin::base(&p, radius) }`. `base` fills the plain slots from
    the palette. The slots it leaves blank, which every theme sets, are `sidebar`, `band`, `panel`, `detail`, `menu`,
-   `row_selected`, `primary`, `secondary`, `input`, `tile`, `segments`, `toggle_on` and `toast`.
+   `row_selected`, `primary`, `secondary`, `input`, `tile`, `segments`, `toggle_on` and `toast`, and `medal`
+   (`Medal::default()` is transparent).
 6. Look at it: `target/debug/culm --snap out.png --scene settings@<id>`. Check every screen with
    `cargo run -- --list-scenes` and `--scene <scene>@<id>`. `scripts/tree-diff.sh` dumps every scene's element tree.
 7. Run `cargo test` (`f7_3_every_theme_renders_every_screen`, `f7_3_every_theme_font_is_bundled`). Then add the theme
@@ -123,7 +124,7 @@ A `Surface` has these fields:
 | `band` | the page header band | all; often textured |
 | `band_deco` | what draws over the band (`BandDeco::None/Stars/Embers`) | — |
 | `toolbar` | the strip under the band (filter, search) | `fill`, `border` |
-| `panel` | addon, picker, maintenance and settings cards; notices and toasts take its `radius` | all but `texture` |
+| `panel` | addon, picker, maintenance and settings cards; notices (`ui::notice`) take its `radius` | all but `texture` |
 | `detail` | the addon detail panel at the right | all; may be textured |
 | `menu` | floating popups (installation menu, dropdown list); tooltips take its fill, border colour, radius (≤ 6) and outer shadows | full border + drop shadow |
 | `list_header` | My Addons' column header | `fill`, `border` |
@@ -136,13 +137,14 @@ A `Surface` has these fields:
 | `danger` | buttons that delete (Remove, Clean) | all |
 | `icon_button` | glyph-only buttons (close the detail, show the key, toast close) | `ink`, `radius`, `hover`, `press` |
 | `input` | text fields; its radius rounds the kit's dropdowns and sliders | all |
-| `toggle` / `toggle_on` | class chips, source rows, segments; `toggle`'s shape also draws the sidebar's update count | all |
-| `segments` | the track of a segmented control | all |
+| `toggle` | an unselected class chip or source row; its shape also draws the sidebar's update count | all but `ink` (unselected text is `text_dim`) |
+| `toggle_on` | the selected class chip, source row or segment | all; `ink` colours its text |
+| `segments` | the track of a segmented control; unselected segments are bare (`hover` wash, `text_muted` text) | all |
 | `tile` | square wells: initials tiles, glyph tiles, toast item slots | all; `ink` colours the glyph |
 | `toast` | framed alerts; a `corners` glyph also crowns the top edge as a gem | all; no `texture` (see Textures) |
 | `kbd` | key hint boxes (`/`) | `ink`, `border`, `radius` |
 | `medal` | the class medallions' ring: `ring`, `ring_on` (gilded, selected), `outline` | — |
-| `emblem` | the brand mark beside the wordmark and on empty states | — |
+| `emblem` | the emblem on the first-run welcome (`ui::emblem`); the sidebar's brand mark stays the stock one | — |
 | `glyphs` | `(stock, own)` glyph swaps, looked up by `theme::glyph` | — |
 
 `Skin::base(&p, radius)` fills `window`, `toolbar`, `list_header`, `row`, `nav`, `nav_active`, `ghost`, `danger`,
@@ -207,7 +209,8 @@ the chrome.
 Every family a theme names (`Family::Named("Cinzel")`, one name, no fallback list) is bundled in the binary, so text
 looks the same on every OS. To add one:
 
-1. Put the font file and its licence (OFL or Apache) in `crates/app/assets/fonts/<family>/`.
+1. Put the font file and its `OFL.txt` in `crates/app/assets/fonts/<family>/`. Only OFL fonts so far: the licence
+   script collects `*/OFL.txt`, so a font under another licence needs the script extended first.
 2. Add an `include_bytes!` line to `theme::FONTS`.
 3. Regenerate `THIRD-PARTY-LICENSES.md` with `packaging/third-party-licences.sh`.
 
