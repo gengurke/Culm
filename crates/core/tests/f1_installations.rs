@@ -1,5 +1,6 @@
 mod common;
 use addon_core::{store, wow};
+use addon_testkit::{BUILD_INFO_REAL, write};
 use common::*;
 
 #[test]
@@ -35,7 +36,7 @@ fn f1_1_detects_forever_install_from_build_info() {
 
 /// A Forever client (with its `.build.info`) in `wow_root`.
 fn forever_at(wow_root: &std::path::Path) {
-    write(&wow_root.join(".build.info"), BUILD_INFO);
+    write(&wow_root.join(".build.info"), BUILD_INFO_REAL);
     std::fs::create_dir_all(wow_root.join("_forever_")).unwrap();
 }
 

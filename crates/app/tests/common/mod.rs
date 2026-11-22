@@ -10,34 +10,18 @@ use addon_app::{Job, State, runtime};
 use addon_core::fingerprint::folder_fingerprint;
 use addon_core::providers::ProviderConfig;
 use addon_testkit::{
-    FakeServer, cf_envelope, cf_file, cf_mod_with_files, fixture, fixture_at, hub_addon, make_zip,
+    BUILD_INFO_MIN, FakeServer, cf_envelope, cf_file, cf_mod_with_files, fixture, fixture_at,
+    hub_addon, make_zip, toc, write,
 };
 use rune::prefs::Prefs;
 use rune::{Key, KeyEvent, Mods, Runtime};
 use serde_json::{Value, json};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-pub const BUILD_INFO: &str = "Branch!STRING:0|Active!DEC:1|Version!STRING:0|Product!STRING:0\n\
-eu|1|11.2.7.64000|wow\neu|1|1.60.1.70938|wowf\n";
-
 /// A tiny SVG served as every addon's thumbnail.
 pub const THUMB_SVG: &str = r##"<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8"><rect width="8" height="8" fill="#c90"/></svg>"##;
-
-pub fn write(path: &Path, content: impl AsRef<[u8]>) {
-    std::fs::create_dir_all(path.parent().unwrap()).unwrap();
-    std::fs::write(path, content).unwrap();
-}
-
-/// `Foo_Options` requires `Foo`, so unmatched it still groups under `Foo` (F2.2).
-pub fn toc(title: &str, version: &str) -> String {
-    let deps = title
-        .split_once('_')
-        .map(|(parent, _)| format!("## RequiredDeps: {parent}\n"))
-        .unwrap_or_default();
-    format!("## Interface: 16001\n## Title: {title}\n## Version: {version}\n{deps}\nCore.lua\n")
-}
 
 /// Points the CDN URLs of provider JSON at the fake server.
 fn local(v: Value, base: &str) -> Value {
@@ -71,7 +55,7 @@ impl World {
         let prefix = tmp.path().join("testprefix");
         let wow_root = prefix.join("drive_c/Program Files (x86)/World of Warcraft");
         let client = wow_root.join("_forever_");
-        write(&wow_root.join(".build.info"), BUILD_INFO);
+        write(&wow_root.join(".build.info"), BUILD_INFO_MIN);
         let w = World {
             server: FakeServer::start(),
             wow_root,
@@ -110,7 +94,7 @@ impl World {
             .tmp
             .path()
             .join("otherprefix/drive_c/Program Files (x86)/World of Warcraft");
-        write(&root.join(".build.info"), BUILD_INFO);
+        write(&root.join(".build.info"), BUILD_INFO_MIN);
         let zed = root.join("_forever_/Interface/AddOns/Zed");
         write(&zed.join("Zed.toc"), toc("Zed", "1.0"));
         write(&zed.join("Core.lua"), "-- Zed\n");

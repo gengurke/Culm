@@ -5,6 +5,7 @@ mod common;
 use addon_app::Screen;
 use addon_app::state::{Fetch, Op};
 use addon_core::Channel;
+use addon_testkit::toc;
 use common::*;
 use rune::Key;
 

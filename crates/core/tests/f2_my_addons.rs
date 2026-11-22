@@ -1,6 +1,7 @@
 mod common;
 use addon_core::providers::Provider;
 use addon_core::{Channel, IgnoreReason, fingerprint, scan, store};
+use addon_testkit::{toc, write};
 use common::*;
 
 #[test]
@@ -28,7 +29,7 @@ fn f2_1_scan_picks_forever_toc() {
     w.add_folder(
         "Plain",
         "Plain.toc",
-        &simple_toc("|cff00ff00Plain|r Addon", "1.2"),
+        &toc("|cff00ff00Plain|r Addon", "1.2"),
         &[("Core.lua", "x")],
     );
     std::fs::create_dir_all(w.addons().join("NoToc/media")).unwrap();
@@ -143,7 +144,7 @@ fn grouped_fixture() -> (FakeWow, Vec<Box<dyn Provider>>) {
     w.add_folder(
         "Details",
         "Details.toc",
-        &simple_toc("Details!", "1"),
+        &toc("Details!", "1"),
         &[("Core.lua", "a")],
     );
     w.add_folder(
@@ -152,7 +153,7 @@ fn grouped_fixture() -> (FakeWow, Vec<Box<dyn Provider>>) {
         "## Title: Tiny\n## RequiredDeps: Details\n",
         &[],
     );
-    w.add_folder("Moonlit", "Moonlit.toc", &simple_toc("Moonlit", "2"), &[]);
+    w.add_folder("Moonlit", "Moonlit.toc", &toc("Moonlit", "2"), &[]);
     w.add_folder(
         "Moonlit_Codex",
         "Moonlit_Codex.toc",
@@ -171,7 +172,7 @@ fn grouped_fixture() -> (FakeWow, Vec<Box<dyn Provider>>) {
         "## Title: 123\n## Dependencies: Moonlit\n",
         &[],
     );
-    w.add_folder("DevAddon", "DevAddon.toc", &simple_toc("Dev", "dev"), &[]);
+    w.add_folder("DevAddon", "DevAddon.toc", &toc("Dev", "dev"), &[]);
     std::fs::create_dir_all(w.addons().join("DevAddon/.git")).unwrap();
     // A folder with only a retail TOC, listed in the provider file of Details.
     w.add_folder(
@@ -233,7 +234,7 @@ fn f2_2_groups_by_provider_and_dependencies() {
 #[test]
 fn f2_3_unmatched_are_unknown_and_provider_errors_are_reported() {
     let w = fake_wow();
-    w.add_folder("A", "A.toc", &simple_toc("A", "1"), &[]);
+    w.add_folder("A", "A.toc", &toc("A", "1"), &[]);
     let providers: Vec<Box<dyn Provider>> = vec![Box::new(FakeProvider {
         matches: vec![],
         fail: true,

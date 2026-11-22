@@ -1,5 +1,6 @@
 mod common;
 use addon_core::{Channel, install, store};
+use addon_testkit::{make_zip, toc, write};
 use common::*;
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -39,18 +40,18 @@ fn f4_3_install_creates_record_and_replaces_existing_folders() {
     w.add_folder(
         "Foo",
         "Foo.toc",
-        &simple_toc("Old Foo", "0"),
+        &toc("Old Foo", "0"),
         &[("Old.lua", "old")],
     );
     let stable = remote_file("10", "1.0", Channel::Stable, &[]);
     let beta = remote_file("11", "1.1-beta", Channel::Beta, &[]);
     let remote = remote_addon("42", "Foo", vec![stable.clone(), beta.clone()]);
-    let zip = zip_bytes(&[
-        ("Foo/Foo.toc", &simple_toc("Foo", "1.0")),
-        ("Foo/Core.lua", "new"),
-        ("Foo_Options/Foo_Options.toc", "## Interface: 16001\n"),
-        ("README.md", "loose file"),
-        ("__MACOSX/Foo/._Core.lua", "junk"),
+    let zip = make_zip(&[
+        ("Foo/Foo.toc", toc("Foo", "1.0").as_bytes()),
+        ("Foo/Core.lua", b"new"),
+        ("Foo_Options/Foo_Options.toc", b"## Interface: 16001\n"),
+        ("README.md", b"loose file"),
+        ("__MACOSX/Foo/._Core.lua", b"junk"),
     ]);
     let server = Server::new(vec![(&stable, zip)]);
     let addon = install::install_remote(&w.inst, &remote, Channel::Stable, &|u| {
@@ -94,13 +95,13 @@ fn f3_2_update_swaps_folders_and_rolls_back_on_bad_zip() {
     let v1 = remote_file("1", "1.0", Channel::Stable, &[]);
     let v2 = remote_file("22", "2.0", Channel::Stable, &[]);
     let remote = remote_addon("7", "Bar", vec![v1.clone()]);
-    let zip1 = zip_bytes(&[
-        ("Bar/Bar.toc", &simple_toc("Bar", "1")),
-        ("Bar_Old/x.lua", "old module"),
+    let zip1 = make_zip(&[
+        ("Bar/Bar.toc", toc("Bar", "1").as_bytes()),
+        ("Bar_Old/x.lua", b"old module"),
     ]);
-    let zip2 = zip_bytes(&[
-        ("Bar/Bar.toc", &simple_toc("Bar", "2")),
-        ("Bar_New/y.lua", "new module"),
+    let zip2 = make_zip(&[
+        ("Bar/Bar.toc", toc("Bar", "2").as_bytes()),
+        ("Bar_New/y.lua", b"new module"),
     ]);
     let server = Server::new(vec![(&v1, zip1), (&v2, zip2)]);
     let mut addon = install::install_remote(&w.inst, &remote, Channel::Stable, &|u| {
@@ -125,11 +126,11 @@ fn f3_2_update_swaps_folders_and_rolls_back_on_bad_zip() {
 
     // Bad zips never touch the installed folders.
     for bad in [
-        zip_bytes(&[("Bar/Bar.toc", "x"), ("../evil.lua", "pwned")]),
-        zip_bytes(&[("/abs/Bar.toc", "x")]),
-        zip_bytes(&[("README.md", "no folders")]),
+        make_zip(&[("Bar/Bar.toc", b"x"), ("../evil.lua", b"pwned")]),
+        make_zip(&[("/abs/Bar.toc", b"x")]),
+        make_zip(&[("README.md", b"no folders")]),
         // A wrapper folder without a TOC would replace Bar with a folder WoW never loads.
-        zip_bytes(&[("Bar-v3/Bar/Bar.toc", "x"), ("Bar-v3/README.md", "x")]),
+        make_zip(&[("Bar-v3/Bar/Bar.toc", b"x"), ("Bar-v3/README.md", b"x")]),
         b"not a zip".to_vec(),
     ] {
         let v3 = remote_file("333", "3.0", Channel::Stable, &[]);
@@ -185,16 +186,16 @@ fn f3_2_swap_failure_restores_backups() {
             ),
             Channel::Stable,
             &|_| {
-                Ok(install::in_memory(zip_bytes(&[(
+                Ok(install::in_memory(make_zip(&[(
                     "Seed/Seed.toc",
-                    "## Title: Seed\n",
+                    b"## Title: Seed\n",
                 )])))
             },
         )
         .unwrap()
     };
     let file = remote_file("n", "2", Channel::Stable, &[]);
-    let zip = zip_bytes(&[("A_First/A_First.toc", "## Title: new A\n")]);
+    let zip = make_zip(&[("A_First/A_First.toc", b"## Title: new A\n")]);
     let res = install::install_file(&w.inst, &addon, &file, &|_| {
         Ok(install::in_memory(zip.clone()))
     });
@@ -230,9 +231,9 @@ fn f5_1_remove_deletes_folders() {
         ),
         Channel::Stable,
         &|_| {
-            Ok(install::in_memory(zip_bytes(&[
-                ("Gone/Gone.toc", "x"),
-                ("Gone_Data/d.lua", "d"),
+            Ok(install::in_memory(make_zip(&[
+                ("Gone/Gone.toc", b"x"),
+                ("Gone_Data/d.lua", b"d"),
             ])))
         },
     )
@@ -248,9 +249,9 @@ fn f5_1_remove_deletes_folders() {
 fn f5_2_reinstall_restores_modified_files() {
     let w = fake_wow();
     let file = remote_file("5", "5.0", Channel::Stable, &[]);
-    let zip = zip_bytes(&[
-        ("R/R.toc", &simple_toc("R", "5")),
-        ("R/Core.lua", "original"),
+    let zip = make_zip(&[
+        ("R/R.toc", toc("R", "5").as_bytes()),
+        ("R/Core.lua", b"original"),
     ]);
     let dl = |_: &str| Ok(install::in_memory(zip.clone()));
     let addon = install::install_remote(
@@ -345,8 +346,11 @@ fn f2_7_install_and_update_record_the_game_versions() {
     let v1 = remote_file("1", "1.0", Channel::Stable, &[]);
     let v2 = remote_file("22", "2.0", Channel::Stable, &[]);
     let server = Server::new(vec![
-        (&v1, zip_bytes(&[("G/G.toc", &toc("16000"))])),
-        (&v2, zip_bytes(&[("G/G.toc", &toc("11509, 16001"))])),
+        (&v1, make_zip(&[("G/G.toc", toc("16000").as_bytes())])),
+        (
+            &v2,
+            make_zip(&[("G/G.toc", toc("11509, 16001").as_bytes())]),
+        ),
     ]);
     let dl = |u: &str| server.get(u).map(install::in_memory);
     let mut addon = install::install_remote(
@@ -375,16 +379,16 @@ fn f4_3_install_never_replaces_a_git_checkout() {
     w.add_folder(
         "Foo",
         "Foo.toc",
-        &simple_toc("My Foo", "dev"),
+        &toc("My Foo", "dev"),
         &[
             (".git/HEAD", "ref: refs/heads/main\n"),
             ("Wip.lua", "unsaved work"),
         ],
     );
     let file = remote_file("1", "1.0", Channel::Stable, &[]);
-    let zip = zip_bytes(&[
-        ("Foo/Foo.toc", &simple_toc("Foo", "1.0")),
-        ("Foo_Extra/Foo_Extra.toc", "## Title: Extra\n"),
+    let zip = make_zip(&[
+        ("Foo/Foo.toc", toc("Foo", "1.0").as_bytes()),
+        ("Foo_Extra/Foo_Extra.toc", b"## Title: Extra\n"),
     ]);
     let err = install::install_remote(
         &w.inst,

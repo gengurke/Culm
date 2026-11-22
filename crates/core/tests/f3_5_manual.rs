@@ -2,6 +2,7 @@
 
 mod common;
 use addon_core::{Channel, FileCheck, install, manual};
+use addon_testkit::{make_zip, toc, write};
 use common::*;
 use sha1::{Digest, Sha1};
 
@@ -18,7 +19,7 @@ fn check_of(bytes: &[u8]) -> FileCheck {
 #[test]
 fn f3_5_finds_only_the_exact_zip_in_downloads() {
     let dir = tempfile::tempdir().unwrap();
-    let right = zip_bytes(&[("Bar/Bar.toc", &simple_toc("Bar", "2"))]);
+    let right = make_zip(&[("Bar/Bar.toc", toc("Bar", "2").as_bytes())]);
     let check = check_of(&right);
     let mut same_size = right.clone();
     *same_size.last_mut().unwrap() ^= 1;
@@ -48,16 +49,16 @@ fn f3_5_finds_only_the_exact_zip_in_downloads() {
 fn f3_5_installs_a_zip_fetched_by_hand_only_when_it_is_the_file() {
     let w = fake_wow();
     let v1 = remote_file("1", "1.0", Channel::Stable, &[]);
-    let zip1 = zip_bytes(&[("Bar/Bar.toc", &simple_toc("Bar", "1"))]);
+    let zip1 = make_zip(&[("Bar/Bar.toc", toc("Bar", "1").as_bytes())]);
     let remote = remote_addon("7", "Bar", vec![v1.clone()]);
     let mut addon = install::install_remote(&w.inst, &remote, Channel::Stable, &|_| {
         Ok(install::in_memory(zip1.clone()))
     })
     .unwrap();
 
-    let zip2 = zip_bytes(&[
-        ("Bar/Bar.toc", &simple_toc("Bar", "2")),
-        ("Bar_New/y.lua", "new module"),
+    let zip2 = make_zip(&[
+        ("Bar/Bar.toc", toc("Bar", "2").as_bytes()),
+        ("Bar_New/y.lua", b"new module"),
     ]);
     let mut v2 = remote_file("22", "2.0", Channel::Stable, &[]);
     v2.download_url.clear();
@@ -89,7 +90,7 @@ fn f3_5_installs_a_zip_fetched_by_hand_only_when_it_is_the_file() {
 #[test]
 fn f4_3_installs_a_new_addon_from_a_zip_fetched_by_hand() {
     let w = fake_wow();
-    let zip = zip_bytes(&[("Bar/Bar.toc", &simple_toc("Bar", "2"))]);
+    let zip = make_zip(&[("Bar/Bar.toc", toc("Bar", "2").as_bytes())]);
     let mut beta = remote_file("30", "3.0-beta", Channel::Beta, &[]);
     beta.released_at = Some("2030-01-01T00:00:00Z".into());
     let mut v2 = remote_file("22", "2.0", Channel::Stable, &[]);
