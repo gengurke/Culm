@@ -419,6 +419,8 @@ impl State {
         &mut self,
         first: impl FnOnce(&dyn Backend, &worker::Post) + Send + 'static,
     ) {
+        // Any scan reads the newest key, so a rescan waiting for one is done.
+        self.rescan_pending = false;
         let Some(inst) = self.installation().cloned() else {
             return worker::spawn(self, "settings", first);
         };

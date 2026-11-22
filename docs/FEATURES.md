@@ -226,12 +226,13 @@ in the theme's tones, gilded on the active chip, around a disc showing the origi
 
 ## F7 Settings
 - **F7.1 CurseForge API key** ✅ — Stored in Rune prefs; providers are rebuilt from it per call and saving a key rescans
-  (once a scan or update check that is running ends).
+  (once a scan or update check that is running ends); a key saved while Culm starts stays saved.
   Without a key: My Addons still scans, imports, removes, maintains and updates GitHub addons (and
   CurseForge ones from the imported last known release), shows an "Add a CurseForge key" hint; Get Addons hides the filters,
   shows and searches WowUp Hub only, takes links, and a hint says a key adds CurseForge; nothing calls CurseForge.
   (`f7_1_curseforge_unavailable_without_key`, e2e `f7_1_without_a_key_the_hub_answers_and_settings_add_curseforge`,
-  `f7_1_f7_2_saved_settings_survive_a_restart`, `f7_1_a_key_saved_while_a_check_runs_rescans_once_it_ends`)
+  `f7_1_f7_2_saved_settings_survive_a_restart`, `f7_1_a_key_saved_while_a_check_runs_rescans_once_it_ends`,
+  `f7_1_a_key_saved_while_booting_stays_stored`)
 - **F7.2 Defaults** ✅ — Default channel for new addons, stored in prefs. (e2e `f7_1_f7_2_saved_settings_survive_a_restart`)
 - **F7.3 Themes** ✅ — Settings → Appearance picks the look (Moonlit; Hearthwood: carved wood, stone and gold; Emberglow: mossy
   black stone, glowing gold, framed cards and small-caps serif controls; Goblin Ledger: calm charcoal menus, ochre gold;

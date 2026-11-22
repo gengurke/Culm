@@ -450,7 +450,14 @@ impl State {
     }
 
     fn booted(&mut self, settings: Settings, installations: Vec<Installation>) {
+        // A key saved while the boot ran (Settings is open by then) wins over the one loaded before
+        // it. Its save wrote the defaults around it, so the merged settings get written again.
+        let key_saved = self.settings.curseforge_key.take();
         self.settings = settings;
+        let rewrite = key_saved.is_some();
+        if rewrite {
+            self.settings.curseforge_key = key_saved;
+        }
         self.api_key
             .replace_text(self.settings.curseforge_key.clone().unwrap_or_default());
         self.installations = installations;
@@ -461,7 +468,10 @@ impl State {
             .filter(|id| self.installations.iter().any(|i| &i.id == *id));
         self.current = saved.or(self.installations.first().map(|i| &i.id)).cloned();
         self.job = Job::Idle;
-        if self.current.is_some() {
+        if rewrite {
+            let save = self.queue_settings();
+            self.start_scan_after(save);
+        } else if self.current.is_some() {
             self.start_scan();
         }
         // One GitHub request per start, only from builds without another way to hear of a new version.
@@ -555,6 +565,7 @@ impl State {
             }
         } else {
             worker::spawn(self, "settings", save);
+            self.rescan_pending = false;
             self.toast(
                 Tone::Info,
                 "CurseForge key removed",
