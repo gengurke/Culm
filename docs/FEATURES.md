@@ -219,11 +219,11 @@ in the theme's tones, gilded on the active chip, around a disc showing the origi
   client runs, and a game of another client never locks this one. Linux (Wine): a `Wow.exe` whose working directory or
   an open file is inside the client folder (a `_forever_` command line counts only when `/proc` can't tell). Windows and
   macOS: a program started from inside the client folder (via `sysinfo`); one named like the game whose path can't be
-  read, or no process list at all, keeps maintenance locked. They act only on a `_forever_` client folder and never follow a `Cache` link; the UI asks first.
+  read, or no process list at all, keeps maintenance locked. They act only on a `_forever_` client folder and never follow a `Cache` link; the button runs at once (the game rebuilds its cache).
   (`f6_1_clear_cache_removes_cache_dir`, `f6_1_refuses_while_game_running`, `f6_1_only_touches_a_forever_client_folder`,
-  e2e `f6_1_clear_cache_asks_then_deletes_the_cache`, `f6_1_maintenance_locked_while_game_runs`)
-- **F6.2 Clean backups** ✅ — Deletes `WTF/**/*.lua.bak` and `WTF/*.old` leftovers. (`f6_2_clean_backup_files`, e2e `f6_2_clean_backups_asks_then_deletes_the_leftovers`)
-- **F6.3 WTF backup** ✅ — Zips the `WTF` folder (settings + SavedVariables) into `<data>/wtf-backups/<installation id>`; lists backups.
+  e2e `f6_1_clear_cache_deletes_the_cache_at_once`, `f6_1_maintenance_locked_while_game_runs`)
+- **F6.2 Clean backups** ✅ — Deletes `WTF/**/*.lua.bak` and `WTF/*.old` leftovers; the UI asks first. (`f6_2_clean_backup_files`, e2e `f6_2_clean_backups_asks_then_deletes_the_leftovers`)
+- **F6.3 WTF backup** ✅ — Zips the `WTF` folder (settings + SavedVariables) into `<data>/wtf-backups/<installation id>` as soon as it's pressed; lists backups.
   (`f6_3_backup_wtf_zips_and_lists`, e2e `f6_3_wtf_backup_is_zipped_into_the_app_data`)
 
 ## F7 Settings
@@ -330,8 +330,8 @@ config and a FakeServer (helpers in `tests/common/mod.rs`); `tests/ui_shell.rs` 
 Rune UI in `crates/app` (themes in `src/theme/`, default Moonlit): sidebar nav with update badge and
 installation picker, a slim header band per page (title, muted meta pieces set apart by hairlines, actions at the right;
 stars in Moonlit; My Addons: addon count and update state, the game version stays in the picker), My Addons (filter, sortable column headers, virtual list, detail panel), Get Addons
-(one search-or-link field, category and sort dropdowns, class medallion chips, clear filters, popular list, result detail panel, no-key hint), Maintenance (confirm + result per
-card, locked while the game runs), Settings (theme, API key, default channel, installations, WowUp import),
+(one search-or-link field, category and sort dropdowns, class medallion chips, clear filters, popular list, result detail panel, no-key hint), Maintenance (a result per card,
+only Clean up confirms, locked while the game runs), Settings (theme, API key, default channel, installations, WowUp import),
 toasts and onboarding. Meaningful actions explain themselves in a short tooltip after a rest of the pointer, drawn in
 the theme's floating (menu) look (`ui_buttons_explain_themselves`). Active nav rows are inset plaques and the selected row a
 tinted line in a thin ring: no coloured side stripes. Toasts are framed alerts in the theme's toast surface,

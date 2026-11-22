@@ -410,7 +410,7 @@ fn f5_2_reinstall_from_the_detail_panel_restores_modified_files() {
 }
 
 #[test]
-fn f6_1_clear_cache_asks_then_deletes_the_cache() {
+fn f6_1_clear_cache_deletes_the_cache_at_once() {
     let world = World::new().with_key("test-key");
     write(
         &world.client.join("Cache/WDB/enUS/creaturecache.wdb"),
@@ -420,12 +420,7 @@ fn f6_1_clear_cache_asks_then_deletes_the_cache() {
     app.wait_idle();
     app.tap("nav/maintenance");
     app.tap("maint/cache/run");
-    assert_eq!(
-        app.state().maint.get(&MaintCard::Cache),
-        Some(&MaintPhase::Confirm)
-    );
-    assert!(world.exists("Cache"), "first press only asks");
-    app.tap("maint/cache/confirm");
+    assert!(!app.has("maint/cache/confirm"), "nothing to confirm");
     app.wait_for("cache cleared", |s| {
         matches!(s.maint.get(&MaintCard::Cache), Some(MaintPhase::Done(_)))
     });
@@ -479,7 +474,7 @@ fn f6_3_wtf_backup_is_zipped_into_the_app_data() {
     app.wait_until("the maintenance page", |a| a.has("maint/wtf/run"));
     assert!(app.shows("No backups yet."));
     app.tap("maint/wtf/run");
-    app.tap("maint/wtf/confirm");
+    assert!(!app.has("maint/wtf/confirm"), "nothing to confirm");
     app.wait_for("the backup", |s| s.backups.len() == 1);
     let name = app.state().backups[0].name.clone();
     assert!(app.shows(&format!("Saved {name}")));
