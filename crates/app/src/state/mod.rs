@@ -771,12 +771,12 @@ pub fn dispatch(s: &mut State, intent: Intent, tx: &mut Tx) {
             }
         }
         Intent::Install(remote) => s.install(remote, tx),
-        Intent::Maintain(card) => {
+        Intent::Maintain(card) if card.confirms() => {
             if !s.game_running {
                 s.maint.insert(card, MaintPhase::Confirm);
             }
         }
-        Intent::ConfirmMaintain(card) => s.confirm_maintain(card),
+        Intent::Maintain(card) | Intent::ConfirmMaintain(card) => s.maintain(card),
         Intent::SaveApiKey => s.save_api_key(),
         Intent::SetDefaultChannel(channel) => {
             s.settings.default_channel = channel;

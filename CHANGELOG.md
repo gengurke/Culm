@@ -7,6 +7,8 @@ or break. New changes go under "Unreleased"; a release turns that heading into i
 ## [Unreleased]
 
 ### Changed
+- Maintenance: "Back up now" and "Clear cache" run as soon as you press them, without asking to confirm (a backup
+  only adds a zip, and the game rebuilds its cache). "Clean up" still asks first.
 - Updated the Rune UI framework: when the button that has keyboard focus greys out, focus moves on to the next control
   instead of being lost, and on Windows saving settings no longer fails when another program briefly holds the file.
 - Starting Culm while it already runs brings the open window forward instead of opening a second one (Windows, Linux).

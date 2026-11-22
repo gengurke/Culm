@@ -1,5 +1,5 @@
-//! Maintenance: clear cache, clean leftovers, back up WTF. Each card confirms first and shows a
-//! result line; all are locked while the game runs (F6).
+//! Maintenance: clear cache, clean leftovers, back up WTF. Each card shows a result line, cleaning up
+//! confirms first; all are locked while the game runs (F6).
 
 use super::{band, band_note};
 use crate::icons;
@@ -146,13 +146,11 @@ fn card(
                 move |s, tx| dispatch(s, Intent::Maintain(which), tx),
             )
             .help(match which {
-                MaintCard::Cache => "Delete the game's cache; you confirm first",
+                MaintCard::Cache => "Delete the game's cache; it rebuilds on the next login",
                 MaintCard::Leftovers => {
                     "Delete the leftover .bak and .old files; you confirm first"
                 }
-                MaintCard::Wtf => {
-                    "Zip your WTF folder into the app's data folder; you confirm first"
-                }
+                MaintCard::Wtf => "Zip your WTF folder into the app's data folder",
             }),
         );
     let mut c = ui::card(key).w_full().child(head);
@@ -167,7 +165,7 @@ fn card(
                 Mark::Bad,
             )
             .child(
-                text(confirm_text(s, which))
+                text("Delete all .bak and .old files under WTF?")
                     .font(t().ty.note)
                     .color(p.text)
                     .grow(1.0)
@@ -228,17 +226,6 @@ fn card(
         c = c.child(row().w_full().pl(52.0).child(f));
     }
     if s.game_running { c.opacity(0.6) } else { c }
-}
-
-fn confirm_text(s: &State, which: MaintCard) -> String {
-    match which {
-        MaintCard::Cache if s.cache_wdb_only => {
-            "Delete Cache/WDB? The game re-downloads item and quest data.".into()
-        }
-        MaintCard::Cache => "Delete the whole Cache folder?".into(),
-        MaintCard::Leftovers => "Delete all .bak and .old files under WTF?".into(),
-        MaintCard::Wtf => "Create a zip of the WTF folder now?".into(),
-    }
 }
 
 fn backups(s: &State) -> El {

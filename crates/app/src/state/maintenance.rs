@@ -23,6 +23,12 @@ pub enum MaintCard {
 }
 
 impl MaintCard {
+    /// Only cleaning up deletes something that can't be rebuilt: it asks first. A backup only adds a
+    /// zip and the game rebuilds its cache, so those run at once.
+    pub fn confirms(self) -> bool {
+        self == MaintCard::Leftovers
+    }
+
     pub fn job(self, wdb_only: bool) -> Maintenance {
         match self {
             MaintCard::Cache => Maintenance::ClearCache { wdb_only },
@@ -49,7 +55,7 @@ impl State {
         });
     }
 
-    pub(super) fn confirm_maintain(&mut self, card: MaintCard) {
+    pub(super) fn maintain(&mut self, card: MaintCard) {
         let Some(inst) = self.installation().cloned() else {
             return;
         };
