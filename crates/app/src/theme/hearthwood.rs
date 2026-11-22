@@ -2,42 +2,27 @@
 //! dark leather panels with gold studs, gold serif headings in quest yellow, red lacquered
 //! buttons with a bevel, item-quality status colours. Textures are generated (texture.rs).
 
-use super::{Medal, BASE_TYPE, BandDeco, Border, Corners, Overlay, Pal, Skin, Surface, Tex, Theme, Type, h, inset};
+use super::{BASE_TYPE, BandDeco, Border, Corners, Medal, Overlay, Pal, Skin, Surface, Tex, Theme, Type, drop, face, h, inner_ring, inset};
 use crate::icons;
 use rune::tok::{Family, TextStyle};
-use rune::{Color, Shadow};
+use rune::Color;
 use std::sync::LazyLock;
 
-/// Only Noto Serif ships with the system; the others are used when the user has them.
+/// The heading face, bundled like every font (`theme::FONTS`).
 const SERIF: Family = Family::Named("Cinzel");
-
-fn drop(y: f32, blur: f32, a: f32) -> Shadow {
-    Shadow { y, blur, color: Color::BLACK.alpha(a), ..Shadow::default() }
-}
-
-/// A 1 pt line just inside the box's edge.
-fn ring(color: Color) -> Shadow {
-    Shadow { spread: 1.0, color, inset: true, ..Shadow::default() }
-}
 
 pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
     let gold = h("#c9a04a");
     let parchment = h("#f4e7cc");
+    let panel_alt = h("#3b2a1a");
+    let well = h("#0b0704").alpha(0.75);
     let p = Pal {
-        sidebar: h("#24170d"),
-        footer: h("#1e140c"),
         bg: h("#1b140e"),
         panel: h("#2a1d13"),
-        panel_alt: h("#3b2a1a"),
-        sky: h("#3a2c1f"),
-        well: h("#0b0704").alpha(0.75),
-        overlay: h("#0b0704").alpha(0.75),
         text: parchment,
         heading: h("#ffd100"),
         text_dim: h("#d9c6a0"),
         text_muted: h("#ad9876"),
-        text_off: h("#6f5f48"),
-        on_accent: h("#1d0f04"),
         border: gold.alpha(0.30),
         border_strong: gold.alpha(0.55),
         divider: gold.alpha(0.14),
@@ -47,7 +32,6 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
         track: parchment.alpha(0.12),
         accent: h("#e8b84a"),
         accent_hi: h("#ffd96b"),
-        accent_warm: h("#fff0c8"),
         accent_soft: h("#e8b84a").alpha(0.18),
         accent_focus: h("#ffd100").alpha(0.80),
         success: h("#5bd65b"),
@@ -57,9 +41,6 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
         danger: h("#ff5a48"),
         danger_soft: h("#ff5a48").alpha(0.10),
         danger_line: h("#ff5a48").alpha(0.50),
-        info: h("#55aaff"),
-        info_soft: h("#55aaff").alpha(0.15),
-        haze: h("#ff9a40").alpha(0.10),
     };
     let ty = Type {
         display: TextStyle::new(24.0, 700.0).family(SERIF).tracking(0.2).lh(30.0),
@@ -100,27 +81,24 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
         detail: Surface { border: Some(Border::sides([0.0, 0.0, 0.0, 2.0], h("#8a6a2e"))), ..wood },
         menu: Surface { overlay: None, shadows: vec![inset(1.0, h("#ffcf80").alpha(0.1)), drop(6.0, 18.0, 0.65)], ..leather.clone() },
         list_header: Surface { fill: Color::BLACK.alpha(0.22), border: Some(Border::sides([0.0, 0.0, 1.0, 0.0], gold.alpha(0.25))), ..Default::default() },
-        row: Surface { border: under, hover: p.hover, ..Default::default() },
         // A warm-lit row in a thin gold ring.
         row_selected: Surface {
             fill: p.selected,
             vertical: Some((gold.alpha(0.16), gold.alpha(0.07))),
             border: under,
-            shadows: vec![ring(gold.alpha(0.45))],
+            shadows: vec![inner_ring(gold.alpha(0.45))],
             hover: p.hover,
             ..Default::default()
         },
-        nav: Surface { hover: p.hover, ..Default::default() },
-        // A gilt plaque on the wood, inset from the sidebar's edges: the clear border is its
-        // margin, and a wide inset shadow paints its face (a fill would run under the border).
+        // A gilt plaque on the wood, inset from the sidebar's edges.
         nav_active: Surface {
-            border: Some(Border { sides: [3.0, 10.0, 3.0, 10.0], top: Color::TRANSPARENT, bottom: Color::TRANSPARENT }),
+            border: Some(Border::margin([3.0, 10.0, 3.0, 10.0])),
             radius: 2.0,
             shadows: vec![
-                Shadow { spread: 40.0, color: h("#3a2814").alpha(0.92), inset: true, ..Shadow::default() },
+                face(h("#3a2814").alpha(0.92)),
                 inset(2.0, h("#ffcf80").alpha(0.14)),
                 inset(-2.0, Color::BLACK.alpha(0.35)),
-                ring(gold.alpha(0.6)),
+                inner_ring(gold.alpha(0.6)),
             ],
             hover: p.hover,
             ..Default::default()
@@ -136,7 +114,7 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
             ..Default::default()
         },
         secondary: Surface {
-            fill: p.panel_alt,
+            fill: panel_alt,
             ink: h("#f0dcae"),
             vertical: Some((h("#4c3622"), h("#2c1f13"))),
             border: bevel,
@@ -145,7 +123,6 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
             hover: h("#ffdc9a").alpha(0.08),
             ..Default::default()
         },
-        ghost: Surface { ink: p.text_dim, border: Some(Border::all(1.0, Color::TRANSPARENT)), radius: 3.0, hover: p.hover, ..Default::default() },
         danger: Surface {
             fill: h("#3a100b"),
             ink: h("#ff7a66"),
@@ -155,16 +132,14 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
             hover: h("#ff5a40").alpha(0.14),
             ..Default::default()
         },
-        icon_button: Surface { ink: p.text_muted, radius: 3.0, hover: p.hover, ..Default::default() },
         input: Surface {
-            fill: p.well,
+            fill: well,
             border: Some(Border::bevel(1.0, h("#120a05"), h("#8a6a35"))),
             radius: 2.0,
             shadows: vec![inset(2.0, Color::BLACK.alpha(0.5))],
             ..Default::default()
         },
-        chip: Surface { radius: 3.0, ..Default::default() },
-        tile: Surface { fill: p.panel_alt, ink: h("#e8d3a8"), vertical: Some((h("#4a3422"), h("#2a1d12"))), border: bevel, radius: 2.0, ..Default::default() },
+        tile: Surface { fill: panel_alt, ink: h("#e8d3a8"), vertical: Some((h("#4a3422"), h("#2a1d12"))), border: bevel, radius: 2.0, ..Default::default() },
         segments: Surface { fill: Color::BLACK.alpha(0.25), border: Some(Border::bevel(1.0, h("#1a1009"), h("#6a5028"))), radius: 3.0, ..Default::default() },
         segment_on: Surface {
             fill: h("#5a3e22"),
@@ -179,7 +154,7 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
         kbd: Surface { ink: p.text_muted, border: Some(Border::all(1.0, gold.alpha(0.35))), radius: 2.0, ..Default::default() },
         medal: Medal { ring: [h("#d8c39a"), h("#86683c"), h("#36220f")], ring_on: [h("#fff0b8"), h("#e8b84a"), h("#7a5010")], outline: h("#0d0804") },
         emblem: &icons::CREST,
-        glyphs: &[],
+        ..Skin::base(&p, 3.0)
     };
     Theme {
         id: "hearthwood",

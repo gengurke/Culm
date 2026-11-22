@@ -4,13 +4,13 @@
 //! top left: raised parts catch it on their top-left edge and cast their shadow down-right,
 //! fields and wells sink, pressed buttons darken. Textures are generated (texture.rs).
 
-use super::{Medal, BASE_TYPE, BandDeco, Border, Corners, Overlay, Pal, Skin, Surface, Tex, Theme, Type, h};
+use super::{BASE_TYPE, BandDeco, Border, Corners, Medal, Overlay, Pal, Skin, Surface, Tex, Theme, Type, h, inner_ring, outer_ring};
 use crate::icons;
 use rune::tok::{Family, TextStyle};
 use rune::{Color, Shadow};
 use std::sync::LazyLock;
 
-/// Only Noto Serif ships with the system; the others are used when the user has them.
+/// The heading face, bundled like every font (`theme::FONTS`).
 const SERIF: Family = Family::Named("Cinzel");
 const BOOK: Family = Family::Named("EB Garamond");
 
@@ -34,29 +34,20 @@ fn cast(d: f32, blur: f32, a: f32) -> Shadow {
     Shadow { x: d * 0.6, y: d, blur, color: h("#1a0d04").alpha(a), ..Shadow::default() }
 }
 
-fn ring(color: Color) -> Shadow {
-    Shadow { spread: 1.0, color, ..Shadow::default() }
-}
-
 /// The parchment pages.
 pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
     let ink = h("#2a1a0c");
     let rim = h("#5a3e1e");
+    let sidebar = h("#1d1a17");
+    let sky = h("#d6bf8c");
+    let well = h("#f6edd4");
     let p = Pal {
-        sidebar: h("#1d1a17"),
-        footer: h("#1d1a17"),
         bg: h("#e4d0a2"),
         panel: h("#eee0bc"),
-        panel_alt: h("#dcc594"),
-        sky: h("#d6bf8c"),
-        well: h("#f6edd4"),
-        overlay: h("#120b05").alpha(0.7),
         text: ink,
         heading: h("#6a1808"),
         text_dim: h("#46301a"),
         text_muted: h("#6a5234"),
-        text_off: h("#97805c"),
-        on_accent: h("#fff3d6"),
         border: rim.alpha(0.38),
         border_strong: rim.alpha(0.65),
         divider: rim.alpha(0.2),
@@ -66,7 +57,6 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
         track: rim.alpha(0.18),
         accent: h("#80500c"),
         accent_hi: h("#a06a14"),
-        accent_warm: h("#5a3606"),
         accent_soft: h("#a06a14").alpha(0.16),
         accent_focus: h("#9a2a10").alpha(0.85),
         success: h("#1d6a1d"),
@@ -76,9 +66,6 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
         danger: h("#a01e0e"),
         danger_soft: h("#c03020").alpha(0.12),
         danger_line: h("#a01e0e").alpha(0.5),
-        info: h("#1c4c94"),
-        info_soft: h("#2a5cb0").alpha(0.14),
-        haze: h("#c08a24").alpha(0.12),
     };
     let ty = Type {
         display: TextStyle::new(24.0, 700.0).family(SERIF).tracking(0.3).lh(30.0),
@@ -90,7 +77,6 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
         eyebrow: TextStyle::new(10.5, 700.0).family(SERIF).tracking(1.5).lh(14.0),
         ..BASE_TYPE
     };
-    let under = Some(Border::sides([0.0, 0.0, 1.0, 0.0], p.divider));
     // Gold-rimmed: light gold catching the light on top, dark bronze below.
     let gilt = Border::bevel(1.0, h("#e8c870"), h("#6a4a18"));
     let studs = Some(Corners { glyph: &icons::STUD, size: 8.0, inset: 4.0, color: h("#8a6428") });
@@ -122,14 +108,14 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
         vertical: Some((h("#1a140e"), h("#33281c"))),
         border: Some(Border::bevel(1.0, h("#4a3418"), h("#c8a050"))),
         radius: 3.0,
-        shadows: vec![sunk(2.0, 0.6), ring(h("#1a0d04").alpha(0.35))],
+        shadows: vec![sunk(2.0, 0.6), outer_ring(h("#1a0d04").alpha(0.35))],
         ..Default::default()
     };
     let skin = Skin {
         window: Surface { fill: p.bg, ink: p.text, texture: Some((Tex::Parchment, 0.45)), ..Default::default() },
         // Frame parts are drawn by FRAME (sidebar, band); these are its fallbacks.
-        sidebar: Surface { fill: p.sidebar, ..Default::default() },
-        band: Surface { fill: p.sky, ..Default::default() },
+        sidebar: Surface { fill: sidebar, ..Default::default() },
+        band: Surface { fill: sky, ..Default::default() },
         band_deco: BandDeco::None,
         toolbar: Surface { border: Some(Border::sides([0.0, 0.0, 1.0, 0.0], rim.alpha(0.3))), ..Default::default() },
         panel: Surface { corners: studs, ..page.clone() },
@@ -142,16 +128,14 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
         },
         menu: Surface { shadows: vec![lit(0.7), shade(0.12), cast(4.0, 12.0, 0.45)], ..page.clone() },
         list_header: Surface { fill: rim.alpha(0.1), border: Some(Border::sides([0.0, 0.0, 1.0, 0.0], rim.alpha(0.35))), ..Default::default() },
-        row: Surface { border: under, hover: p.hover, ..Default::default() },
         // The quest log's highlight: a warm wash over the whole line in a bronze rule.
         row_selected: Surface {
             fill: p.selected,
             border: Some(Border::sides([0.0, 0.0, 1.0, 0.0], h("#a06a14").alpha(0.45))),
-            shadows: vec![Shadow { spread: 1.0, color: h("#a06a14").alpha(0.55), inset: true, ..Shadow::default() }],
+            shadows: vec![inner_ring(h("#a06a14").alpha(0.55))],
             hover: p.hover,
             ..Default::default()
         },
-        nav: Surface { hover: p.hover, ..Default::default() },
         nav_active: Surface { fill: p.selected, ..Default::default() },
         primary: lacquer.clone(),
         secondary: Surface {
@@ -177,16 +161,14 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
             press: h("#6a1206").alpha(0.2),
             ..Default::default()
         },
-        icon_button: Surface { ink: p.text_muted, radius: 3.0, hover: p.hover, ..Default::default() },
         // A field cut into the page: dark on its top-left lip, lit on the bottom right.
         input: Surface {
-            fill: p.well,
+            fill: well,
             border: Some(Border::bevel(1.0, h("#5a3e1e"), h("#b89a66"))),
             radius: 2.0,
             shadows: vec![sunk(2.0, 0.28)],
             ..Default::default()
         },
-        chip: Surface { radius: 3.0, ..Default::default() },
         tile: slot,
         segments: Surface { fill: rim.alpha(0.12), border: Some(Border::bevel(1.0, h("#6a4a24"), h("#c8aa70"))), radius: 3.0, shadows: vec![sunk(2.0, 0.22)], ..Default::default() },
         // The spellbook's open tab: red-brown with gold lettering, standing out of the page.
@@ -196,6 +178,7 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
         medal: Medal { ring: [h("#c4c0b8"), h("#68625a"), h("#24201c")], ring_on: [h("#ffe38a"), h("#c8961e"), h("#5a3606")], outline: h("#2a1a0a") },
         emblem: &icons::TOME_EMBLEM,
         glyphs: GLYPHS,
+        ..Skin::base(&p, 3.0)
     };
     Theme {
         id: "grimoire",
@@ -223,21 +206,14 @@ static FRAME: LazyLock<Theme> = LazyLock::new(|| {
     let page = &*THEME;
     let gold = h("#d8b050");
     let parchment = h("#f2e4c4");
+    let sidebar = h("#1d1a17");
     let p = Pal {
-        sidebar: h("#1d1a17"),
-        footer: h("#1a1714"),
         bg: h("#1d1a17"),
         panel: h("#2a241e"),
-        panel_alt: h("#3a3128"),
-        sky: h("#4a1a0e"),
-        well: h("#0a0806").alpha(0.7),
-        overlay: page.pal.overlay,
         text: parchment,
         heading: h("#ffd100"),
         text_dim: h("#dccaa6"),
         text_muted: h("#ab987c"),
-        text_off: h("#6e604c"),
-        on_accent: h("#1d0f04"),
         border: gold.alpha(0.3),
         border_strong: gold.alpha(0.55),
         divider: gold.alpha(0.16),
@@ -247,7 +223,6 @@ static FRAME: LazyLock<Theme> = LazyLock::new(|| {
         track: parchment.alpha(0.12),
         accent: h("#f0c050"),
         accent_hi: h("#ffd96b"),
-        accent_warm: h("#fff0c8"),
         accent_soft: h("#f0c050").alpha(0.18),
         accent_focus: h("#ffd100").alpha(0.8),
         success: h("#5bd65b"),
@@ -257,16 +232,13 @@ static FRAME: LazyLock<Theme> = LazyLock::new(|| {
         danger: h("#ff5a48"),
         danger_soft: h("#ff5a48").alpha(0.12),
         danger_line: h("#ff5a48").alpha(0.5),
-        info: h("#66b0ff"),
-        info_soft: h("#66b0ff").alpha(0.15),
-        haze: h("#ff9a40").alpha(0.1),
     };
     let ps = &page.skin;
     let skin = Skin {
         window: Surface { fill: p.bg, ink: p.text, ..Default::default() },
         // Dark stone with a gilded inner edge where it meets the pages.
         sidebar: Surface {
-            fill: p.sidebar,
+            fill: sidebar,
             vertical: Some((h("#25211c"), h("#171411"))),
             texture: Some((Tex::Stone, 0.4)),
             border: Some(Border::sides([0.0, 3.0, 0.0, 0.0], h("#0c0a08"))),
@@ -292,9 +264,9 @@ static FRAME: LazyLock<Theme> = LazyLock::new(|| {
         nav_active: Surface {
             fill: h("#3e3428"),
             vertical: Some((h("#4c4032"), h("#2e261c"))),
-            border: Some(Border { sides: [3.0, 10.0, 3.0, 10.0], top: Color::TRANSPARENT, bottom: Color::TRANSPARENT }),
+            border: Some(Border::margin([3.0, 10.0, 3.0, 10.0])),
             radius: 4.0,
-            shadows: vec![Shadow { spread: 1.0, color: gold.alpha(0.75), inset: true, ..Shadow::default() }],
+            shadows: vec![inner_ring(gold.alpha(0.75))],
             hover: p.hover,
             ..Default::default()
         },
@@ -308,7 +280,6 @@ static FRAME: LazyLock<Theme> = LazyLock::new(|| {
         },
         primary: ps.primary.clone(),
         secondary: ps.secondary.clone(),
-        chip: Surface { radius: 3.0, ..Default::default() },
         kbd: Surface { ink: p.text_muted, border: Some(Border::all(1.0, gold.alpha(0.35))), radius: 2.0, ..Default::default() },
         ..ps.clone()
     };

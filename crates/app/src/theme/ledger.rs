@@ -3,42 +3,29 @@
 //! gold accents, serif headings in off-white and one deep red action button. Flat, no textures:
 //! the practical daily driver.
 
-use super::{Medal, BASE_TYPE, BandDeco, Border, Pal, Skin, Surface, Theme, Type, h, ink, inset};
-use crate::icons;
+use super::{BASE_TYPE, BandDeco, Border, Medal, Pal, Skin, Surface, Theme, Type, drop, h, ink, inner_ring, inset};
 use rune::tok::{Family, TextStyle};
-use rune::{Color, Shadow};
+use rune::Color;
 use std::sync::LazyLock;
 
-/// Only Noto Serif ships with the system; the others are used when the user has them.
+/// The heading face, bundled like every font (`theme::FONTS`).
 const SERIF: Family = Family::Named("Marcellus");
-
-fn drop(y: f32, blur: f32, a: f32) -> Shadow {
-    Shadow { y, blur, color: Color::BLACK.alpha(a), ..Shadow::default() }
-}
-
-/// A 1 pt line just inside the box's edge.
-fn ring(color: Color) -> Shadow {
-    Shadow { spread: 1.0, color, inset: true, ..Shadow::default() }
-}
 
 pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
     let gold = h("#ccaa44");
     let tile = h("#282322");
+    // A darker well (detail, segments) and a lifted tile (open tab, chosen segment).
+    let deep = h("#120d0c");
+    let lifted = h("#3a3230");
+    let sidebar = h("#0c0605");
+    let sky = h("#161110");
     let p = Pal {
-        sidebar: h("#0c0605"),
-        footer: h("#0a0504"),
         bg: h("#060100"),
         panel: h("#1e1918"),
-        panel_alt: tile,
-        sky: h("#161110"),
-        well: h("#282322"),
-        overlay: h("#030000").alpha(0.78),
         text: h("#eeeeee"),
         heading: h("#f2eee6"),
         text_dim: h("#cccccc"),
         text_muted: h("#9a9390"),
-        text_off: h("#6a6361"),
-        on_accent: h("#1a1205"),
         border: ink(0.09),
         border_strong: ink(0.18),
         divider: ink(0.06),
@@ -48,7 +35,6 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
         track: ink(0.10),
         accent: gold,
         accent_hi: h("#e6c860"),
-        accent_warm: h("#f6e7b4"),
         accent_soft: gold.alpha(0.16),
         accent_focus: h("#66c6e0").alpha(0.85),
         success: h("#62d26f"),
@@ -58,9 +44,6 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
         danger: h("#f0645a"),
         danger_soft: h("#f0645a").alpha(0.10),
         danger_line: h("#f0645a").alpha(0.45),
-        info: h("#66c6e0"),
-        info_soft: h("#66c6e0").alpha(0.13),
-        haze: gold.alpha(0.05),
     };
     let ty = Type {
         display: TextStyle::new(23.0, 500.0).family(SERIF).tracking(0.2).lh(28.0),
@@ -78,19 +61,16 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
     // Sidebar rows look like separate tiles: a border in the sidebar colour leaves a gap round each.
     let gap = |c: Color| Some(Border { sides: [3.0, 6.0, 3.0, 6.0], top: c, bottom: c });
     let skin = Skin {
-        window: Surface { fill: p.bg, ink: p.text, ..Default::default() },
-        sidebar: Surface { fill: p.sidebar, border: Some(Border::sides([0.0, 1.0, 0.0, 0.0], ink(0.05))), ..Default::default() },
-        band: Surface { fill: p.sky, vertical: Some((h("#1a1413"), p.bg)), border: Some(Border::sides([0.0, 0.0, 1.0, 0.0], gold.alpha(0.22))), ..Default::default() },
+        sidebar: Surface { fill: sidebar, border: Some(Border::sides([0.0, 1.0, 0.0, 0.0], ink(0.05))), ..Default::default() },
+        band: Surface { fill: sky, vertical: Some((h("#1a1413"), p.bg)), border: Some(Border::sides([0.0, 0.0, 1.0, 0.0], gold.alpha(0.22))), ..Default::default() },
         band_deco: BandDeco::None,
-        toolbar: Surface { border: under, ..Default::default() },
         panel: panel.clone(),
-        detail: Surface { fill: h("#120d0c"), border: Some(Border::sides([0.0, 0.0, 0.0, 1.0], ink(0.07))), ..Default::default() },
+        detail: Surface { fill: deep, border: Some(Border::sides([0.0, 0.0, 0.0, 1.0], ink(0.07))), ..Default::default() },
         menu: Surface { fill: h("#24201f"), border: frame, radius: 8.0, shadows: vec![lip, drop(6.0, 18.0, 0.6)], ..Default::default() },
         list_header: Surface { fill: Color::WHITE.alpha(0.025), border: under, ..Default::default() },
-        row: Surface { border: under, hover: p.hover, ..Default::default() },
-        row_selected: Surface { fill: p.selected, border: under, shadows: vec![ring(gold.alpha(0.35))], hover: p.hover, ..Default::default() },
-        nav: Surface { fill: tile, border: gap(p.sidebar), radius: 14.0, hover: p.hover, ..Default::default() },
-        nav_active: Surface { fill: h("#3a3230"), border: gap(p.sidebar), radius: 14.0, shadows: vec![ring(gold.alpha(0.35))], hover: p.hover, ..Default::default() },
+        row_selected: Surface { fill: p.selected, border: under, shadows: vec![inner_ring(gold.alpha(0.35))], hover: p.hover, ..Default::default() },
+        nav: Surface { fill: tile, border: gap(sidebar), radius: 14.0, hover: p.hover, ..Default::default() },
+        nav_active: Surface { fill: lifted, border: gap(sidebar), radius: 14.0, shadows: vec![inner_ring(gold.alpha(0.35))], hover: p.hover, ..Default::default() },
         primary: Surface {
             fill: h("#6e0808"),
             ink: p.heading,
@@ -110,19 +90,14 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
             hover: p.hover,
             ..Default::default()
         },
-        ghost: Surface { ink: p.text_dim, border: Some(Border::all(1.0, Color::TRANSPARENT)), radius: 6.0, hover: p.hover, ..Default::default() },
-        danger: Surface { fill: p.danger_soft, ink: p.danger, border: Some(Border::all(1.0, p.danger_line)), radius: 6.0, hover: p.danger.alpha(0.12), ..Default::default() },
-        icon_button: Surface { ink: p.text_muted, radius: 6.0, hover: p.hover, ..Default::default() },
-        input: Surface { fill: p.well, border: Some(Border::bevel(1.0, h("#141010"), h("#3a3331"))), radius: 8.0, ..Default::default() },
-        chip: Surface { radius: 6.0, ..Default::default() },
+        input: Surface { fill: tile, border: Some(Border::bevel(1.0, h("#141010"), h("#3a3331"))), radius: 8.0, ..Default::default() },
         tile: Surface { fill: tile, ink: gold, border: frame, radius: 6.0, ..Default::default() },
-        segments: Surface { fill: h("#120d0c"), border: Some(Border::all(1.0, ink(0.08))), radius: 8.0, ..Default::default() },
-        segment_on: Surface { fill: h("#3a3230"), ink: gold, border: Some(Border::all(1.0, gold.alpha(0.45))), radius: 7.0, ..Default::default() },
+        segments: Surface { fill: deep, border: Some(Border::all(1.0, ink(0.08))), radius: 8.0, ..Default::default() },
+        segment_on: Surface { fill: lifted, ink: gold, border: Some(Border::all(1.0, gold.alpha(0.45))), radius: 7.0, ..Default::default() },
         toast: Surface { shadows: vec![drop(4.0, 16.0, 0.6)], ..panel },
         kbd: Surface { ink: p.text_muted, border: Some(Border::all(1.0, ink(0.16))), radius: 4.0, ..Default::default() },
         medal: Medal { ring: [h("#dadada"), h("#7a7a7a"), h("#2a2a2a")], ring_on: [h("#fff0b8"), h("#ccaa44"), h("#6a5010")], outline: h("#000000") },
-        emblem: &icons::EMBLEM,
-        glyphs: &[],
+        ..Skin::base(&p, 6.0)
     };
     Theme {
         id: "ledger",
