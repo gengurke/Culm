@@ -385,7 +385,7 @@ fn theme_card(s: &State, id: ThemeId) -> El {
         .focusable(true)
         .w(140.0)
         .grow(1.0)
-        .padding(8.0)
+        .padding(12.0)
         .gap(10.0)
         .skin(&t().skin.panel)
         .hover(p.hover)

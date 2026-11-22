@@ -14,7 +14,8 @@ or break. New changes go under "Unreleased"; a release turns that heading into i
   studded frames keep it.
 - Themes keep their bevelled frames when a field is focused, a dropdown is open or a card is selected: an accent ring
   is drawn inside the frame instead of replacing it. Warnings, errors and delete confirmations share one notice look
-  in each theme's status colours, and class chips take each theme's own corner radius.
+  in each theme's status colours, the theme picker's cards wear each theme's panel frame, and class chips take each
+  theme's own corner radius.
 
 ### Fixed
 - Esc closes the installation menu in the sidebar.
