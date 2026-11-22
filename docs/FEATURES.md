@@ -89,7 +89,8 @@ What the addon manager does, one short paragraph per feature. Ids are referenced
   nothing touched). If Culm dies mid-swap, the next scan puts back the backed-up folders that are missing and deletes
   the leftovers; folders it can't put back keep their record's link. A rollback that couldn't restore everything keeps
   the old folders (`.addons-kept-*`) until they can go back; a finished swap's backup is renamed to trash before it is
-  deleted. A lock file (`Interface/.addons-lock`) keeps that cleanup away from installs in another Culm process. A running update can't be started twice, also across a rescan. CurseForge CDN downloads carry the
+  deleted. A lock file (`Interface/.addons-lock`) keeps that cleanup away from installs in another Culm process; on a
+  filesystem without locks both go ahead without it. A running update can't be started twice, also across a rescan. CurseForge CDN downloads carry the
   user's key (`x-api-key`), sent only to CurseForge hosts and checked again on every redirect. (e2e `f3_2_update_replaces_folder_contents`, `f3_2_update_all_updates_every_outdated_addon`, core: `f3_2_download_reports_progress_and_http_errors`, `f3_2_update_swaps_folders_and_rolls_back_on_bad_zip`, `f3_2_swap_failure_restores_backups`, `f3_2_recover_puts_back_folders_of_an_interrupted_install`, `f3_2_recover_never_deletes_a_kept_backup`,
   `f3_2_recover_leaves_a_running_install_alone`, `f3_2_recover_reports_folders_it_cannot_put_back`,
   `f3_2_failed_rollback_keeps_its_backup` (unit), e2e `f3_2_scan_puts_back_folders_of_an_interrupted_install`,
@@ -315,7 +316,7 @@ in the theme's tones, gilded on the active chip, around a disc showing the origi
 `ADDONS_APP_RELEASES_URL`, F4.6/F8.4). The window uses it; headless binary runs
 (`--snap`, `--script`) use the deterministic `MockBackend` (scenes) unless `ADDONS_BACKEND=core`.
 One window per user: `main` claims `rune::single_instance(brand::APP_ID)`, so a second launch brings the running window
-forward (Windows, Linux; macOS does this itself). Headless runs skip the claim.
+forward (Windows, Linux; macOS does this itself). Headless runs and runs with `RUNE_DIRS_ROOT` skip the claim.
 End-to-end specs in `crates/app/tests/e2e_*.rs` drive the real UI and core against a temp Forever tree, a fake import
 config and a FakeServer (helpers in `tests/common/mod.rs`); `tests/ui_shell.rs` keeps the mock-only UI checks.
 

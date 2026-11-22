@@ -51,9 +51,15 @@ pub fn install_zip(
     let staging = work.join(format!("{STAGING}{tag}"));
     let backup = work.join(format!("{BACKUP}{tag}"));
     let kept = work.join(format!("{KEPT}{tag}"));
-    let lock = lock_file(work)?;
-    lock.lock_shared()
-        .with_context(|| format!("locking {}", work.join(LOCK).display()))?;
+    // A filesystem without locks (some network shares) only loses the guard against a second process.
+    let _lock = lock_file(work)
+        .and_then(|f| {
+            f.lock_shared()
+                .with_context(|| format!("locking {}", work.join(LOCK).display()))?;
+            Ok(f)
+        })
+        .inspect_err(|e| crate::log::info(&format!("installing without the lock: {e:#}")))
+        .ok();
 
     let extracted = extract(zip, &staging);
     let result = extracted
@@ -255,32 +261,43 @@ pub fn recover(inst: &Installation) -> Leftovers {
     let Some(work) = addons.parent() else {
         return left;
     };
-    let Ok(entries) = std::fs::read_dir(work) else {
-        return left; // no Interface folder yet
+    let work_dirs = || -> Vec<(String, PathBuf)> {
+        let Ok(entries) = std::fs::read_dir(work) else {
+            return vec![]; // no Interface folder yet
+        };
+        entries
+            .flatten()
+            .filter(|e| e.file_type().is_ok_and(|t| t.is_dir()))
+            .map(|e| (e.file_name().to_string_lossy().into_owned(), e.path()))
+            .filter(|(n, _)| {
+                [STAGING, BACKUP, TRASH, KEPT]
+                    .iter()
+                    .any(|p| n.starts_with(p))
+            })
+            .collect()
     };
-    let dirs: Vec<(String, PathBuf)> = entries
-        .flatten()
-        .filter(|e| e.file_type().is_ok_and(|t| t.is_dir()))
-        .map(|e| (e.file_name().to_string_lossy().into_owned(), e.path()))
-        .filter(|(n, _)| {
-            [STAGING, BACKUP, TRASH, KEPT]
-                .iter()
-                .any(|p| n.starts_with(p))
-        })
-        .collect();
-    if dirs.is_empty() {
+    if work_dirs().is_empty() {
         return left;
     }
-    // Busy: an install runs (here or in another process), its dirs are live.
-    let lock = match lock_file(work) {
-        Ok(f) => f.try_lock().is_ok().then_some(f),
+    // Busy: an install runs (here or in another process), its dirs are live. Without locks (a
+    // filesystem that has none) cleanup goes ahead, as installs do.
+    let lock = lock_file(work);
+    let busy = match &lock {
+        Ok(f) => match f.try_lock() {
+            Ok(()) => false,
+            Err(std::fs::TryLockError::WouldBlock) => true,
+            Err(std::fs::TryLockError::Error(e)) => {
+                crate::log::info(&format!("cleaning up without the lock: {e}"));
+                false
+            }
+        },
         Err(e) => {
-            left.errors
-                .push(format!("could not clean up an interrupted install: {e:#}"));
-            None
+            crate::log::info(&format!("cleaning up without the lock: {e:#}"));
+            false
         }
     };
-    for (name, path) in dirs.iter().filter(|_| lock.is_some()) {
+    // Listed under the lock: no install can finish or start meanwhile.
+    for (name, path) in work_dirs().iter().filter(|_| !busy) {
         let res = if name.starts_with(BACKUP) {
             restore(path, &addons).and_then(|()| Ok(std::fs::remove_dir_all(path)?))
         } else if name.starts_with(KEPT) {
@@ -297,7 +314,7 @@ pub fn recover(inst: &Installation) -> Leftovers {
             ));
         }
     }
-    for (name, path) in &dirs {
+    for (name, path) in &work_dirs() {
         if !(name.starts_with(BACKUP) || name.starts_with(KEPT)) {
             continue;
         }

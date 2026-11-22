@@ -23,6 +23,9 @@ backups, downloaded class icons). `cache` holds anything rebuildable; deleting i
 hold machine-local runtime state and logs. These follow each OS's convention (XDG on Linux, `~/Library/…` on
 macOS, AppData on Windows). On Windows `data` roams with the profile (`%APPDATA%`) while `cache` and `state` stay
 local (`%LOCALAPPDATA%`), so keep large or machine-specific files out of `data`.
+One exception: installs work next to `AddOns` in the WoW `Interface` folder (`.addons-staging-*`, `-backup-*`,
+`-trash-*`, `-kept-*`, so swaps are renames on one filesystem) with `.addons-lock` beside them, so every process
+touching that folder, whatever its data root, sees the same lock.
 
 ## Layout
 
@@ -171,7 +174,9 @@ publishes the release. Never mark a release "pre-release": the AppImage's zsync 
 - `CoreBackend`: store edits go through `edit` (one lock); installs/updates/removes share the `disk` RwLock, a scan
   takes it alone. Remove/update only touch `store::owned_folders` (stored record minus folders others list).
 - Without a key, TOC-id matches (WowInterface) must never take over a stored link of another provider (`merge_rescan`).
-- Smoke-check the real install read-only: `RUNE_DIRS_ROOT=$(mktemp -d) timeout 8 target/debug/culm`.
+- Smoke-check the real install read-only: `RUNE_DIRS_ROOT=$(mktemp -d) timeout 8 target/debug/culm`. With
+  `RUNE_DIRS_ROOT` set, Culm skips `rune::single_instance`, so it starts beside a running Culm instead of only bringing
+  that window forward.
 
 ## Code rules
 
