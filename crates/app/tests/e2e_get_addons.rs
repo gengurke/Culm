@@ -426,6 +426,85 @@ fn f7_1_f7_2_saved_settings_survive_a_restart() {
     assert_eq!(featured.last().unwrap().header("x-api-key"), Some("my-key"));
 }
 
+#[test]
+fn f7_1_a_key_saved_while_a_check_runs_rescans_once_it_ends() {
+    use addon_app::{Job, state::Status};
+    let world = World::new();
+    let mut app = world.app();
+    app.wait_idle();
+    assert_eq!(app.status("Ace"), Status::Unknown);
+    // An update check is still running when the key is saved.
+    app.rt.update(|s, _| s.job = Job::CheckingUpdates);
+    app.tap("nav/settings");
+    app.tap("settings/api-key");
+    app.type_text("my-key");
+    app.tap("settings/api-key/save");
+    assert_eq!(
+        app.state().job,
+        Job::CheckingUpdates,
+        "no second job meanwhile"
+    );
+
+    app.rt.update(|s, _| s.job = Job::Idle);
+    app.frame();
+    app.wait_idle();
+    assert_eq!(
+        app.status("Ace"),
+        Status::UpdateAvailable,
+        "the rescan found Ace on CurseForge"
+    );
+}
+
+#[test]
+fn f7_1_a_key_saved_while_booting_stays_stored() {
+    use addon_app::{Job, state::Status, worker::Msg};
+    let world = World::new();
+    let mut app = world.app();
+    app.wait_idle();
+    app.tap("nav/settings");
+    app.tap("settings/channel/beta");
+    app.wait_until("the channel written", |_| {
+        std::fs::read_to_string(world.prefs_path()).is_ok_and(|p| p.contains("Beta"))
+    });
+    let loaded = app.state().settings.clone();
+    let installations = app.state().installations.clone();
+    // Back to the start: the boot worker has read the settings, its result hasn't landed yet.
+    app.rt.update(|s, _| {
+        s.job = Job::Scanning;
+        s.settings = addon_app::backend::Settings {
+            theme: s.settings.theme,
+            ..Default::default()
+        };
+    });
+    app.tap("settings/api-key");
+    app.type_text("my-key");
+    app.tap("settings/api-key/save");
+    app.wait_until("the key written", |_| {
+        std::fs::read_to_string(world.prefs_path()).is_ok_and(|p| p.contains("my-key"))
+    });
+
+    app.rt.update(move |s, _| {
+        s.apply(Msg::Booted {
+            settings: loaded,
+            installations,
+        })
+    });
+    app.wait_until("key and channel written", |_| {
+        std::fs::read_to_string(world.prefs_path())
+            .is_ok_and(|p| p.contains("my-key") && p.contains("Beta"))
+    });
+    app.wait_idle();
+    assert_eq!(
+        app.state().settings.curseforge_key.as_deref(),
+        Some("my-key")
+    );
+    assert_eq!(
+        app.status("Ace"),
+        Status::UpdateAvailable,
+        "the scan after the boot used the key"
+    );
+}
+
 /// The app with an image cache (tests don't run `setup`), so class icons can load.
 fn app_with_images(world: &World) -> App {
     let mut state = addon_app::State::new(std::sync::Arc::new(

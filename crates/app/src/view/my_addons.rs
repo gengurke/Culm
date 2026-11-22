@@ -21,10 +21,7 @@ pub fn page(s: &State) -> El {
     let installed = s.addons.len();
     let unchecked = s.not_checked_count();
     // Without a key CurseForge addons only carry the imported last known release: don't claim more.
-    let cf_unchecked = !s.curseforge_ready()
-        && s.addons.iter().any(|a| {
-            a.addon.ignored.is_none() && a.addon.provider.as_deref() == Some("CurseForge")
-        });
+    let cf_unchecked = s.curseforge_unchecked();
     let state = match (n, unchecked) {
         (1.., _) => format!("{n} update{} available", if n == 1 { "" } else { "s" }),
         _ if cf_unchecked => "CurseForge updates not checked".to_string(),
@@ -115,11 +112,7 @@ fn toolbar(s: &State) -> El {
         )
         .child(el().grow(1.0));
     // Without a key, CurseForge addons keep the imported latest versions: say why.
-    if !s.curseforge_ready()
-        && s.addons
-            .iter()
-            .any(|a| a.addon.provider.as_deref() == Some("CurseForge"))
-    {
+    if s.curseforge_unchecked() {
         bar = bar.child(
             ui::button(
                 "my-addons/no-key",

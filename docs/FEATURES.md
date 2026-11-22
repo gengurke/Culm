@@ -19,11 +19,11 @@ What the addon manager does, one short paragraph per feature. Ids are referenced
   (`f1_2_normalizes_manual_paths`, e2e `f1_2_installation_added_from_folder_picker_is_remembered`,
   `f1_2_installation_added_from_settings_becomes_current`)
 - **F1.3 Multiple installs** ✅ — Several installations are stored in `installations.json` (id = hash of the path),
-  each with its own addon list; the sidebar picker switches, and the choice is kept in prefs. An installation is named
+  each with its own addon list; the sidebar picker switches (Esc closes its menu), and the choice is kept in prefs. An installation is named
   "WoW Forever"; only while two share that name does each show what tells them apart (its Wine prefix, "WoW Forever
   (battlenet)", else its place in the list). Worker results carry their installation id and are dropped after a switch.
   (`f1_3_installations_persist`, `f1_3_installation_names_show_the_prefix_only_for_twins`,
-  `late_results_never_land_on_the_wrong_installation_or_restart_updates`, e2e `f1_3_sidebar_picker_switches_installations_and_keeps_the_choice`)
+  `late_results_never_land_on_the_wrong_installation_or_restart_updates`, `f1_3_escape_closes_the_installation_menu`, e2e `f1_3_sidebar_picker_switches_installations_and_keeps_the_choice`)
 
 ## F2 My Addons (local)
 - **F2.1 Scan** ✅ — Reads `Interface/AddOns`, picks the right TOC per folder (Forever: `_Forever`/`_Camelot`
@@ -225,12 +225,14 @@ in the theme's tones, gilded on the active chip, around a disc showing the origi
   (`f6_3_backup_wtf_zips_and_lists`, e2e `f6_3_wtf_backup_is_zipped_into_the_app_data`)
 
 ## F7 Settings
-- **F7.1 CurseForge API key** ✅ — Stored in Rune prefs; providers are rebuilt from it per call and saving a key rescans.
+- **F7.1 CurseForge API key** ✅ — Stored in Rune prefs; providers are rebuilt from it per call and saving a key rescans
+  (once a scan or update check that is running ends); a key saved while Culm starts stays saved.
   Without a key: My Addons still scans, imports, removes, maintains and updates GitHub addons (and
   CurseForge ones from the imported last known release), shows an "Add a CurseForge key" hint; Get Addons hides the filters,
   shows and searches WowUp Hub only, takes links, and a hint says a key adds CurseForge; nothing calls CurseForge.
   (`f7_1_curseforge_unavailable_without_key`, e2e `f7_1_without_a_key_the_hub_answers_and_settings_add_curseforge`,
-  `f7_1_f7_2_saved_settings_survive_a_restart`)
+  `f7_1_f7_2_saved_settings_survive_a_restart`, `f7_1_a_key_saved_while_a_check_runs_rescans_once_it_ends`,
+  `f7_1_a_key_saved_while_booting_stays_stored`)
 - **F7.2 Defaults** ✅ — Default channel for new addons, stored in prefs. (e2e `f7_1_f7_2_saved_settings_survive_a_restart`)
 - **F7.3 Themes** ✅ — Settings → Appearance picks the look (Moonlit; Hearthwood: carved wood, stone and gold; Emberglow: mossy
   black stone, glowing gold, framed cards and small-caps serif controls; Goblin Ledger: calm charcoal menus, ochre gold;

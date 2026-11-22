@@ -106,6 +106,7 @@ pub enum Msg {
 }
 
 /// How a worker reports back: each message wakes the window.
+#[derive(Clone)]
 pub struct Post {
     tx: Sender<Msg>,
     wake: Waker,
@@ -126,10 +127,7 @@ pub fn spawn(s: &State, name: &str, job: impl FnOnce(&dyn Backend, &Post) + Send
         tx: s.msgs.0.clone(),
         wake: s.waker.clone(),
     };
-    let fallback = Post {
-        tx: s.msgs.0.clone(),
-        wake: s.waker.clone(),
-    };
+    let fallback = post.clone();
     if let Err(e) = rune::task::spawn(name, move || job(&*backend, &post)) {
         fallback.send(Msg::Failed {
             title: "Could not start background work".into(),

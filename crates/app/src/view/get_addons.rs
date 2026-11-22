@@ -171,13 +171,23 @@ pub fn page(s: &State) -> El {
         }
         toolbar = toolbar
             .child(
-                dropdown(s, Menu::Category, "get-addons/category", &label, glyph, on).max_w(230.0),
+                dropdown(
+                    s,
+                    Menu::Category,
+                    "get-addons/category",
+                    &label,
+                    "Show only addons of one category",
+                    glyph,
+                    on,
+                )
+                .max_w(230.0),
             )
             .child(dropdown(
                 s,
                 Menu::Sort,
                 "get-addons/sort",
                 sort,
+                "Change the order of the results",
                 &icons::UPDOWN,
                 on,
             ));
@@ -301,7 +311,8 @@ pub fn page(s: &State) -> El {
         ))
         .child(toolbar)
         .child(body);
-    if let Some(menu) = s.menu.filter(|_| ready) {
+    // The installation menu belongs to the sidebar.
+    if let Some(menu) = s.menu.filter(|m| ready && *m != Menu::Installation) {
         // A click anywhere else closes the menu.
         page = page
             .child(
@@ -413,6 +424,7 @@ fn dropdown(
     menu: Menu,
     key: &str,
     label: &str,
+    help: &str,
     glyph: &'static Icon,
     enabled: bool,
 ) -> El {
@@ -423,10 +435,7 @@ fn dropdown(
         .key(key)
         .role("button")
         .label(label)
-        .help(match menu {
-            Menu::Category => "Show only addons of one category",
-            Menu::Sort => "Change the order of the results",
-        })
+        .help(help)
         .expanded(open)
         .focusable(enabled)
         .h(theme::CONTROL_H)
@@ -503,6 +512,7 @@ fn menu_item(
 fn menu_panel(s: &State, menu: Menu) -> El {
     let mut items: Vec<El> = Vec::new();
     let (anchor, width) = match menu {
+        Menu::Installation => return el(),
         Menu::Sort => {
             for (sort, label) in SORTS {
                 items.push(menu_item(
