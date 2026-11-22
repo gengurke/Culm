@@ -3,12 +3,12 @@
 mod common;
 
 use addon_app::mock::MockBackend;
-use addon_app::theme::{FAMILIES, FONTS, ThemeId, Type};
+use addon_app::theme::{FAMILIES, FONTS, ThemeId};
 use addon_app::{Screen, State, loaded, runtime};
 use common::World;
 use rune::ImageCache;
 use rune::prefs::Prefs;
-use rune::tok::{Family, TextStyle};
+use rune::tok::Family;
 use std::sync::Arc;
 
 /// The page title's colour: each theme draws headings in its own.
@@ -125,41 +125,31 @@ fn f7_3_every_theme_shows_its_swatches() {
             .iter()
             .map(|(name, _)| format!("swatches/skin/{name}"))
             .collect();
-        keys.extend(
-            [
-                "page-title",
-                "swatches/page/accent",
-                "swatches/type/mono",
-                "swatches/status",
-            ]
-            .map(String::from),
-        );
-        if !std::ptr::eq(th, th.frame_look()) {
-            keys.push("swatches/frame/accent".into());
+        keys.extend(["page-title", "swatches/status", "swatches/glyphs"].map(String::from));
+        let roles = th
+            .ty
+            .roles()
+            .map(|(role, _)| format!("swatches/type/{role}"));
+        let colours = th
+            .pal
+            .colours()
+            .map(|(name, _)| format!("swatches/page/{name}"));
+        keys.extend(roles.into_iter().chain(colours));
+        if let Some(frame) = th.frame {
+            let skin = frame
+                .skin
+                .surfaces()
+                .map(|(name, _)| format!("swatches/frame-skin/{name}"));
+            let colours = frame
+                .pal
+                .colours()
+                .map(|(name, _)| format!("swatches/frame/{name}"));
+            keys.extend(skin.into_iter().chain(colours));
         }
         for k in keys {
             assert!(rt.find(&k).is_some(), "{}: nothing keyed {k}", theme.id());
         }
     }
-}
-
-/// Every role's style in a type ladder.
-fn styles(ty: &Type) -> [(&'static str, TextStyle); 13] {
-    [
-        ("display", ty.display),
-        ("hero", ty.hero),
-        ("title", ty.title),
-        ("heading", ty.heading),
-        ("body", ty.body),
-        ("strong", ty.strong),
-        ("label", ty.label),
-        ("note", ty.note),
-        ("small", ty.small),
-        ("number", ty.number),
-        ("caption", ty.caption),
-        ("eyebrow", ty.eyebrow),
-        ("mono", ty.mono),
-    ]
 }
 
 #[test]
@@ -189,7 +179,7 @@ fn f7_3_every_theme_font_is_bundled() {
     for &id in ThemeId::ALL {
         let th = id.theme();
         for th in std::iter::once(th).chain(th.frame.map(|f| &**f)) {
-            for (role, style) in styles(&th.ty) {
+            for (role, style) in th.ty.roles() {
                 let Family::Named(name) = style.family else {
                     assert!(
                         matches!(style.family, Family::Sans | Family::Mono),

@@ -154,6 +154,55 @@ pub struct Pal {
     pub busy: Tone,
 }
 
+impl Pal {
+    /// Every colour with its field name, status tones as their ink (the swatches screen). Exhaustive,
+    /// so a new field doesn't build until it is listed.
+    pub fn colours(&self) -> [(&'static str, Color); 19] {
+        let Pal {
+            bg,
+            panel,
+            text,
+            heading,
+            text_dim,
+            text_muted,
+            border,
+            border_strong,
+            divider,
+            hover,
+            chip,
+            track,
+            accent,
+            accent_hi,
+            accent_focus,
+            success,
+            warning,
+            danger,
+            busy,
+        } = *self;
+        [
+            ("bg", bg),
+            ("panel", panel),
+            ("text", text),
+            ("heading", heading),
+            ("text_dim", text_dim),
+            ("text_muted", text_muted),
+            ("border", border),
+            ("border_strong", border_strong),
+            ("divider", divider),
+            ("hover", hover),
+            ("chip", chip),
+            ("track", track),
+            ("accent", accent),
+            ("accent_hi", accent_hi),
+            ("accent_focus", accent_focus),
+            ("success", success.ink),
+            ("warning", warning.ink),
+            ("danger", danger.ink),
+            ("busy", busy.ink),
+        ]
+    }
+}
+
 /// A status colour: `ink` for its text and glyphs, `soft` for the ground of its badges and notices,
 /// `line` for their edge (read through `ui::Mark`).
 #[derive(Clone, Copy)]
@@ -195,6 +244,43 @@ pub struct Type {
     pub eyebrow: TextStyle,
     /// Versions, paths and ids. Keep `Family::Mono` (JetBrains Mono).
     pub mono: TextStyle,
+}
+
+impl Type {
+    /// Every role with its field name (the swatches screen, the font test). Exhaustive, so a new
+    /// role doesn't build until it is listed.
+    pub fn roles(&self) -> [(&'static str, TextStyle); 13] {
+        let Type {
+            display,
+            hero,
+            title,
+            heading,
+            body,
+            strong,
+            label,
+            note,
+            small,
+            number,
+            caption,
+            eyebrow,
+            mono,
+        } = *self;
+        [
+            ("display", display),
+            ("hero", hero),
+            ("title", title),
+            ("heading", heading),
+            ("body", body),
+            ("strong", strong),
+            ("label", label),
+            ("note", note),
+            ("small", small),
+            ("number", number),
+            ("caption", caption),
+            ("eyebrow", eyebrow),
+            ("mono", mono),
+        ]
+    }
 }
 
 /// The Moonlit ladder; other themes start from it (`Type { hero: .., ..BASE_TYPE }`).

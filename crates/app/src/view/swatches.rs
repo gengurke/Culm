@@ -6,35 +6,44 @@ use crate::icons;
 use crate::state::State;
 use crate::theme::{self, Pal, Surface, SurfaceExt, pal, t};
 use crate::ui::{self, Mark};
-use rune::tok::TextStyle;
 use rune::{Color, El, col, el, icon, row, text};
 
 pub fn page(_s: &State) -> El {
     let th = t();
+    // A frame theme (light pages in a dark frame) also shows the frame's palette and surfaces, on
+    // its sidebar: the frame paints the sidebar, band and nav.
+    let framed = !std::ptr::eq(th, th.frame_look());
+    let on_frame = |inner: fn() -> El| {
+        theme::framed(|| {
+            el().w_full()
+                .padding(8.0)
+                .skin(&t().skin.sidebar)
+                .child(inner())
+        })
+    };
     let mut colours = col()
         .gap(18.0)
         .w(250.0)
         .child(section("Palette").child(palette("page")));
-    // A frame theme (light pages in a dark frame) shows the frame's palette too, on its sidebar.
-    if !std::ptr::eq(th, th.frame_look()) {
-        colours = colours.child(section("Frame palette").child(theme::framed(|| {
-            el().w_full()
-                .padding(8.0)
-                .skin(&t().skin.sidebar)
-                .child(palette("frame"))
-        })));
+    if framed {
+        colours = colours.child(section("Frame palette").child(on_frame(|| palette("frame"))));
     }
     let words = col()
         .gap(18.0)
-        .w(290.0)
+        .w(210.0)
         .child(section("Type").child(type_roles()))
         .child(section("Status").child(status()));
-    let boxes = col()
+    let mut boxes = col()
         .gap(18.0)
         .grow(1.0)
         .min_w(0.0)
-        .child(section("Surfaces").child(surfaces()))
-        .child(section("Glyphs").child(glyphs()));
+        .child(section("Surfaces").child(surfaces("skin", 112.0, 36.0)));
+    if framed {
+        boxes = boxes.child(
+            section("Frame surfaces").child(on_frame(|| surfaces("frame-skin", 90.0, 28.0))),
+        );
+    }
+    let boxes = boxes.child(section("Glyphs").child(glyphs()));
     col()
         .key("swatches")
         .w_full()
@@ -62,33 +71,12 @@ fn section(title: &str) -> El {
 /// One chip per `Pal` colour, its name under it (status tones as their ink).
 fn palette(part: &str) -> El {
     let p = pal();
-    let colours: [(&str, Color); 19] = [
-        ("bg", p.bg),
-        ("panel", p.panel),
-        ("text", p.text),
-        ("heading", p.heading),
-        ("text_dim", p.text_dim),
-        ("text_muted", p.text_muted),
-        ("border", p.border),
-        ("border_strong", p.border_strong),
-        ("divider", p.divider),
-        ("hover", p.hover),
-        ("chip", p.chip),
-        ("track", p.track),
-        ("accent", p.accent),
-        ("accent_hi", p.accent_hi),
-        ("accent_focus", p.accent_focus),
-        ("success", p.success.ink),
-        ("warning", p.warning.ink),
-        ("danger", p.danger.ink),
-        ("busy", p.busy.ink),
-    ];
     let mut grid = row()
         .key(format!("swatches/{part}"))
         .w_full()
         .gap(4.0)
         .flex_wrap();
-    for (name, c) in colours {
+    for (name, c) in p.colours() {
         grid = grid.child(
             row()
                 .key(format!("swatches/{part}/{name}"))
@@ -105,23 +93,8 @@ fn palette(part: &str) -> El {
 /// Each `Type` role set in itself.
 fn type_roles() -> El {
     let (ty, p) = (&t().ty, pal());
-    let roles: [(&str, TextStyle); 13] = [
-        ("display", ty.display),
-        ("hero", ty.hero),
-        ("title", ty.title),
-        ("heading", ty.heading),
-        ("body", ty.body),
-        ("strong", ty.strong),
-        ("label", ty.label),
-        ("note", ty.note),
-        ("small", ty.small),
-        ("number", ty.number),
-        ("caption", ty.caption),
-        ("eyebrow", ty.eyebrow),
-        ("mono", ty.mono),
-    ];
     let mut list = col().key("swatches/type").gap(4.0);
-    for (name, style) in roles {
+    for (name, style) in ty.roles() {
         list = list.child(
             text(name)
                 .key(format!("swatches/type/{name}"))
@@ -132,18 +105,23 @@ fn type_roles() -> El {
     list
 }
 
-/// Every `Skin` surface as a box with its name in its ink.
-fn surfaces() -> El {
-    let p = pal();
-    let mut grid = row().key("swatches/skin").w_full().gap(8.0).flex_wrap();
-    for (name, sk) in t().skin.surfaces() {
+/// Every `Skin` surface as a `w` × `h` box with its name in its ink, keyed `swatches/<part>/<slot>`.
+fn surfaces(part: &str, w: f32, h: f32) -> El {
+    let (th, p) = (t(), pal());
+    let font = if h < 32.0 { th.ty.caption } else { th.ty.small };
+    let mut grid = row()
+        .key(format!("swatches/{part}"))
+        .w_full()
+        .gap(6.0)
+        .flex_wrap();
+    for (name, sk) in th.skin.surfaces() {
         grid = grid.child(
-            el().key(format!("swatches/skin/{name}"))
-                .w(118.0)
-                .h(38.0)
+            el().key(format!("swatches/{part}/{name}"))
+                .w(w)
+                .h(h)
                 .skin(sk)
                 .center()
-                .child(text(name).font(t().ty.small).color(ink(sk, p))),
+                .child(text(name).font(font).color(ink(sk, p))),
         );
     }
     grid
