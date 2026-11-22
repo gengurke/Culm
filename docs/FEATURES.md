@@ -328,8 +328,8 @@ config and a FakeServer (helpers in `tests/common/mod.rs`); `tests/ui_shell.rs` 
 Rune UI in `crates/app` (themes in `src/theme/`, default Moonlit): sidebar nav with update badge and
 installation picker, a slim header band per page (title, muted meta pieces set apart by hairlines, actions at the right;
 stars in Moonlit; My Addons: addon count and update state, the game version stays in the picker), My Addons (filter, sortable column headers, virtual list, detail panel), Get Addons
-(one search-or-link field, category and sort dropdowns, class medallion chips, clear filters, popular list, result detail panel, no-key hint), Maintenance (confirm + result per
-card, locked while the game runs), Settings (theme, API key, default channel, installations, WowUp import),
+(one search-or-link field, category and sort dropdowns, class medallion chips, clear filters, popular list, result detail panel, no-key hint), Maintenance (a result per card,
+only Clean up confirms, locked while the game runs), Settings (theme, API key, default channel, installations, WowUp import),
 toasts and onboarding. Meaningful actions explain themselves in a short tooltip after a rest of the pointer, drawn in
 the theme's floating (menu) look (`ui_buttons_explain_themselves`). Active nav rows are inset plaques and the selected row a
 tinted line in a thin ring: no coloured side stripes. Toasts are framed alerts in the theme's toast surface,
