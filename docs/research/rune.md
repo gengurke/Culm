@@ -388,8 +388,9 @@ Window class / app id: call `rune::set_app_id(brand::APP_ID)` (`"dev.culm.app"`)
   - `drop_files`, window placement and topmost don't work on Wayland.
   - `App::titlebar` on GNOME gives a grey Adwaita bar (#993).
   - No app-drawn frame or edge resizing yet (#915).
-  - Rune #898 (still open) says the wheel jumps the whole notch distance, also on trackpads; Culm's CHANGELOG
-    0.2.0 reports a notched mouse wheel scrolling smoothly on Windows and Linux after a Rune update.
+  - Rune #898 (still open) says a wheel notch jumps its whole distance on Linux, and trackpad scrolls stop dead on
+    lift and at list ends; Culm's CHANGELOG 0.2.0 reports a notched mouse wheel scrolling smoothly on Windows and
+    Linux after a Rune update.
   - Wayland wheel scrolling snaps back in a focused field (#992).
   - Only "Noto Color Emoji" is used for emoji (#973).
   - Without the `dbus` feature, dark mode detection falls back to dark.

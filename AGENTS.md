@@ -77,7 +77,8 @@ bump `version` in the root `Cargo.toml`, add `<release version="x.y.z" date="...
 `packaging/dev.culm.app.metainfo.xml` on a `chore/release-x.y.z` branch, merge its PR, then tag the merged `master`:
 `git tag vx.y.z && git push origin vx.y.z`.
 `.github/workflows/release.yml` checks all three, runs the tests, builds the AppImage (`packaging/appimage.sh`), the
-Windows installer (`packaging/windows/`) and the macOS .dmg (`packaging/macos.sh`) and publishes the release. Never mark a release "pre-release": the AppImage's zsync update info only follows `latest`.
+Windows installer (`packaging/windows/`) and the macOS .dmg (`packaging/macos.sh`) and publishes the release. Never
+mark a release "pre-release": the AppImage's zsync update info only follows `latest`.
 
 ## Rune rules (from Rune's own guidance — see docs/research/rune.md)
 
