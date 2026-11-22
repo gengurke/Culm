@@ -3,7 +3,7 @@
 //! paint boxes with [`SurfaceExt::skin`], never with raw colours. Layout metrics are global.
 //!
 //! Adding a theme: write `theme/<name>.rs` with a `pub static THEME: LazyLock<Theme>` and add one
-//! `Variant => module` line to the `themes!` list below.
+//! `Variant => module` line to the `themes!` list below. `docs/THEMES.md` explains every slot.
 
 mod deco;
 mod glyphs;
@@ -69,13 +69,19 @@ impl ThemeId {
     }
 }
 
+/// One look: what a `theme/<name>.rs` file defines (see `docs/THEMES.md`).
 pub struct Theme {
+    /// The stable id kept in prefs and scene names (`settings@<id>`); never rename a shipped one.
     pub id: &'static str,
+    /// The name on the picker card.
     pub name: &'static str,
     /// One line for the picker.
     pub blurb: &'static str,
+    /// The colours views read.
     pub pal: Pal,
+    /// The text style per role.
     pub ty: Type,
+    /// The named surfaces components paint, plus the emblem and glyph swaps.
     pub skin: Skin,
     /// A second look for the window frame (sidebar and header band), for themes whose pages
     /// are light but whose frame is dark. Views draw the frame inside [`framed`].
@@ -108,7 +114,8 @@ impl Theme {
 pub struct Pal {
     /// The window ground; the contrast test's base and the kit's (dropdown, slider) background.
     pub bg: Color,
-    /// Card ground: the contrast test checks text on it; toasts use it opaque.
+    /// Card ground: the contrast test checks text, accent and status ink on it, so make it
+    /// `skin.panel`'s (average) fill.
     pub panel: Color,
     /// Body text and the window caption.
     pub text: Color,
@@ -118,7 +125,7 @@ pub struct Pal {
     pub text_dim: Color,
     /// Hints, counts, timestamps, keyboard caps and icon buttons.
     pub text_muted: Color,
-    /// The theme picker's unselected card outline.
+    /// The edge of quiet badges (`Mark::Muted`/`Off`) and the stock key-cap outline.
     pub border: Color,
     /// Scroll thumbs and the edge of a tooltip without its own border.
     pub border_strong: Color,
@@ -130,7 +137,8 @@ pub struct Pal {
     pub chip: Color,
     /// Progress bar track.
     pub track: Color,
-    /// Links, active controls, progress, info toasts.
+    /// Links, active controls, progress, info toasts, the chosen card's ring and the scroll thumb
+    /// under the pointer.
     pub accent: Color,
     /// The lit side of accent: band embers.
     pub accent_hi: Color,
@@ -150,26 +158,42 @@ pub struct Pal {
 /// `line` for their edge (read through `ui::Mark`).
 #[derive(Clone, Copy)]
 pub struct Tone {
+    /// Text and glyphs in this status; must read at 3:1 on `bg` and `panel`.
     pub ink: Color,
+    /// The wash behind a badge or notice (usually `ink` at 0.10–0.17).
     pub soft: Color,
+    /// The 1 pt edge of a badge or notice (usually `ink` at 0.4–0.5).
     pub line: Color,
 }
 
 /// Text style per role. Tracking is in points: em × size.
 #[derive(Clone, Copy)]
 pub struct Type {
+    /// The first-run welcome's title.
     pub display: TextStyle,
+    /// The page title in the header band (and on the picker's miniature band).
     pub hero: TextStyle,
+    /// The addon's name in the detail panel.
     pub title: TextStyle,
+    /// Section headings, card and toast titles.
     pub heading: TextStyle,
+    /// Running text: descriptions, field text, menu entries.
     pub body: TextStyle,
+    /// The addon's name in a My Addons row.
     pub strong: TextStyle,
+    /// Control labels: buttons, segments, dropdowns.
     pub label: TextStyle,
+    /// Explanations and hints: the band's meta line, notes under sections, empty states.
     pub note: TextStyle,
+    /// Secondary lines: row details, sidebar sub-lines, tooltips (at weight 400).
     pub small: TextStyle,
+    /// Counts and status numbers, with tabular figures: the sidebar's update count, status cells.
     pub number: TextStyle,
+    /// The smallest text: key caps and initials tiles.
     pub caption: TextStyle,
+    /// Spaced capitals over a group: "CLASS", the sidebar's group names, detail sections.
     pub eyebrow: TextStyle,
+    /// Versions, paths and ids. Keep `Family::Mono` (JetBrains Mono).
     pub mono: TextStyle,
 }
 
@@ -214,47 +238,62 @@ pub const CONTROL_H: f32 = 32.0;
 /// The named surfaces views and components paint with.
 #[derive(Clone)]
 pub struct Skin {
-    /// The window ground behind every page.
+    /// The window ground behind every page (`ink`: the default text colour).
     pub window: Surface,
+    /// The left column: brand, navigation, installation picker.
     pub sidebar: Surface,
-    /// The page header band and what decorates it.
+    /// The page header band.
     pub band: Surface,
+    /// What draws over the band behind its title (`theme/deco.rs`).
     pub band_deco: BandDeco,
     /// The strip under the band (filter, search).
     pub toolbar: Surface,
-    /// Cards and notices.
+    /// Cards: addon cards, theme picker cards, maintenance and settings cards. Notices take its
+    /// radius; Moonlit-style hairline cards need only fill and border.
     pub panel: Surface,
     /// The addon detail panel at the right.
     pub detail: Surface,
-    /// The installation menu above the picker.
+    /// Floating popups: the installation menu, Get Addons' dropdown list. Tooltips take its fill,
+    /// border colour, radius (up to 6) and outer shadows. Give it a full border and a drop shadow.
     pub menu: Surface,
+    /// The column header row of My Addons.
     pub list_header: Surface,
+    /// A My Addons row (border: its separator; hover).
     pub row: Surface,
+    /// The My Addons row whose detail is open.
     pub row_selected: Surface,
     /// Sidebar rows (the label in `ink`; the glyph takes `accent` when active, else `text_muted`).
     pub nav: Surface,
+    /// The sidebar row of the open page (often an inset plaque: `Border::margin` + `face`).
     pub nav_active: Surface,
+    /// The main action (Install, Update all); `ink` must read at 4.5:1 on `fill`.
     pub primary: Surface,
+    /// Other buttons and the dropdown button; `ink` must read at 4.5:1 on `fill`.
     pub secondary: Surface,
+    /// Quiet buttons with no frame until hovered.
     pub ghost: Surface,
+    /// Buttons that delete something (Remove, Clean).
     pub danger: Surface,
+    /// Glyph-only buttons (close the detail, show the key, toast close); the glyph takes `ink`.
     pub icon_button: Surface,
+    /// Text fields (search, API key); its radius also rounds the kit's dropdowns and sliders.
     pub input: Surface,
     /// An unselected toggle (Get Addons' class chips, the source rows); also the shape of the
-    /// sidebar's update count.
+    /// sidebar's update count. Its `ink` is unused: unselected text is `Pal::text_dim`.
     pub toggle: Surface,
-    /// Square wells: initials tiles, icon boxes.
+    /// Square wells: initials tiles, glyph tiles, toast item slots; the glyph takes `ink`.
     pub tile: Surface,
-    /// The track of a segmented control.
+    /// The track of a segmented control; unselected segments are bare (`hover`, `text_muted`).
     pub segments: Surface,
     /// A selected toggle: the chosen segment, class chip or source row.
     pub toggle_on: Surface,
     /// Toasts (framed alerts); their corner glyph, if any, also crowns the top edge as a gem.
     pub toast: Surface,
+    /// Key hint boxes (`/`); the key in `ink`.
     pub kbd: Surface,
     /// Round class medallions (Get Addons' class chips).
     pub medal: Medal,
-    /// The brand mark beside the wordmark and on empty states.
+    /// The emblem on the first-run welcome (`ui::emblem`); the sidebar's brand mark stays stock.
     pub emblem: &'static Icon,
     /// Glyphs this theme draws differently: `(default, own)`, looked up by [`glyph`].
     pub glyphs: &'static [(&'static Icon, &'static Icon)],
@@ -410,8 +449,11 @@ impl Skin {
 /// gilded (`ring_on`) on the active chip, and the dark outline that sets it off the ground.
 #[derive(Clone, Copy, Default)]
 pub struct Medal {
+    /// The ring's highlight, body and shade on an unselected chip.
     pub ring: [Color; 3],
+    /// The same on the selected chip (its middle tone also glows round it).
     pub ring_on: [Color; 3],
+    /// The thin dark line round the ring.
     pub outline: Color,
 }
 
@@ -429,31 +471,42 @@ pub enum BandDeco {
 /// border, radius, shadows (inset ones are highlights), hover wash and corner ornaments.
 #[derive(Clone, Default)]
 pub struct Surface {
+    /// The ground; also the fallback while a texture loads and what the contrast test reads.
     pub fill: Color,
-    /// Text and glyph colour on it.
+    /// Text and glyph colour on it, where the component reads it (buttons, nav, tiles, kbd).
     pub ink: Color,
     /// Top to bottom, over the fill.
     pub vertical: Option<(Color, Color)>,
+    /// A second gradient over `vertical`: a glow, a sheen.
     pub overlay: Option<Overlay>,
-    /// A texture over fill and gradient (inside a uniform border) at this opacity.
+    /// A texture over fill and gradient (inside a uniform border) at this opacity. Big surfaces
+    /// only (window, sidebar, band, detail): every textured box costs GPU time.
     pub texture: Option<(Tex, f32)>,
+    /// Hairline, bevel (`Border::bevel`), single sides or a clear margin (`Border::margin`).
     pub border: Option<Border>,
+    /// Corner radius in points.
     pub radius: f32,
+    /// Painted in order: inset ones are highlights and inner rings (`inset`, `inner_ring`,
+    /// `face`), the others outer rings and drops (`outer_ring`, `drop`).
     pub shadows: Vec<Shadow>,
     /// Hover wash (transparent: none).
     pub hover: Color,
     /// Wash while pressed (transparent: a stronger hover).
     pub press: Color,
+    /// A glyph pinned into each corner (studs, rivets).
     pub corners: Option<Corners>,
 }
 
 /// A second gradient over the fill (Rune keeps one linear or radial per box).
 #[derive(Clone)]
 pub enum Overlay {
+    /// Along `angle` in radians (CSS: 0 bottom to top, `PI / 2` left to right, `PI` top to bottom),
+    /// stops at 0–1.
     Linear {
         angle: f32,
         stops: Vec<(f32, Color)>,
     },
+    /// An ellipse at `center` (fractions of the box) with `radius` in points, stops at 0–1.
     Radial {
         center: [f32; 2],
         radius: [f32; 2],
@@ -464,8 +517,11 @@ pub enum Overlay {
 /// Border widths `[top, right, bottom, left]`; with uniform widths, `top` ≠ `bottom` draws a bevel.
 #[derive(Clone, Copy)]
 pub struct Border {
+    /// Widths `[top, right, bottom, left]`.
     pub sides: [f32; 4],
+    /// The colour (a bevel's lit edge).
     pub top: Color,
+    /// A bevel's shaded edge; the same as `top` for a plain border.
     pub bottom: Color,
 }
 
@@ -491,7 +547,7 @@ impl Border {
             bottom: c,
         }
     }
-    /// A clear border: a margin round a plaque whose face a [`face`] shadow paints (a fill
+    /// A clear border: a margin round a plaque whose face a `face` shadow paints (a fill
     /// would run under the border).
     pub fn margin(sides: [f32; 4]) -> Border {
         Border::sides(sides, Color::TRANSPARENT)
@@ -501,9 +557,13 @@ impl Border {
 /// A glyph pinned into each corner (rivets, studs).
 #[derive(Clone, Copy)]
 pub struct Corners {
+    /// The ornament (`theme/glyphs.rs`).
     pub glyph: &'static Icon,
+    /// Its size in points.
     pub size: f32,
+    /// Its distance from the two edges.
     pub inset: f32,
+    /// The glyph's colour.
     pub color: Color,
 }
 

@@ -35,6 +35,7 @@ crates/core   addon-core: UI-free, blocking Rust. WoW installs, TOC, fingerprint
 crates/app    addon-app: Rune UI (state, views, theme, background workers). Thin over core.
 crates/testkit addon-testkit (dev-dependency only): FakeServer (local HTTP), provider JSON builders + fixtures, make_zip.
 docs/FEATURES.md   what the software does (keep it current!)
+docs/THEMES.md     the theme contract: slots, recipes, adding a theme
 docs/research/     background research (Rune guide)
 ```
 
@@ -124,30 +125,21 @@ mark a release "pre-release": the AppImage's zsync update info only follows `lat
 
 ## Themes (`crates/app/src/theme/`)
 
-- A theme is data: `Pal` (colours), `Type` (text styles per role, `t().ty.body`) and `Skin` (named `Surface`s: fill,
-  gradient, procedural texture, border/bevel, radius, shadows, hover, corner ornaments). Views and `ui.rs` ask the
-  current theme (`theme::t()`, `pal()`) and paint boxes with `.skin(&t().skin.panel)`: no raw hex, no theme checks.
-  Sizes and spacing (`theme::PAD`, `ROW_H`, …) are global, so layout is the same in every theme.
-- `.skin()` adds the texture and ornaments as pinned children: call it before `.child(..)`.
-- States draw over the skin, never replace its border: focus and selection take `ui::Themed::ring` (or `focus_look`),
-  status colours are `Tone`s (`Pal::success`, …) read through `ui::Mark`, and warnings, errors and delete confirmations
-  are `ui::notice(.., mark)` boxes. Disabled controls dim to `ui::DISABLED`.
+[docs/THEMES.md](docs/THEMES.md) is the theme contract: what a theme file may do, every `Pal`/`Type`/`Skin` slot,
+surface recipes, frame themes, fonts, what is shared on purpose, and adding a theme step by step. In short:
+
+- A theme is data in one file (`Pal`, `Type`, `Skin`); views and `ui.rs` ask `theme::t()`/`pal()` and paint with
+  `.skin(&t().skin.panel)` (before `.child(..)`): no raw colours, no theme checks (`f7_3_views_leave_looks_to_the_theme`
+  enforces it; its allow-list gives each exception a reason). Sizes and spacing are global.
+- States draw over the skin, never replace its border: `ui::Themed::ring`/`selected`/`focus_look`, status `Tone`s through
+  `ui::Mark`, warnings, errors and delete confirmations as `ui::notice(.., mark)`, disabled controls at `ui::DISABLED`.
+- Theme-only glyphs live in `theme/glyphs.rs`, band decorations in `theme/deco.rs`, never in `icons.rs` or `view/`. A light-paged
+  theme's sidebar and band are built inside `theme::framed(|| ..)`.
 - The current theme is a thread-local set by `theme::begin` at the top of `view` (tests run windows on parallel threads).
-  Textures (`theme/texture.rs`, value-noise fBm, no image files) are generated once per process on background threads (`theme::prewarm` from `setup`; synchronously in tests and headless runs) and registered per thread through `State::images`;
-  without a cache surfaces keep their base colour.
-- Adding a theme: one file `theme/<name>.rs` with `pub static THEME: LazyLock<Theme>` (start from `moonlit.rs`) and one
-  `Variant => module` line in the `themes!` list in `theme/mod.rs`. The picker, prefs id, scenes (`<scene>@<id>`) and
-  `f7_3_every_theme_renders_every_screen` pick it up. Fonts: every family a theme names
-  (`Family::Named`, one bundled name, no fallback list) is bundled in the binary with its licence (OFL/Apache) in
-  `crates/app/assets/fonts/<family>/` and listed in `theme::FONTS`, so text looks identical on every OS
-  (`f7_3_every_theme_font_is_bundled`); never rely on system fonts, and never bundle proprietary game fonts or assets.
-- A light-paged theme (Grimoire) sets `Theme::frame` to a second, dark theme: views build the sidebar and the header band
-  inside `theme::framed(|| ..)`, where `t()`/`pal()` return the frame (`Theme::frame_look`). `Skin::glyphs` swaps stock glyphs per theme
-  (`theme::glyph`, applied in `ui::button`/`icon_button`/`glyph_tile` and the nav). Theme-only glyphs (emblems, corner
-  studs, swaps) live in `theme/glyphs.rs`, the band decoration's drawing in `theme/deco.rs`, never in `icons.rs` or `view/`. `Surface::press` sets the pressed wash.
-  `skin.menu` is the floating popup (dropdowns, installation menu): give it a full border and a drop shadow.
-- Keep textures on big surfaces (window, sidebar, band, detail); cards use gradients and bevels (GPU cost per textured box).
-  `f7_3_every_theme_keeps_text_readable` checks palette contrast. `Skin::medal` holds the class medallions' ring tones.
+  Textures are generated once per process on background threads (`theme::prewarm` from `setup`; synchronously in tests and
+  headless runs) and registered per thread through `State::images`; without a cache surfaces keep their fill.
+- Every font is bundled with its licence and listed in `theme::FONTS`; never system fonts, never proprietary game fonts
+  or assets.
 
 ## UX rules
 

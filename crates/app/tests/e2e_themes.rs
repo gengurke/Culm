@@ -181,3 +181,166 @@ fn f7_3_every_theme_font_is_bundled() {
         }
     }
 }
+
+/// Spellings that decide a look outside `theme/`: raw colours, theme checks and the frame theme.
+const LOOKS: [&str; 7] = [
+    "h(\"",
+    "hex(",
+    "oklch",
+    "ThemeId::",
+    ".frame",
+    "Color::BLACK",
+    "Color::WHITE",
+];
+
+/// Where `ui.rs` and `view/` may use one of `LOOKS`.
+enum Allow {
+    /// Every line of the function whose signature line holds this (up to its closing `}` in column 0).
+    Fn(&'static str),
+    /// The one line holding this fragment.
+    Line(&'static str),
+}
+
+/// The exceptions, as (file, where, why). Each must still match (a `Line` exactly one line), so the
+/// list can't go stale or silently cover new lines.
+const ALLOWED: &[(&str, Allow, &str)] = &[
+    (
+        "ui.rs",
+        Allow::Fn("pub fn class_medal("),
+        "class medallion: the disc, sheen, emblem ink, lip and drop are shaded from the class colour, \
+         not the theme; only the ring comes from `Skin::medal`",
+    ),
+    (
+        "view/settings.rs",
+        Allow::Line("for id in ThemeId::ALL"),
+        "the theme picker lists every theme",
+    ),
+    (
+        "view/toasts.rs",
+        Allow::Line("tone.mix(Color::WHITE, 0.45)"),
+        "lifts a dark status tone off a dark ground (a contrast rule)",
+    ),
+];
+
+fn ident(c: char) -> bool {
+    c == '_' || c.is_alphanumeric()
+}
+
+/// `line` without its `//` comment; a `//` inside a string literal (a URL) stays.
+fn code_of(line: &str) -> &str {
+    let b = line.as_bytes();
+    let (mut i, mut in_str) = (0, false);
+    while i < b.len() {
+        match b[i] {
+            b'\\' if in_str => i += 1,
+            b'"' => in_str = !in_str,
+            // A quote as a char literal ('"') opens no string.
+            b'\'' if b.get(i + 1) == Some(&b'"') && b.get(i + 2) == Some(&b'\'') => i += 2,
+            b'/' if !in_str && b.get(i + 1) == Some(&b'/') => return &line[..i],
+            _ => {}
+        }
+        i += 1;
+    }
+    line
+}
+
+/// The `LOOKS` spellings in `line`'s code, each as a whole name: `h("` but not `push("`; `.frame`
+/// as the field, not the `frame_look()` accessor or `framed(..)` that views reach the frame by.
+fn looks_in(line: &str) -> Vec<&'static str> {
+    let code = code_of(line);
+    LOOKS
+        .into_iter()
+        .filter(|pat| {
+            code.match_indices(pat).any(|(i, _)| {
+                let before = code[..i].chars().next_back();
+                let after = code[i + pat.len()..].chars().next();
+                if *pat == ".frame" {
+                    !after.is_some_and(ident)
+                } else {
+                    !before.is_some_and(ident)
+                }
+            })
+        })
+        .collect()
+}
+
+#[test]
+fn f7_3_views_leave_looks_to_the_theme() {
+    let src = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
+    let mut files = vec!["ui.rs".to_string()];
+    for entry in std::fs::read_dir(src.join("view")).unwrap() {
+        let name = entry.unwrap().file_name().into_string().unwrap();
+        if name.ends_with(".rs") {
+            files.push(format!("view/{name}"));
+        }
+    }
+    let mut hits = vec![0; ALLOWED.len()];
+    let mut found = Vec::new();
+    for file in &files {
+        let text = std::fs::read_to_string(src.join(file)).unwrap();
+        let mut in_fn = None;
+        for (n, line) in text.lines().enumerate() {
+            if in_fn.is_none() {
+                in_fn = ALLOWED.iter().position(
+                    |(f, a, _)| matches!(a, Allow::Fn(sig) if f == file && line.contains(sig)),
+                );
+            }
+            if !looks_in(line).is_empty() {
+                let allowed = in_fn.or_else(|| {
+                    ALLOWED.iter().position(
+                        |(f, a, _)| matches!(a, Allow::Line(frag) if f == file && line.contains(frag)),
+                    )
+                });
+                match allowed {
+                    Some(i) => hits[i] += 1,
+                    None => found.push(format!("{file}:{}: `{}`", n + 1, line.trim())),
+                }
+            }
+            if line == "}" {
+                in_fn = None;
+            }
+        }
+    }
+    assert!(
+        found.is_empty(),
+        "looks belong in the theme (Pal, Skin, theme/ helpers; see docs/THEMES.md), not in views:\n{}",
+        found.join("\n")
+    );
+    for ((file, allow, _), n) in ALLOWED.iter().zip(hits) {
+        match allow {
+            Allow::Fn(sig) => assert!(
+                n > 0,
+                "{file}: `{sig}` no longer needs its allow-list entry"
+            ),
+            Allow::Line(frag) => assert_eq!(n, 1, "{file}: `{frag}` should allow exactly one line"),
+        }
+    }
+}
+
+#[test]
+fn f7_3_look_lint_sees_what_it_should() {
+    assert_eq!(looks_in(r##"    .fill(h("#fff"))"##), ["h(\""]);
+    assert_eq!(looks_in(r##"    .fill(theme::h("#fff"))"##), ["h(\""]);
+    assert!(looks_in(r#"    if url.starts_with("https://") {"#).is_empty());
+    assert!(looks_in(r#"    path.push("a");"#).is_empty());
+    assert_eq!(looks_in("    if th.frame.is_some() {"), [".frame"]);
+    assert!(looks_in("    let fr = th.frame_look();").is_empty());
+    assert!(looks_in("    // Color::BLACK in a comment").is_empty());
+    assert_eq!(
+        looks_in("    .color(Color::WHITE) // white"),
+        ["Color::WHITE"]
+    );
+    assert_eq!(
+        looks_in(r#"    let u = "https://x"; let c = Color::BLACK;"#),
+        ["Color::BLACK"]
+    );
+    assert_eq!(
+        looks_in(r#"    let q = '"'; let c = Color::BLACK; // "x""#),
+        ["Color::BLACK"]
+    );
+    // An escaped quote doesn't end the string, so its `//` is no comment.
+    assert_eq!(
+        looks_in(r#"    let s = "a \" // Color::BLACK"; // x"#),
+        ["Color::BLACK"]
+    );
+}

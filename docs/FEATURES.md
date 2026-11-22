@@ -250,7 +250,7 @@ in the theme's tones, gilded on the active chip, around a disc showing the origi
   titles), Marcellus (Ledger titles) and EB Garamond (Grimoire notes), so each theme looks the same on every OS; each
   family a theme names resolves to a bundled face, never a system one. (e2e `f7_3_theme_choice_applies_and_survives_restart`,
   `f7_3_unknown_stored_theme_falls_back_to_moonlit`, `f7_3_every_theme_renders_every_screen`,
-  `f7_3_every_theme_font_is_bundled`; unit
+  `f7_3_every_theme_font_is_bundled`, `f7_3_views_leave_looks_to_the_theme`, `f7_3_look_lint_sees_what_it_should`; unit
   `f7_3_every_theme_keeps_text_readable`, `f7_3_unknown_theme_ids_fall_back_to_moonlit`)
 - **F7.4 Name and folders** ✅ — The app is Culm (`brand.rs`: name, tagline, app id `dev.culm.app`).
 - **F7.5 About** ✅ — Settings → About shows the version from `Cargo.toml` and, until 1.0, the release stage

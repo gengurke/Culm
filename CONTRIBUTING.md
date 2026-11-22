@@ -25,5 +25,6 @@ In short:
   (`f3_1_...`). Update FEATURES.md and the "Unreleased" part of [CHANGELOG.md](CHANGELOG.md) with the change.
 - One topic per pull request, on a branch `<type>/<issue>-<what>` (e.g. `fix/81-sort-scroll-jump`); the body starts
   with `Fixes #<n>`. CI must be green.
+- New or changed themes follow [docs/THEMES.md](docs/THEMES.md): a theme is one data file, views never pick colours.
 - Tests never use the network or your real WoW folder.
 - No proprietary assets: no game art, fonts or other files Culm may not redistribute.
