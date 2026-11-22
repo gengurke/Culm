@@ -18,11 +18,6 @@ pub struct Toc {
     pub wago_id: Option<String>,
     /// Required dependencies (`Dependencies`, `RequiredDeps`, any `Dep*` key).
     pub dependencies: Vec<String>,
-    pub load_on_demand: bool,
-    /// `SavedVariables` and `SavedVariablesPerCharacter` names.
-    pub saved_variables: Vec<String>,
-    /// File lines (non-comment, non-empty), `\` normalized to `/`.
-    pub files: Vec<String>,
 }
 
 impl Toc {
@@ -109,10 +104,6 @@ pub fn parse_toc(file_name: &str, text: &str) -> Toc {
                 "x-curse-project-id" => set(&mut toc.curse_project_id, &value),
                 "x-wowi-id" => set(&mut toc.wowi_id, &value),
                 "x-wago-id" => set(&mut toc.wago_id, &value),
-                "loadondemand" => toc.load_on_demand = value == "1",
-                "savedvariables" | "savedvariablespercharacter" => {
-                    toc.saved_variables.extend(list(&value))
-                }
                 k if k == "requireddeps" || k.starts_with("dep") => {
                     for d in list(&value) {
                         if !toc.dependencies.contains(&d) {
@@ -122,8 +113,6 @@ pub fn parse_toc(file_name: &str, text: &str) -> Toc {
                 }
                 _ => {}
             }
-        } else if !line.is_empty() && !line.starts_with('#') {
-            toc.files.push(line.replace('\\', "/"));
         }
     }
     toc
@@ -157,7 +146,7 @@ fn clean_value(v: &str) -> String {
     out.trim().to_string()
 }
 
-const FLAVOR_SUFFIXES: [&str; 11] = [
+pub(crate) const FLAVOR_SUFFIXES: [&str; 11] = [
     "classic", "vanilla", "bcc", "tbc", "mainline", "wrath", "wotlkc", "cata", "mists", "forever",
     "camelot",
 ];
@@ -240,8 +229,6 @@ mod tests {
         assert_eq!(t.game_versions(), ["1.15.9", "2.5.6", "1.60.1"]);
         assert_eq!(t.forever_game_version().as_deref(), Some("1.60.1"));
         assert_eq!(t.dependencies, ["Details", "Ace3"]);
-        assert!(t.load_on_demand);
-        assert_eq!(t.files, ["Core/Init.lua"]);
     }
 
     #[test]

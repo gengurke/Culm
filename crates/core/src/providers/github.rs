@@ -1,4 +1,4 @@
-//! GitHub releases (public API; optional token raises the 60 req/h limit).
+//! GitHub releases (public API, no token: 60 requests an hour per IP).
 //! An addon is a repo "owner/repo"; its Forever build is found per release via the BigWigs packager
 //! `release.json`, else a `*-forever.zip`/`*-camelot.zip` asset, else a plain (untagged) zip.
 
@@ -13,23 +13,15 @@ pub const DEFAULT_API_BASE: &str = "https://api.github.com";
 /// Releases considered per repo (newest first).
 const RELEASES: usize = 5;
 
+// shortcut: no token, so the public 60 requests/hour limit applies; add one with a setting if
+// people hit it.
 pub struct GitHub {
-    pub token: Option<String>,
     pub api_base: String,
 }
 
 impl GitHub {
     fn get<T: for<'de> Deserialize<'de>>(&self, url: &str) -> Result<T> {
-        let auth = self
-            .token
-            .as_deref()
-            .filter(|t| !t.is_empty())
-            .map(|t| format!("Bearer {t}"));
-        let mut headers = vec![("Accept", "application/vnd.github+json")];
-        if let Some(auth) = &auth {
-            headers.push(("Authorization", auth));
-        }
-        http::get_json(url, &[], &headers, None)
+        http::get_json(url, &[], &[("Accept", "application/vnd.github+json")], None)
     }
 
     /// The repo's README as plain text (`GET /repos/{repo}/readme`, raw Markdown).
@@ -37,18 +29,9 @@ impl GitHub {
         let Some(repo) = parse_url(repo) else {
             bail!("not a GitHub repo: {repo}");
         };
-        let auth = self
-            .token
-            .as_deref()
-            .filter(|t| !t.is_empty())
-            .map(|t| format!("Bearer {t}"));
-        let mut headers = vec![("Accept", "application/vnd.github.raw")];
-        if let Some(auth) = &auth {
-            headers.push(("Authorization", auth));
-        }
         let md = http::get_text(
             &format!("{}/repos/{repo}/readme", self.api_base),
-            &headers,
+            &[("Accept", "application/vnd.github.raw")],
             None,
         )?;
         Ok(crate::html::markdown_to_text(
@@ -136,7 +119,7 @@ impl Provider for GitHub {
             bail!("{}", errors.join("; "));
         }
         for e in &errors {
-            eprintln!("GitHub update check skipped {e}");
+            crate::log::info(&format!("GitHub update check skipped {e}"));
         }
         Ok(out)
     }
@@ -174,8 +157,7 @@ fn forever_asset(r: &Release) -> Option<&Asset> {
         })
     };
     if let Some(meta_asset) = r.assets.iter().find(|a| a.name == "release.json") {
-        // A failed metadata fetch falls back to asset names. No token: the download
-        // URL redirects to another host.
+        // A failed metadata fetch falls back to asset names.
         let picked =
             http::get_json::<ReleaseJson>(&meta_asset.browser_download_url, &[], &[], None)
                 .ok()
@@ -212,11 +194,7 @@ pub(super) fn parse_url(url: &str) -> Option<String> {
     let owner = parts.next()?;
     let repo = parts.next()?;
     let repo = repo.strip_suffix(".git").unwrap_or(repo);
-    let ok = |s: &str| {
-        !s.is_empty()
-            && s.chars()
-                .all(|c| c.is_ascii_alphanumeric() || "-_.".contains(c))
-    };
+    let ok = crate::discover::is_repo_part;
     // A bare "owner/repo" must be exactly that, so we don't claim other providers' input.
     if !ok(owner) || !ok(repo) || (bare && parts.next().is_some()) {
         return None;

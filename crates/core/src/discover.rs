@@ -226,12 +226,14 @@ pub fn github_repo(url: &str) -> Option<String> {
     let path = path.strip_suffix('/').unwrap_or(path);
     let path = path.strip_suffix(".git").unwrap_or(path);
     let (owner, repo) = path.split_once('/')?;
-    let ok = |s: &str| {
-        !s.is_empty()
-            && s.chars()
-                .all(|c| c.is_ascii_alphanumeric() || "-_.".contains(c))
-    };
-    (ok(owner) && ok(repo)).then(|| format!("{owner}/{repo}"))
+    (is_repo_part(owner) && is_repo_part(repo)).then(|| format!("{owner}/{repo}"))
+}
+
+/// Whether `s` can be a GitHub owner or repo name (letters, digits, `-`, `_`, `.`).
+pub(crate) fn is_repo_part(s: &str) -> bool {
+    !s.is_empty()
+        && s.chars()
+            .all(|c| c.is_ascii_alphanumeric() || "-_.".contains(c))
 }
 
 #[cfg(test)]

@@ -85,7 +85,7 @@ const KEPT: &str = ".addons-kept-";
 const LOCK: &str = ".addons-lock";
 
 /// The lock file of an installation's work dirs: installs hold it shared, [`recover`] exclusive,
-/// across processes (two Culm windows, or one Culm stuck while another starts).
+/// across processes (two app windows, or one stuck while another starts).
 fn lock_file(work: &Path) -> Result<File> {
     let path = work.join(LOCK);
     std::fs::OpenOptions::new()
@@ -171,7 +171,7 @@ fn safe_parts(name: &str) -> Result<Vec<String>> {
     Ok(parts)
 }
 
-fn check_folder_name(name: &str) -> Result<()> {
+pub(crate) fn check_folder_name(name: &str) -> Result<()> {
     if name.is_empty() || name == "." || name == ".." || name.contains(['/', '\\', '\0']) {
         bail!("invalid addon folder name {name:?}");
     }
@@ -421,9 +421,7 @@ pub fn install_zip_file(
     let folders = install_zip(inst, zip, &addon.folders)
         .with_context(|| format!("installing {}", addon.name))?;
     let mut a = addon.clone();
-    let main = folders
-        .iter()
-        .min_by(|x, y| x.len().cmp(&y.len()).then(x.cmp(y)));
+    let main = crate::util::main_folder(&folders, |f| f);
     let toc = main.and_then(|m| read_folder_toc(&inst.addons_dir().join(m)).ok().flatten());
     a.game_version = toc.as_ref().and_then(Toc::forever_game_version);
     a.game_versions = toc.as_ref().map(Toc::game_versions).unwrap_or_default();

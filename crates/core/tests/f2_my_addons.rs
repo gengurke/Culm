@@ -56,11 +56,6 @@ fn f2_1_scan_picks_forever_toc() {
     assert_eq!(d.file_name, "Details_Camelot.toc");
     assert_eq!(d.curse_project_id.as_deref(), Some("61284"));
     assert_eq!(d.wago_id.as_deref(), Some("qv63A7Gb"));
-    assert!(
-        d.saved_variables
-            .contains(&"_detalhes_database".to_string())
-    );
-    assert!(d.files.contains(&"core/parser_nocleu.xml".to_string()));
     assert_eq!(toc("Plain").title.as_deref(), Some("Plain Addon"));
     let ids = folders[0].scanned().toc_ids;
     assert!(ids.contains(&("CurseForge".into(), "61284".into())));
@@ -93,7 +88,10 @@ fn f2_3_fingerprint_matches_golden_value() {
     write(&dir.join("Bindings.xml"), "<Bindings/>");
     write(&dir.join("README.md"), "ignored");
     assert_eq!(fingerprint::fingerprint_files(&dir).unwrap().len(), 5);
-    assert_eq!(fingerprint::folder_fingerprint(&dir).unwrap(), 3501589137);
+    assert_eq!(
+        fingerprint::folder_fingerprints(&dir).unwrap().0,
+        3501589137
+    );
     // The Hub's md5 fingerprint of the same fixture.
     assert_eq!(
         fingerprint::folder_fingerprints(&dir).unwrap().1,

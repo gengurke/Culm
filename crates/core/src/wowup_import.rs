@@ -3,6 +3,7 @@
 use crate::model::{
     Addon, Channel, Dependency, DependencyKind, IgnoreReason, Installation, RemoteFile,
 };
+use crate::providers;
 use anyhow::{Context, Result};
 use serde_json::Value;
 use std::path::Path;
@@ -65,10 +66,7 @@ fn clean_file_name_version(a: &mut Addon, addons_dir: &Path) {
     let is_file = |v: &str| v.to_ascii_lowercase().ends_with(".zip");
     let strip = |v: &str| v[..v.len() - 4].to_string();
     if let Some(v) = a.installed_version.clone().filter(|v| is_file(v)) {
-        let main = a
-            .folders
-            .iter()
-            .min_by(|x, y| x.len().cmp(&y.len()).then(x.cmp(y)));
+        let main = crate::util::main_folder(&a.folders, |f| f);
         let toc = main
             .and_then(|m| {
                 crate::toc::read_folder_toc(&addons_dir.join(m))
@@ -85,10 +83,12 @@ fn clean_file_name_version(a: &mut Addon, addons_dir: &Path) {
 
 fn map_record(r: &Value) -> Option<Addon> {
     let s = |k: &str| r[k].as_str().filter(|v| !v.is_empty()).map(str::to_string);
+    // WowUp's names (its `ADDON_PROVIDER_*` constants); "Hub" is the Hub's legacy name.
     let provider = match r["providerName"].as_str()? {
-        "Curse" | "CurseV2" => "CurseForge",
-        "WowInterface" => "WowInterface",
-        "GitHub" => "GitHub",
+        "Curse" | "CurseV2" => providers::curseforge::NAME,
+        "WowInterface" => providers::wowinterface::NAME,
+        "GitHub" => providers::github::NAME,
+        "WowUpHub" | "Hub" => providers::hub::NAME,
         _ => return None,
     };
     let mut folders: Vec<String> = match r["installedFolderList"].as_array() {
@@ -101,7 +101,7 @@ fn map_record(r: &Value) -> Option<Addon> {
             .map(|f| f.trim().to_string())
             .collect(),
     };
-    folders.retain(|f| !f.is_empty() && !f.contains(['/', '\\']) && f != "..");
+    folders.retain(|f| crate::install::check_folder_name(f).is_ok());
     let channel = |v: &Value| match v.as_u64() {
         Some(1) => Channel::Beta,
         Some(2) => Channel::Alpha,

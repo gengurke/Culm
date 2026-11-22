@@ -84,6 +84,44 @@ fn f2_4_imports_wowup_records() {
 }
 
 #[test]
+fn f2_4_wowup_hub_records_keep_their_link_and_bad_folder_names_are_dropped() {
+    // WowUp calls the Hub "WowUpHub" ("Hub" in older versions); its id is the Hub addon id.
+    let w = fake_wow();
+    w.add_folder("Alpha", "Alpha.toc", &toc("Alpha", "1"), &[]);
+    w.add_folder("Beta", "Beta.toc", &toc("Beta", "1"), &[]);
+    let wowup = w.tmp.path().join("WowUp");
+    let client = w.inst.root.display().to_string();
+    let prefs = serde_json::json!({
+        "wow_installations": [{"id": "fev", "clientType": 10, "location": format!("{client}/Wow.exe")}]
+    });
+    let rec = |id: &str, folders: &[&str], provider: &str| {
+        serde_json::json!({
+            "id": id, "name": id, "providerName": provider, "externalId": "47671",
+            "installedFolderList": folders, "clientType": 10, "installationId": "fev"
+        })
+    };
+    let addons = serde_json::json!({
+        "a": rec("Alpha", &["Alpha", "."], "WowUpHub"),
+        "b": rec("Beta", &["Beta"], "Hub"),
+    });
+    write(&wowup.join("preferences.json"), prefs.to_string());
+    write(&wowup.join("addons.json"), addons.to_string());
+
+    let imported = wowup_import::import_wowup(&wowup, &w.inst).unwrap();
+    let got: Vec<(&str, Option<&str>, &[String])> = imported
+        .iter()
+        .map(|a| (a.name.as_str(), a.provider.as_deref(), &a.folders[..]))
+        .collect();
+    assert_eq!(
+        got,
+        [
+            ("Alpha", Some("WowUpHub"), &["Alpha".to_string()][..]),
+            ("Beta", Some("WowUpHub"), &["Beta".to_string()][..]),
+        ]
+    );
+}
+
+#[test]
 fn f2_4_overlapping_wowup_records_get_one_owner_per_folder() {
     let w = fake_wow();
     for f in ["Questie", "QuestieTrace"] {

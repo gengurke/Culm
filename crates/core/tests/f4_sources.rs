@@ -21,7 +21,6 @@ fn hub(s: &FakeServer) -> Hub {
     Hub {
         base_url: format!("{}/hub", s.url()),
         github: addon_core::providers::GitHub {
-            token: None,
             api_base: s.url().into(),
         },
     }

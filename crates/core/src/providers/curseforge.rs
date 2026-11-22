@@ -238,13 +238,7 @@ impl Provider for CurseForge {
 
 /// `https://www.curseforge.com/wow/addons/<slug>[/...]` → slug.
 pub(super) fn parse_url(url: &str) -> Option<&str> {
-    let rest = url.trim().split_once("://").map_or(url.trim(), |(_, r)| r);
-    let rest = rest.strip_prefix("www.").unwrap_or(rest);
-    let slug = rest
-        .strip_prefix("curseforge.com/wow/addons/")?
-        .split(['/', '?', '#'])
-        .next()?;
-    (!slug.is_empty()).then_some(slug)
+    crate::util::url_segment(url, "curseforge.com/wow/addons/").filter(|s| !s.is_empty())
 }
 
 fn is_forever(f: &CfFile) -> bool {
@@ -416,7 +410,6 @@ struct Logo {
 struct CfFile {
     id: u64,
     display_name: String,
-    file_name: String,
     release_type: u8,
     file_date: Option<String>,
     download_url: Option<String>,

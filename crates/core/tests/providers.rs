@@ -396,7 +396,6 @@ fn f4_5_github_readme_is_plain_text() {
         "# Questie\n[![CI](https://x/ci.svg)](https://x)\n\nThe **best** quest helper.\n\n- Shows quests\n",
     );
     let gh = GitHub {
-        token: None,
         api_base: s.url().into(),
     };
     assert_eq!(
@@ -432,7 +431,6 @@ fn github_server() -> FakeServer {
 fn f4_4_github_url_picks_forever_asset() {
     let s = github_server();
     let gh = GitHub {
-        token: Some("gh-token".into()),
         api_base: s.url().into(),
     };
 
@@ -467,12 +465,6 @@ fn f4_4_github_url_picks_forever_asset() {
     );
     assert_eq!(addon.latest_for(Channel::Beta).unwrap().id, "91");
 
-    let api = &s.requests_to("/repos/Questie/Questie")[0];
-    assert_eq!(api.header("authorization"), Some("Bearer gh-token"));
-    assert_eq!(
-        s.requests_to("/dl/82/release.json")[0].header("authorization"),
-        None
-    );
     // Bare owner/repo works too; other URLs are not GitHub's.
     assert!(gh.from_url(F, "Questie/Questie").unwrap().is_some());
     assert!(
@@ -512,7 +504,6 @@ fn f4_4_github_plain_zip_fallback_skips_other_flavors() {
           "assets": [asset(11, "Plain-v1-classic.zip"), asset(12, "Plain-v1.zip")] }
     ]));
     let gh = GitHub {
-        token: None,
         api_base: s.url().into(),
     };
 

@@ -1,5 +1,5 @@
 //! Addons the user fetches by hand (F3.5, F4.3): when an author allows downloads only through the
-//! source's own app or website, the user downloads the zip in the browser and Culm installs it.
+//! source's own app or website, the user downloads the zip in the browser and we install it.
 //! A zip counts only when its size and SHA-1 are exactly the ones the source publishes, so a
 //! wrong, partial or tampered file is never installed.
 
@@ -37,11 +37,7 @@ fn sha1_hex(mut f: impl Read) -> Result<String> {
         }
         hasher.update(&buf[..n]);
     }
-    Ok(hasher
-        .finalize()
-        .iter()
-        .map(|b| format!("{b:02x}"))
-        .collect())
+    Ok(crate::util::hex(&hasher.finalize()))
 }
 
 /// Every `.zip` directly in `dir` (the Downloads folder) that is exactly `check`'s file, by name:
@@ -79,7 +75,7 @@ pub fn install(inst: &Installation, addon: &Addon, path: &Path) -> Result<Addon>
         .with_context(|| format!("no update known for {}", addon.name))?;
     let Some(check) = &file.check else {
         bail!(
-            "{}: check for updates first, so Culm can recognise the file",
+            "{}: check for updates first, so the file can be recognised",
             addon.name
         );
     };

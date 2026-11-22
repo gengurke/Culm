@@ -18,6 +18,32 @@ pub(crate) fn fnv1a64(bytes: &[u8]) -> u64 {
     h
 }
 
+/// Lowercase hex of `bytes` (hash digests).
+pub(crate) fn hex(bytes: &[u8]) -> String {
+    bytes.iter().map(|b| format!("{b:02x}")).collect()
+}
+
+/// The folder that stands for an addon among `items`: the shortest name (the parent of
+/// `Foo_Options` etc.), then the first by name.
+pub(crate) fn main_folder<T>(
+    items: impl IntoIterator<Item = T>,
+    name: impl Fn(&T) -> &str,
+) -> Option<T> {
+    items.into_iter().min_by(|a, b| {
+        let (a, b) = (name(a), name(b));
+        a.len().cmp(&b.len()).then(a.cmp(b))
+    })
+}
+
+/// The path segment right after `prefix` (host and path, e.g. `wowup.io/addons/`) in a link, with or
+/// without scheme and `www.`; cut at `/`, `?` or `#`. None if the link doesn't start that way.
+pub(crate) fn url_segment<'a>(url: &'a str, prefix: &str) -> Option<&'a str> {
+    let url = url.trim();
+    let rest = url.split_once("://").map_or(url, |(_, r)| r);
+    let rest = rest.strip_prefix("www.").unwrap_or(rest);
+    rest.strip_prefix(prefix)?.split(['/', '?', '#']).next()
+}
+
 /// Random uuid-v4-shaped id (randomness from std's per-process SipHash keys plus time).
 pub(crate) fn new_id() -> String {
     let nanos = SystemTime::now()
@@ -32,7 +58,7 @@ pub(crate) fn new_id() -> String {
         *w = h.finish();
     }
     let b: Vec<u8> = words.iter().flat_map(|w| w.to_le_bytes()).collect();
-    let hex: String = b.iter().map(|x| format!("{x:02x}")).collect();
+    let hex = hex(&b);
     format!(
         "{}-{}-4{}-{}-{}",
         &hex[0..8],

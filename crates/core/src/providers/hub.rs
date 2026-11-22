@@ -176,11 +176,7 @@ impl Provider for Hub {
 
 /// `https://wowup.io/addons/<id>[/...]` → id.
 pub(super) fn parse_url(url: &str) -> Option<u64> {
-    let rest = url.trim().split_once("://").map_or(url.trim(), |(_, r)| r);
-    let rest = rest.strip_prefix("www.").unwrap_or(rest);
-    rest.strip_prefix("wowup.io/addons/")?
-        .split(['/', '?', '#'])
-        .next()?
+    crate::util::url_segment(url, "wowup.io/addons/")?
         .parse()
         .ok()
 }

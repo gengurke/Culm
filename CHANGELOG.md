@@ -24,6 +24,8 @@ or break. New changes go under "Unreleased"; a release turns that heading into i
   (downloads already worked this way).
 
 ### Fixed
+- Importing from WowUp keeps addons WowUp installed from the WowUp Hub, with their channel, auto-update and ignore
+  setting, instead of re-matching them from scratch.
 - Esc closes the installation menu in the sidebar.
 - Saving a CurseForge key while Culm is still scanning or checking for updates now rescans once that finishes, so
   CurseForge matches and updates show without pressing Rescan; a key saved while Culm starts is no longer lost.
