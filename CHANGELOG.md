@@ -10,6 +10,8 @@ or break. New changes go under "Unreleased"; a release turns that heading into i
 - Updated the Rune UI framework: when the button that has keyboard focus greys out, focus moves on to the next control
   instead of being lost, and on Windows saving settings no longer fails when another program briefly holds the file.
 - Starting Culm while it already runs brings the open window forward instead of opening a second one (Windows, Linux).
+- Notifications in the Moonlit and Ledger themes no longer show a coloured stud on their top edge; themes with
+  studded frames keep it.
 
 ### Fixed
 - Installing or updating an addon never replaces a folder that is a developer's git checkout.

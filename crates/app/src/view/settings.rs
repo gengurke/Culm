@@ -315,7 +315,7 @@ pub fn page(s: &State) -> El {
 /// A picker card: a miniature window painted in that theme's own skin, its name and a line.
 fn theme_card(s: &State, id: ThemeId) -> El {
     let (th, p) = (id.theme(), pal());
-    let fr = th.frame.map_or(th, |f| &**f);
+    let fr = th.frame_look();
     let on = s.settings.theme == id;
     let sk = &th.skin;
     // The window in miniature, as the app draws it: the sidebar with the brand mark and the

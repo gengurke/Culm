@@ -5,9 +5,12 @@
 //! Adding a theme: write `theme/<name>.rs` with a `pub static THEME: LazyLock<Theme>` and add one
 //! `Variant => module` line to the `themes!` list below.
 
+mod deco;
+mod glyphs;
 mod texture;
 
 use crate::state::{Screen, State};
+pub use deco::band_deco;
 use rune::color::hex;
 use rune::tok::{Family, TextStyle};
 use rune::{ChromeInsets, Color, El, Icon, Image, Shadow, el, icon};
@@ -81,6 +84,13 @@ pub struct Theme {
     pub frame: Option<&'static LazyLock<Theme>>,
 }
 
+impl Theme {
+    /// The look of the window frame (sidebar, header band): [`Theme::frame`] or the theme itself.
+    pub fn frame_look(&'static self) -> &'static Theme {
+        self.frame.map_or(self, |f| &**f)
+    }
+}
+
 /// The colours views read directly (everything else a theme paints goes through its [`Skin`]).
 /// Theme-only tones (sidebar wood, band sky, field wells, …) are local `let`s in the theme file.
 pub struct Pal {
@@ -104,7 +114,7 @@ pub struct Pal {
     pub divider: Color,
     /// Hover wash on clickable rows, chips and cards.
     pub hover: Color,
-    /// Press wash on buttons.
+    /// Press wash on icon buttons.
     pub selected: Color,
     /// Quiet badge ground and keyboard caps.
     pub chip: Color,
@@ -210,6 +220,7 @@ pub struct Skin {
     pub list_header: Surface,
     pub row: Surface,
     pub row_selected: Surface,
+    /// Sidebar rows (the label in `ink`; the glyph takes `accent` when active, else `text_muted`).
     pub nav: Surface,
     pub nav_active: Surface,
     pub primary: Surface,
@@ -224,7 +235,7 @@ pub struct Skin {
     pub tile: Surface,
     pub segments: Surface,
     pub segment_on: Surface,
-    /// Painted after the kit built the toast: a texture or corners would cover its content.
+    /// Toasts (framed alerts); their corner glyph, if any, also crowns the top edge as a gem.
     pub toast: Surface,
     pub kbd: Surface,
     /// Round class medallions (Get Addons' class chips).
@@ -271,10 +282,14 @@ impl Skin {
             },
             row_selected: blank(),
             nav: Surface {
+                ink: p.text_dim,
                 hover: p.hover,
                 ..blank()
             },
-            nav_active: blank(),
+            nav_active: Surface {
+                ink: p.heading,
+                ..blank()
+            },
             primary: blank(),
             secondary: blank(),
             ghost: Surface {
@@ -520,9 +535,10 @@ thread_local! {
 /// The theme the view on this thread is drawing with (its frame look inside [`framed`]).
 pub fn t() -> &'static Theme {
     let th = CURRENT.with(Cell::get).theme();
-    match th.frame {
-        Some(frame) if FRAMED.with(Cell::get) => frame,
-        _ => th,
+    if FRAMED.with(Cell::get) {
+        th.frame_look()
+    } else {
+        th
     }
 }
 

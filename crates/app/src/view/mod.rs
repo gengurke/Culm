@@ -9,8 +9,8 @@ mod toasts;
 use crate::brand;
 use crate::icons;
 use crate::state::{AppUpdate, Intent, Job, Screen, State, dispatch};
+use crate::theme::Surface;
 use crate::theme::{self, StyleExt, SurfaceExt, pal, t};
-use crate::theme::{BandDeco, Surface};
 use crate::ui::{self, Kind};
 use rune::{Cursor, Cx, El, Icon, Tx, col, el, icon, row, text};
 
@@ -55,7 +55,7 @@ fn band_in_frame(title: &str, meta: Vec<El>, actions: Vec<El>) -> El {
         .gap(14.0)
         .center_y()
         .skin(&th.skin.band);
-    if let Some(deco) = band_deco(th.skin.band_deco) {
+    if let Some(deco) = theme::band_deco() {
         b = b.child(deco);
     }
     b = b.child(
@@ -77,60 +77,6 @@ fn band_in_frame(title: &str, meta: Vec<El>, actions: Vec<El>) -> El {
 /// A muted piece of the band's meta line.
 pub(crate) fn band_note(s: impl Into<String>) -> El {
     text(s.into()).font(t().ty.note).color(pal().text_dim)
-}
-
-/// The band's decoration layer: a fixed scatter (a tiny LCG keeps it the same every frame).
-fn band_deco(deco: BandDeco) -> Option<El> {
-    let p = pal();
-    let mut layer = el()
-        .key("band/stars")
-        .pin(Some(0.0), Some(0.0), Some(0.0), Some(0.0))
-        .clip_rounded(0.0)
-        .a11y_hidden();
-    let mut seed: u32 = 0x9e37_79b9;
-    let mut next = || {
-        seed = seed.wrapping_mul(1_664_525).wrapping_add(1_013_904_223);
-        (seed >> 8) as f32 / (1u32 << 24) as f32
-    };
-    match deco {
-        BandDeco::None => return None,
-        BandDeco::Stars => {
-            for _ in 0..28 {
-                let (x, y, size, a) = (
-                    next() * 1600.0,
-                    next() * theme::BAND_H,
-                    if next() > 0.85 { 2.0 } else { 1.0 },
-                    0.18 + next() * 0.55,
-                );
-                layer = layer.child(
-                    el().absolute(x, y)
-                        .size(size, size)
-                        .radius(size / 2.0)
-                        .fill(p.text.alpha(a)),
-                );
-            }
-        }
-        BandDeco::Embers => {
-            // Sparks thin out and fade as they rise from the bottom edge.
-            for _ in 0..26 {
-                let (x, rise, size) = (
-                    next() * 1600.0,
-                    next() * next(),
-                    if next() > 0.8 { 3.0 } else { 2.0 },
-                );
-                let a = 0.85 - rise * 0.75;
-                let spark = p.warning.mix(p.accent_hi, next());
-                layer = layer.child(
-                    el().absolute(x, theme::BAND_H - 6.0 - rise * theme::BAND_H * 0.9)
-                        .size(size, size)
-                        .radius(size / 2.0)
-                        .fill(spark.alpha(a))
-                        .shadow(0.0, 6.0, spark.alpha(a * 0.8)),
-                );
-            }
-        }
-    }
-    Some(layer)
 }
 
 fn sidebar(s: &State) -> El {
@@ -293,6 +239,11 @@ fn nav_row(
 ) -> El {
     let (th, p) = (t(), pal());
     let on = s.screen == screen;
+    let sk = if on {
+        &th.skin.nav_active
+    } else {
+        &th.skin.nav
+    };
     let mut r = row()
         .key(key)
         .role("link")
@@ -304,11 +255,7 @@ fn nav_row(
         .pr(16.0)
         .gap(12.0)
         .center_y()
-        .skin(if on {
-            &th.skin.nav_active
-        } else {
-            &th.skin.nav
-        })
+        .skin(sk)
         .cursor(Cursor::Pointer)
         .on_press_tx(move |s: &mut State, tx: &mut Tx| dispatch(s, Intent::Navigate(screen), tx));
     r = r
@@ -320,7 +267,7 @@ fn nav_row(
                 } else {
                     th.ty.body
                 })
-                .color(if on { p.heading } else { p.text_dim })
+                .color(sk.ink)
                 .grow(1.0),
         );
     if count > 0 {

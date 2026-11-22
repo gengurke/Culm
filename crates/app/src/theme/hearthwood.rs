@@ -3,7 +3,7 @@
 //! buttons with a bevel, item-quality status colours. Textures are generated (texture.rs).
 
 use super::{BASE_TYPE, BandDeco, Border, Corners, Medal, Overlay, Pal, Skin, Surface, Tex, Theme, Type, drop, face, h, inner_ring, inset};
-use crate::icons;
+use super::glyphs;
 use rune::tok::{Family, TextStyle};
 use rune::Color;
 use std::sync::LazyLock;
@@ -52,7 +52,7 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
     };
     let under = Some(Border::sides([0.0, 0.0, 1.0, 0.0], p.divider));
     let bevel = Some(Border::bevel(1.0, h("#b08a44"), h("#4a3418")));
-    let studs = Some(Corners { glyph: &icons::STUD, size: 9.0, inset: 3.0, color: h("#d9b25a") });
+    let studs = Some(Corners { glyph: &glyphs::STUD, size: 9.0, inset: 3.0, color: h("#d9b25a") });
     // Cards stay untextured (many on screen): a leather-brown gradient under a warm top glow.
     let leather = Surface {
         fill: p.panel,
@@ -64,6 +64,7 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
         ..Default::default()
     };
     let wood = Surface { fill: h("#2a1a0e"), vertical: Some((h("#311f11"), h("#1f130a"))), texture: Some((Tex::Wood, 0.5)), ..Default::default() };
+    let panel = Surface { corners: studs, ..leather.clone() };
     let skin = Skin {
         window: Surface { fill: p.bg, ink: p.text, texture: Some((Tex::Leather, 0.25)), ..Default::default() },
         sidebar: Surface { border: Some(Border::sides([0.0, 2.0, 0.0, 0.0], h("#8a6a2e"))), ..wood.clone() },
@@ -77,9 +78,9 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
         },
         band_deco: BandDeco::Embers,
         toolbar: Surface { fill: Color::BLACK.alpha(0.2), border: Some(Border::sides([0.0, 0.0, 1.0, 0.0], gold.alpha(0.2))), ..Default::default() },
-        panel: Surface { corners: studs, ..leather.clone() },
+        panel: panel.clone(),
         detail: Surface { border: Some(Border::sides([0.0, 0.0, 0.0, 2.0], h("#8a6a2e"))), ..wood },
-        menu: Surface { overlay: None, shadows: vec![inset(1.0, h("#ffcf80").alpha(0.1)), drop(6.0, 18.0, 0.65)], ..leather.clone() },
+        menu: Surface { overlay: None, shadows: vec![inset(1.0, h("#ffcf80").alpha(0.1)), drop(6.0, 18.0, 0.65)], ..leather },
         list_header: Surface { fill: Color::BLACK.alpha(0.22), border: Some(Border::sides([0.0, 0.0, 1.0, 0.0], gold.alpha(0.25))), ..Default::default() },
         // A warm-lit row in a thin gold ring.
         row_selected: Surface {
@@ -92,6 +93,7 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
         },
         // A gilt plaque on the wood, inset from the sidebar's edges.
         nav_active: Surface {
+            ink: p.heading,
             border: Some(Border::margin([3.0, 10.0, 3.0, 10.0])),
             radius: 2.0,
             shadows: vec![
@@ -149,11 +151,10 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
             radius: 2.0,
             ..Default::default()
         },
-        // No texture on toasts: the kit builds their content before the skin is applied.
-        toast: Surface { texture: None, shadows: vec![drop(4.0, 16.0, 0.6)], ..leather },
+        toast: Surface { shadows: vec![drop(2.0, 8.0, 0.55), drop(6.0, 18.0, 0.5)], ..panel },
         kbd: Surface { ink: p.text_muted, border: Some(Border::all(1.0, gold.alpha(0.35))), radius: 2.0, ..Default::default() },
         medal: Medal { ring: [h("#d8c39a"), h("#86683c"), h("#36220f")], ring_on: [h("#fff0b8"), h("#e8b84a"), h("#7a5010")], outline: h("#0d0804") },
-        emblem: &icons::CREST,
+        emblem: &glyphs::CREST,
         ..Skin::base(&p, 3.0)
     };
     Theme {
