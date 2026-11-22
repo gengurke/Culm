@@ -348,6 +348,14 @@ fn f3_4_ignored_addon_is_not_offered_for_update() {
     assert_eq!(app.status("Ace"), Status::Ignored);
     assert!(!app.has(&app.row("Ace", "update")));
     assert!(app.shows("Update all (1)"));
+    // A worker writes the ignore: reopen only once it is stored, or the new app's own backend could
+    // scan the list before the write lands (#133).
+    let (id, inst) = (app.id("Ace"), app.state().current.clone().unwrap());
+    let data = world.config().data_dir;
+    app.wait_until("the ignore stored", |_| {
+        addon_core::store::load_addons(&data, &inst)
+            .is_ok_and(|list| list.iter().any(|a| a.id == id && a.ignored.is_some()))
+    });
 
     let mut again = world.app();
     again.wait_idle();
