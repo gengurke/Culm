@@ -33,16 +33,23 @@ impl LocalFolder {
     }
 }
 
-/// Result of matching: the addon list plus non-fatal provider errors (e.g. offline).
+/// Result of matching: the addon list plus non-fatal errors (a provider offline, a folder that
+/// couldn't be read).
 #[derive(Debug, Default)]
 pub struct ScanResult {
     pub addons: Vec<Addon>,
     pub errors: Vec<String>,
+    /// Folders that exist but couldn't be read: not in `addons`, but not gone either.
+    pub unreadable: Vec<String>,
 }
 
+/// Folders that couldn't be read, each with its error.
+pub type Unreadable = Vec<(String, anyhow::Error)>;
+
 /// Reads every addon folder (a folder with at least one `.toc`) in the installation's AddOns dir.
-/// Folders are fingerprinted in parallel. Sorted by name.
-pub fn scan_folders(inst: &Installation) -> Result<Vec<LocalFolder>> {
+/// Folders are fingerprinted in parallel. Sorted by name. A folder that can't be read is skipped
+/// and returned with its error instead, so one broken folder doesn't hide the rest.
+pub fn scan_folders(inst: &Installation) -> Result<(Vec<LocalFolder>, Unreadable)> {
     let dir = inst.addons_dir();
     let rd = std::fs::read_dir(&dir).with_context(|| format!("reading {}", dir.display()))?;
     let mut paths: Vec<PathBuf> = rd
@@ -56,36 +63,51 @@ pub fn scan_folders(inst: &Installation) -> Result<Vec<LocalFolder>> {
         .map_or(4, |n| n.get())
         .min(8);
     let chunk = paths.len().div_ceil(threads).max(1);
-    let results: Vec<Result<Option<LocalFolder>>> = std::thread::scope(|s| {
+    let results: Vec<(&PathBuf, Result<Option<LocalFolder>>)> = std::thread::scope(|s| {
         let handles: Vec<_> = paths
             .chunks(chunk)
-            .map(|c| s.spawn(move || c.iter().map(|p| scan_folder(p)).collect::<Vec<_>>()))
+            .map(|c| {
+                (
+                    c,
+                    s.spawn(move || c.iter().map(|p| scan_folder(p)).collect::<Vec<_>>()),
+                )
+            })
             .collect();
         handles
             .into_iter()
-            .flat_map(|h| {
-                h.join()
-                    .unwrap_or_else(|_| vec![Err(anyhow::anyhow!("scan thread panicked"))])
+            .flat_map(|(c, h)| {
+                let res = h.join().unwrap_or_else(|_| {
+                    c.iter()
+                        .map(|_| Err(anyhow::anyhow!("scan thread panicked")))
+                        .collect()
+                });
+                c.iter().zip(res)
             })
             .collect()
     });
     let mut out = Vec::new();
-    for r in results {
-        if let Some(f) = r? {
-            out.push(f);
+    let mut unreadable = Vec::new();
+    for (path, r) in results {
+        match r {
+            Ok(Some(f)) => out.push(f),
+            Ok(None) => {}
+            Err(e) => unreadable.push((folder_name(path), e)),
         }
     }
-    Ok(out)
+    Ok((out, unreadable))
+}
+
+fn folder_name(path: &Path) -> String {
+    path.file_name()
+        .map(|n| n.to_string_lossy().into_owned())
+        .unwrap_or_default()
 }
 
 fn scan_folder(path: &Path) -> Result<Option<LocalFolder>> {
     if toc_names(path)?.is_empty() {
         return Ok(None);
     }
-    let name = path
-        .file_name()
-        .map(|n| n.to_string_lossy().into_owned())
-        .unwrap_or_default();
+    let name = folder_name(path);
     let (fingerprint, hub_fingerprint) =
         folder_fingerprints(path).with_context(|| format!("fingerprinting {}", path.display()))?;
     Ok(Some(LocalFolder {
@@ -102,7 +124,14 @@ pub fn scan_installation(
     inst: &Installation,
     providers: &[Box<dyn Provider>],
 ) -> Result<ScanResult> {
-    Ok(build_addons(inst.flavor, &scan_folders(inst)?, providers))
+    let (folders, unreadable) = scan_folders(inst)?;
+    let mut res = build_addons(inst.flavor, &folders, providers);
+    for (name, e) in unreadable {
+        res.errors
+            .push(format!("could not read the folder {name}: {e:#}"));
+        res.unreadable.push(name);
+    }
+    Ok(res)
 }
 
 /// Matches folders against the available providers (in order; a folder matched by one provider is

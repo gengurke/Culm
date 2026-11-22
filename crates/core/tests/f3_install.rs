@@ -76,12 +76,7 @@ fn f4_3_install_creates_record_and_replaces_existing_folders() {
         std::slice::from_ref(&stable.download_url)
     );
     // No staging/backup leftovers next to AddOns.
-    let leftovers: Vec<_> = std::fs::read_dir(w.addons().parent().unwrap())
-        .unwrap()
-        .flatten()
-        .map(|e| e.file_name())
-        .collect();
-    assert_eq!(leftovers, ["AddOns"]);
+    assert!(work_dirs(&w).is_empty(), "{:?}", work_dirs(&w));
 
     // The installed addon replaces the Unknown record of its folder.
     let mut list = vec![addon_core::Addon {
@@ -148,10 +143,7 @@ fn f3_2_update_swaps_folders_and_rolls_back_on_bad_zip() {
         assert!(read(&w, "Bar/Bar.toc").contains("## Version: 2"));
         assert!(!w.tmp.path().join("battlenet/drive_c/Program Files (x86)/World of Warcraft/_forever_/Interface/evil.lua").exists());
     }
-    let leftovers = std::fs::read_dir(w.addons().parent().unwrap())
-        .unwrap()
-        .count();
-    assert_eq!(leftovers, 1);
+    assert!(work_dirs(&w).is_empty(), "{:?}", work_dirs(&w));
 
     // A failed download leaves everything alone too.
     let v4 = remote_file("4444", "4.0", Channel::Stable, &[]);
@@ -217,12 +209,10 @@ fn f3_2_swap_failure_restores_backups() {
     assert!(format!("{err:#}").contains("backing up"), "{err:#}");
     assert_eq!(read(&w, "A_First/a.lua"), "keep me");
     assert_eq!(w.folder_names(), ["A_First", "Seed", "Z_Locked"]);
-    assert_eq!(
-        std::fs::read_dir(w.addons().parent().unwrap())
-            .unwrap()
-            .count(),
-        1,
-        "no leftovers"
+    assert!(
+        work_dirs(&w).is_empty(),
+        "no leftovers: {:?}",
+        work_dirs(&w)
     );
 }
 
@@ -344,5 +334,215 @@ fn f4_3_no_download_url_means_the_author_said_no() {
     assert!(
         format!("{err:#}").contains("only allows downloads"),
         "{err:#}"
+    );
+}
+
+#[test]
+fn f2_7_install_and_update_record_the_game_versions() {
+    let w = fake_wow();
+    let client = w.inst.version.as_deref();
+    let toc = |interface: &str| format!("## Interface: {interface}\n## Title: G\n");
+    let v1 = remote_file("1", "1.0", Channel::Stable, &[]);
+    let v2 = remote_file("22", "2.0", Channel::Stable, &[]);
+    let server = Server::new(vec![
+        (&v1, zip_bytes(&[("G/G.toc", &toc("16000"))])),
+        (&v2, zip_bytes(&[("G/G.toc", &toc("11509, 16001"))])),
+    ]);
+    let dl = |u: &str| server.get(u).map(install::in_memory);
+    let mut addon = install::install_remote(
+        &w.inst,
+        &remote_addon("3", "G", vec![v1]),
+        Channel::Stable,
+        &dl,
+    )
+    .unwrap();
+    assert_eq!(addon.game_versions, ["1.60.0"]);
+    assert!(addon.out_of_date(client), "flagged without a rescan");
+
+    addon.latest = Some(v2);
+    let updated = install::update_addon(&w.inst, &addon, &dl).unwrap();
+    assert_eq!(updated.game_versions, ["1.15.9", "1.60.1"]);
+    assert_eq!(updated.game_version.as_deref(), Some("1.60.1"));
+    assert!(
+        !updated.out_of_date(client),
+        "the fixed build is no longer out of date"
+    );
+}
+
+#[test]
+fn f4_3_install_never_replaces_a_git_checkout() {
+    let w = fake_wow();
+    w.add_folder(
+        "Foo",
+        "Foo.toc",
+        &simple_toc("My Foo", "dev"),
+        &[
+            (".git/HEAD", "ref: refs/heads/main\n"),
+            ("Wip.lua", "unsaved work"),
+        ],
+    );
+    let file = remote_file("1", "1.0", Channel::Stable, &[]);
+    let zip = zip_bytes(&[
+        ("Foo/Foo.toc", &simple_toc("Foo", "1.0")),
+        ("Foo_Extra/Foo_Extra.toc", "## Title: Extra\n"),
+    ]);
+    let err = install::install_remote(
+        &w.inst,
+        &remote_addon("5", "Foo", vec![file]),
+        Channel::Stable,
+        &|_| Ok(install::in_memory(zip.clone())),
+    )
+    .unwrap_err();
+    assert!(
+        format!("{err:#}").contains("Foo is a git checkout"),
+        "{err:#}"
+    );
+    assert_eq!(w.folder_names(), ["Foo"], "nothing installed");
+    assert_eq!(read(&w, "Foo/Wip.lua"), "unsaved work");
+    assert!(w.addons().join("Foo/.git/HEAD").is_file());
+    assert!(work_dirs(&w).is_empty(), "{:?}", work_dirs(&w));
+}
+
+/// The install work dirs left next to AddOns.
+fn work_dirs(w: &FakeWow) -> Vec<String> {
+    let mut v: Vec<String> = std::fs::read_dir(w.addons().parent().unwrap())
+        .unwrap()
+        .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
+        .filter(|n| n != "AddOns" && n != ".addons-lock")
+        .collect();
+    v.sort();
+    v
+}
+
+#[test]
+fn f3_2_recover_puts_back_folders_of_an_interrupted_install() {
+    let w = fake_wow();
+    let interface = w.addons().parent().unwrap().to_path_buf();
+    // Cut off mid-swap: Foo and Foo_Lib were backed up, the new Foo_Lib was already moved in.
+    w.add_folder("Foo_Lib", "Foo_Lib.toc", "## Title: new lib\n", &[]);
+    let backup = interface.join(".addons-backup-20260101-abcdef12");
+    write(&backup.join("Foo/Foo.toc"), "## Title: old Foo\n");
+    write(&backup.join("Foo_Lib/Foo_Lib.toc"), "## Title: old lib\n");
+    write(
+        &interface.join(".addons-staging-20260101-abcdef12/Foo/Foo.toc"),
+        "## Title: new Foo\n",
+    );
+    // Cut off while deleting a finished swap's backup: a folder the new version dropped stays gone.
+    write(
+        &interface.join(".addons-trash-20260102-12345678/Dropped/Dropped.toc"),
+        "## Title: half deleted\n",
+    );
+
+    let left = install::recover(&w.inst);
+    assert!(
+        left.errors.is_empty() && left.folders.is_empty(),
+        "{left:?}"
+    );
+    assert_eq!(w.folder_names(), ["Foo", "Foo_Lib"]);
+    assert_eq!(
+        read(&w, "Foo/Foo.toc"),
+        "## Title: old Foo\n",
+        "missing folder put back"
+    );
+    assert_eq!(
+        read(&w, "Foo_Lib/Foo_Lib.toc"),
+        "## Title: new lib\n",
+        "present folder kept"
+    );
+    assert!(work_dirs(&w).is_empty(), "{:?}", work_dirs(&w));
+
+    let left = install::recover(&w.inst);
+    assert!(left.errors.is_empty() && left.folders.is_empty());
+    assert_eq!(
+        w.folder_names(),
+        ["Foo", "Foo_Lib"],
+        "nothing to do the second time"
+    );
+}
+
+#[test]
+fn f3_2_recover_never_deletes_a_kept_backup() {
+    let w = fake_wow();
+    let interface = w.addons().parent().unwrap().to_path_buf();
+    // A rollback that couldn't put Foo back (a half-deleted new Foo was in the way) kept the old
+    // folders; the user deleted Bar since.
+    write(&w.addons().join("Foo/broken.lua"), "half deleted");
+    let kept = interface.join(".addons-kept-20260101-abcdef12");
+    write(&kept.join("Foo/Foo.toc"), "## Title: old Foo\n");
+    write(&kept.join("Bar/Bar.toc"), "## Title: Bar\n");
+
+    let left = install::recover(&w.inst);
+    assert!(
+        left.errors.is_empty() && left.folders.is_empty(),
+        "{left:?}"
+    );
+    assert_eq!(w.folder_names(), ["Bar", "Foo"], "missing Bar put back");
+    assert_eq!(read(&w, "Foo/broken.lua"), "half deleted");
+    assert!(
+        kept.join("Foo/Foo.toc").is_file(),
+        "the only good Foo stays"
+    );
+
+    // Once the user deleted the broken Foo, the good one goes back and the kept dir goes.
+    std::fs::remove_dir_all(w.addons().join("Foo")).unwrap();
+    install::recover(&w.inst);
+    assert_eq!(read(&w, "Foo/Foo.toc"), "## Title: old Foo\n");
+    assert!(work_dirs(&w).is_empty(), "{:?}", work_dirs(&w));
+}
+
+#[test]
+fn f3_2_recover_leaves_a_running_install_alone() {
+    let w = fake_wow();
+    let interface = w.addons().parent().unwrap().to_path_buf();
+    // Another process is mid-swap: it holds the lock shared, Foo sits in its backup.
+    let lock = std::fs::File::create(interface.join(".addons-lock")).unwrap();
+    lock.lock_shared().unwrap();
+    write(
+        &interface.join(".addons-backup-1/Foo/Foo.toc"),
+        "## Title: Foo\n",
+    );
+    write(
+        &interface.join(".addons-staging-1/Foo/Foo.toc"),
+        "## Title: new\n",
+    );
+
+    let left = install::recover(&w.inst);
+    assert!(left.errors.is_empty(), "{left:?}");
+    assert_eq!(left.folders, ["Foo"], "not gone, only moved aside");
+    assert_eq!(work_dirs(&w), [".addons-backup-1", ".addons-staging-1"]);
+    assert!(w.folder_names().is_empty(), "nothing touched");
+
+    drop(lock);
+    let left = install::recover(&w.inst);
+    assert!(left.folders.is_empty());
+    assert_eq!(w.folder_names(), ["Foo"]);
+}
+
+#[cfg(unix)]
+#[test]
+fn f3_2_recover_reports_folders_it_cannot_put_back() {
+    use std::os::unix::fs::PermissionsExt;
+    let w = fake_wow();
+    let interface = w.addons().parent().unwrap().to_path_buf();
+    let backup = interface.join(".addons-backup-1");
+    write(&backup.join("Foo/Foo.toc"), "## Title: Foo\n");
+    let mode = |m| std::fs::set_permissions(w.addons(), std::fs::Permissions::from_mode(m));
+    mode(0o555).unwrap();
+    if std::fs::File::create(w.addons().join("probe")).is_ok() {
+        mode(0o755).unwrap();
+        eprintln!("skipped: running as root, AddOns stays writable");
+        return;
+    }
+    let left = install::recover(&w.inst);
+    mode(0o755).unwrap();
+    assert_eq!(left.folders, ["Foo"]);
+    assert!(
+        left.errors.iter().any(|e| e.contains("putting back")),
+        "{:?}",
+        left.errors
+    );
+    assert!(
+        backup.join("Foo/Foo.toc").is_file(),
+        "kept for the next try"
     );
 }

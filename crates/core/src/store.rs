@@ -50,9 +50,15 @@ pub fn save_installations(data_dir: &Path, installations: &[Installation]) -> Re
 /// - previous provider-linked records whose folders all still exist are kept (so links survive an
 ///   offline scan, a missing API key or an import); see below for shared folders;
 /// - fresh unmatched records lose folders claimed above and keep the id / user ignore of a previous
-///   record with the same folders.
-pub fn merge_rescan(previous: &[Addon], fresh: Vec<Addon>) -> Vec<Addon> {
-    let all_folders: Vec<String> = fresh.iter().flat_map(|a| a.folders.clone()).collect();
+///   record with the same folders;
+/// - `unseen` folders exist but weren't scanned (`ScanResult::unreadable`, or still in a backup:
+///   `install::Leftovers`): they count as present, and unlinked records with one stay as stored.
+pub fn merge_rescan(previous: &[Addon], fresh: Vec<Addon>, unseen: &[String]) -> Vec<Addon> {
+    let all_folders: Vec<String> = fresh
+        .iter()
+        .flat_map(|a| a.folders.clone())
+        .chain(unseen.iter().cloned())
+        .collect();
     let (matched, unmatched): (Vec<Addon>, Vec<Addon>) =
         fresh.into_iter().partition(|a| a.provider.is_some());
     let mut out: Vec<Addon> = Vec::new();
@@ -116,6 +122,14 @@ pub fn merge_rescan(previous: &[Addon], fresh: Vec<Addon>) -> Vec<Addon> {
             carry_user_choices(p, &mut a);
         }
         out.push(a);
+    }
+    // Unlinked records of an unseen folder stay as stored (user choices included).
+    for p in previous.iter().filter(|p| {
+        p.provider.is_none()
+            && p.folders.iter().any(|f| unseen.contains(f))
+            && p.folders.iter().all(|f| all_folders.contains(f))
+    }) {
+        out.push(p.clone());
     }
     resolve_overlaps(&mut out);
     out

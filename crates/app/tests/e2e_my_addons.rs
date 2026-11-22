@@ -770,3 +770,84 @@ fn f2_7_addons_for_another_game_version_are_marked_out_of_date() {
     app.tap(&app.row("Oldie", ""));
     assert!(app.shows_in("detail/out-of-date", "(out of date)"));
 }
+
+/// Culm died mid-update: `folder` sits in the swap's backup next to AddOns.
+fn interrupted(world: &World, folder: &str, tag: &str) -> std::path::PathBuf {
+    let backup = world.client.join(format!("Interface/.addons-backup-{tag}"));
+    std::fs::create_dir_all(&backup).unwrap();
+    std::fs::rename(world.addons_dir().join(folder), backup.join(folder)).unwrap();
+    backup
+}
+
+/// The next start, without a key: links can't come back from CurseForge.
+fn restart_without_key(world: &World) -> addon_app::core_backend::CoreBackend {
+    rune::prefs::Prefs::at(world.prefs_path())
+        .remove("curseforge_key")
+        .unwrap();
+    addon_app::core_backend::CoreBackend::new(world.config())
+}
+
+#[test]
+fn f3_2_scan_puts_back_folders_of_an_interrupted_install() {
+    use addon_app::backend::Backend;
+    let world = World::new().with_key("test-key");
+    let backend = addon_app::core_backend::CoreBackend::new(world.config());
+    let inst = backend.installations().unwrap().remove(0);
+    let (before, _) = backend.scan(&inst).unwrap();
+    let ace = before.iter().find(|a| a.name == "Ace").unwrap().clone();
+    assert!(ace.provider.is_some());
+    let backup = interrupted(&world, "Ace", "1");
+
+    let (after, warnings) = restart_without_key(&world).scan(&inst).unwrap();
+    assert!(world.exists("Interface/AddOns/Ace/Ace.toc"), "put back");
+    assert!(!backup.exists(), "backup cleaned up");
+    let a = after.iter().find(|a| a.id == ace.id).expect("record kept");
+    assert_eq!(a.provider, ace.provider, "still linked: {warnings:?}");
+}
+
+#[cfg(unix)]
+#[test]
+fn f3_2_scan_keeps_the_link_of_folders_it_cannot_put_back() {
+    use addon_app::backend::Backend;
+    use std::os::unix::fs::PermissionsExt;
+    let world = World::new().with_key("test-key");
+    let backend = addon_app::core_backend::CoreBackend::new(world.config());
+    let inst = backend.installations().unwrap().remove(0);
+    let (before, _) = backend.scan(&inst).unwrap();
+    let bee = before.iter().find(|a| a.name == "Bee").unwrap().clone();
+    assert!(bee.provider.is_some());
+    let backup = interrupted(&world, "Bee", "2");
+    let backend = restart_without_key(&world);
+
+    let mode = |m| std::fs::set_permissions(world.addons_dir(), std::fs::Permissions::from_mode(m));
+    mode(0o555).unwrap();
+    if std::fs::File::create(world.addons_dir().join("probe")).is_ok() {
+        mode(0o755).unwrap();
+        eprintln!("skipped: running as root, AddOns stays writable");
+        return;
+    }
+    let res = backend.scan(&inst);
+    mode(0o755).unwrap();
+    let (after, warnings) = res.unwrap();
+    assert!(
+        warnings.iter().any(|w| w.contains("putting back")),
+        "{warnings:?}"
+    );
+    assert!(
+        backup.join("Bee/Bee.toc").is_file(),
+        "kept for the next scan"
+    );
+    let b = after.iter().find(|a| a.id == bee.id).expect("record kept");
+    assert_eq!(b.provider, bee.provider);
+    assert_eq!(b.folders, bee.folders);
+
+    let (after, _) = backend.scan(&inst).unwrap();
+    assert!(
+        world.exists("Interface/AddOns/Bee/Bee.toc"),
+        "back once it can be"
+    );
+    assert_eq!(
+        after.iter().find(|a| a.id == bee.id).unwrap().provider,
+        bee.provider
+    );
+}
