@@ -812,6 +812,8 @@ pub struct MockBackend {
     settings: Mutex<Settings>,
     installed: Mutex<Vec<Addon>>,
     backups: Mutex<Vec<Backup>>,
+    /// Folders `open_folder` was asked to show, for tests (F5.3).
+    opened: Mutex<Vec<PathBuf>>,
 }
 
 impl MockBackend {
@@ -840,7 +842,13 @@ impl MockBackend {
                     size_bytes: 17_990_120,
                 },
             ]),
+            opened: Mutex::default(),
         }
+    }
+
+    /// The folders shown in the file manager so far (F5.3).
+    pub fn opened_folders(&self) -> Vec<PathBuf> {
+        self.opened.lock().unwrap().clone()
     }
 
     fn wait(&self) {
@@ -1309,7 +1317,8 @@ impl Backend for MockBackend {
             .count())
     }
 
-    fn open_folder(&self, _path: &Path) -> Result<()> {
+    fn open_folder(&self, path: &Path) -> Result<()> {
+        self.opened.lock().unwrap().push(path.to_path_buf());
         Ok(())
     }
 
