@@ -387,13 +387,13 @@ fn theme_card(s: &State, id: ThemeId) -> El {
         .grow(1.0)
         .padding(8.0)
         .gap(10.0)
-        .border(1.0, p.border)
+        .skin(&t().skin.panel)
         .hover(p.hover)
         .cursor(Cursor::Pointer)
         .on_press_tx(move |s: &mut State, tx: &mut Tx| dispatch(s, Intent::SetTheme(id), tx))
         .child(preview);
     if on {
-        card = card.ring(p.accent);
+        card = card.selected();
     }
     card.child(
         row()

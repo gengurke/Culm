@@ -16,9 +16,11 @@ pub const DISABLED: f32 = 0.45;
 pub trait Themed {
     /// The keyboard focus ring: a thin `accent_focus` line just outside the box.
     fn focus_look(self) -> El;
-    /// A state (focused field, open dropdown, chosen card) drawn as a 1 pt `color` ring just inside
-    /// the box's border, so the theme's border and bevel stay.
+    /// A state (focused field, open dropdown) drawn as a 1 pt `color` ring just inside the box's
+    /// border, so the theme's border and bevel stay.
     fn ring(self, color: Color) -> El;
+    /// A chosen card (the selected addon, the theme in use): a 2 pt `accent` ring inside its frame.
+    fn selected(self) -> El;
 }
 
 impl Themed for El {
@@ -29,6 +31,14 @@ impl Themed for El {
         self.box_shadow(Shadow {
             spread: 1.0,
             color,
+            inset: true,
+            ..Shadow::default()
+        })
+    }
+    fn selected(self) -> El {
+        self.box_shadow(Shadow {
+            spread: 2.0,
+            color: pal().accent,
             inset: true,
             ..Shadow::default()
         })
@@ -210,7 +220,7 @@ pub fn progress_line(done: f32, height: f32) -> El {
         .child(el().h_full().w_frac(done.clamp(0.0, 1.0)).fill(p.accent))
 }
 
-/// A text field in a `well`: hairline edge that turns gold on focus, optional leading glyph and
+/// A text field in a `well`: the input skin with an `accent_focus` ring inside it on focus, optional leading glyph and
 /// trailing accessory. `edit` must be the field `access` returns.
 pub fn field(
     key: &str,

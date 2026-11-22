@@ -788,7 +788,7 @@ fn result_card(s: &State, entry: &Entry) -> El {
             dispatch(s, Intent::ShowRemote(e.clone()), tx)
         });
     if selected {
-        card = card.ring(p.accent);
+        card = card.selected();
     }
     card.child(
         row().w_full().gap(12.0).child(thumb).child(
