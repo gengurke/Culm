@@ -426,6 +426,35 @@ fn f7_1_f7_2_saved_settings_survive_a_restart() {
     assert_eq!(featured.last().unwrap().header("x-api-key"), Some("my-key"));
 }
 
+#[test]
+fn f7_1_a_key_saved_while_a_check_runs_rescans_once_it_ends() {
+    use addon_app::{Job, state::Status};
+    let world = World::new();
+    let mut app = world.app();
+    app.wait_idle();
+    assert_eq!(app.status("Ace"), Status::Unknown);
+    // An update check is still running when the key is saved.
+    app.rt.update(|s, _| s.job = Job::CheckingUpdates);
+    app.tap("nav/settings");
+    app.tap("settings/api-key");
+    app.type_text("my-key");
+    app.tap("settings/api-key/save");
+    assert_eq!(
+        app.state().job,
+        Job::CheckingUpdates,
+        "no second job meanwhile"
+    );
+
+    app.rt.update(|s, _| s.job = Job::Idle);
+    app.frame();
+    app.wait_idle();
+    assert_eq!(
+        app.status("Ace"),
+        Status::UpdateAvailable,
+        "the rescan found Ace on CurseForge"
+    );
+}
+
 /// The app with an image cache (tests don't run `setup`), so class icons can load.
 fn app_with_images(world: &World) -> App {
     let mut state = addon_app::State::new(std::sync::Arc::new(

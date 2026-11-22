@@ -275,6 +275,24 @@ fn f1_3_installation_names_show_the_prefix_only_for_twins() {
     assert!(app.shows("WoW Forever (battlenet)") && app.shows("WoW Forever (lutris)"));
 }
 
+#[test]
+fn f1_3_escape_closes_the_installation_menu() {
+    use addon_app::state::Menu;
+    let mut app = App::mock(loaded);
+    app.tap("installation/selector");
+    assert_eq!(app.state().menu, Some(Menu::Installation));
+    app.press(rune::Key::Escape);
+    assert_eq!(app.state().menu, None);
+
+    // One popup at a time: a Get Addons dropdown replaces it.
+    app.tap("installation/selector");
+    app.tap("nav/get-addons");
+    assert_eq!(app.state().menu, None, "changing screens closes it");
+    app.tap("installation/selector");
+    app.tap("get-addons/sort");
+    assert_eq!(app.state().menu, Some(Menu::Sort));
+}
+
 /// Meaningful actions carry a short help text (a tooltip after a rest of the pointer), and it
 /// shows when the pointer rests on the button.
 #[test]

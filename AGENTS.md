@@ -88,6 +88,8 @@ publishes the release. Never mark a release "pre-release": the AppImage's zsync 
 - Rune is pinned to one `dev` commit in the root `Cargo.toml`. On a bump: same rev everywhere, re-copy
   Rune's root `[patch.crates-io]`, match `rust-toolchain.toml`, read Rune's CHANGELOG.
 - One `State` per window; `view(&State, &mut Cx<State>) -> El` is pure. Handlers mutate state.
+- UI-only state (selection, open menus, toggles) is set in the handler; anything that starts work or changes data goes
+  through `Intent` + `dispatch`.
 - Never block the UI thread: all fs/network work runs on workers (`rune::task::spawn`) and comes back
   through a channel + waker (`poll`) or `AppHandle::update`.
 - Modes/phases are explicit enums (no bool clusters). Timers are events (`tx.wake_after`).

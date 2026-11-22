@@ -8,7 +8,7 @@ mod toasts;
 
 use crate::brand;
 use crate::icons;
-use crate::state::{AppUpdate, Intent, Job, Screen, State, dispatch};
+use crate::state::{AppUpdate, Intent, Job, Menu, Screen, State, dispatch};
 use crate::theme::Surface;
 use crate::theme::{self, StyleExt, SurfaceExt, pal, t};
 use crate::ui::{self, Kind};
@@ -296,7 +296,7 @@ fn installation_picker(s: &State) -> El {
     let mut wrap = col()
         .key("installation")
         .border_sides([1.0, 0.0, 0.0, 0.0], p.divider);
-    if s.inst_menu {
+    if s.menu == Some(Menu::Installation) {
         let mut menu = col()
             .key("installation/menu")
             .role("menu")
@@ -376,14 +376,19 @@ fn installation_picker(s: &State) -> El {
         .role("button")
         .label("Installation")
         .focusable(true)
-        .expanded(s.inst_menu)
+        .expanded(s.menu == Some(Menu::Installation))
         .h(64.0)
         .px(20.0)
         .gap(12.0)
         .center_y()
         .hover(p.hover)
         .cursor(Cursor::Pointer)
-        .on_press(|s: &mut State| s.inst_menu = !s.inst_menu)
+        .on_press(|s: &mut State| {
+            s.menu = match s.menu {
+                Some(Menu::Installation) => None,
+                _ => Some(Menu::Installation),
+            }
+        })
         .child(ui::glyph_tile(&icons::DRIVE, 32.0))
         .child(
             col()

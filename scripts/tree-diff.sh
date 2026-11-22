@@ -14,7 +14,9 @@ root=$(mktemp -d)
 trap 'rm -rf "$root"' EXIT
 target/debug/culm --list-scenes >"$root/scenes"
 [ -s "$root/scenes" ] || { echo "no scenes listed" >&2; exit 1; }
+# Unkeyed scroll areas are keyed by their source line (`scroll-<hash>`): moving code renames them.
 OUT=$out ROOT=$root xargs -P 8 -I {} sh -c \
-  'RUNE_DIRS_ROOT="$ROOT/$1" target/debug/culm --tree "$OUT/$1.json" --scene "$1" >/dev/null 2>&1 ||
+  'RUNE_DIRS_ROOT="$ROOT/$1" target/debug/culm --tree "$ROOT/$1.json" --scene "$1" >/dev/null 2>&1 &&
+   sed "s/scroll-[0-9a-f]\{8\}/scroll-#/g" "$ROOT/$1.json" >"$OUT/$1.json" ||
    { echo "FAIL $1" >&2; exit 1; }' _ {} <"$root/scenes"
 [ -z "$before" ] || diff -r "$before" "$out"

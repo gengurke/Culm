@@ -6,6 +6,11 @@ or break. New changes go under "Unreleased"; a release turns that heading into i
 
 ## [Unreleased]
 
+### Fixed
+- Esc closes the installation menu in the sidebar.
+- Saving a CurseForge key while Culm is still scanning or checking for updates now rescans once that finishes, so
+  CurseForge matches and updates show without pressing Rescan.
+
 ### Changed
 - Updated the Rune UI framework: when the button that has keyboard focus greys out, focus moves on to the next control
   instead of being lost, and on Windows saving settings no longer fails when another program briefly holds the file.
