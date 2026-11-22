@@ -48,6 +48,7 @@ pub fn latest(api_base: &str, repo: &str, fits: impl Fn(&str) -> bool) -> Result
         &format!("{api_base}/repos/{repo}/releases/latest"),
         &[],
         &[("Accept", "application/vnd.github+json")],
+        None,
     )?;
     let url = |name: &str| {
         r.assets
@@ -99,7 +100,7 @@ pub fn replace(
             release.version
         );
     };
-    let expected = expected_sum(&http::get_text(sums, &[])?, name)
+    let expected = expected_sum(&http::get_text(sums, &[], None)?, name)
         .with_context(|| format!("{SUMS} of {} lists no {name}", release.version))?;
     let dir = file.parent().context("the app file has no folder")?;
     let file_name = file

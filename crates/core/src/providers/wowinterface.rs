@@ -29,7 +29,7 @@ impl Provider for WowInterface {
             return Ok(vec![]);
         }
         let url = format!("{}/filedetails/{}.json", self.base_url, ids.join(","));
-        let details: Vec<Details> = http::get_json(&url, &[], &[])?;
+        let details: Vec<Details> = http::get_json(&url, &[], &[], None)?;
         Ok(details.into_iter().map(to_addon).collect())
     }
 

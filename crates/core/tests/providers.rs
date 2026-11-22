@@ -680,3 +680,36 @@ fn f3_5_curseforge_file_carries_its_size_and_sha1() {
         "the hash is never written to disk (#69)"
     );
 }
+
+#[test]
+fn f7_1_the_api_key_never_follows_a_redirect_off_the_api() {
+    // A redirect inside the API keeps the key; one to another server must not carry it along.
+    // Each hop asks exactly what its `Location` says: the query is not added again.
+    let api = FakeServer::start();
+    let other = FakeServer::start();
+    api.redirect("/v1/categories", "/v2/categories?x=1");
+    api.redirect(
+        "/v2/categories",
+        &format!("{}/v1/categories?x=1", other.url()),
+    );
+    other.json("GET", "/v1/categories", &cf_envelope(json!([])));
+    assert!(curseforge(&api).categories().unwrap().is_empty());
+    let key_at =
+        |s: &FakeServer, p: &str| s.requests_to(p)[0].header("x-api-key").map(str::to_string);
+    assert_eq!(key_at(&api, "/v1/categories").as_deref(), Some("test-key"));
+    assert_eq!(key_at(&api, "/v2/categories").as_deref(), Some("test-key"));
+    assert_eq!(key_at(&other, "/v1/categories"), None);
+    let query_at = |s: &FakeServer, p: &str| s.requests_to(p)[0].query.clone();
+    assert_eq!(query_at(&api, "/v1/categories"), "gameId=1");
+    assert_eq!(query_at(&api, "/v2/categories"), "x=1");
+    assert_eq!(query_at(&other, "/v1/categories"), "x=1");
+    // The base is matched as a whole URL prefix, not as text: a look-alike host is not under it.
+    assert!(http::under(
+        "https://api.example/v1/mods?x=1",
+        "https://api.example"
+    ));
+    assert!(!http::under(
+        "https://api.example.evil/v1",
+        "https://api.example"
+    ));
+}

@@ -17,6 +17,10 @@ or break. New changes go under "Unreleased"; a release turns that heading into i
   in each theme's status colours, the theme picker's cards wear each theme's panel frame, and class chips take each
   theme's own corner radius.
 
+### Security
+- Your CurseForge key is sent only to CurseForge, also when its server redirects a search or update check elsewhere
+  (downloads already worked this way).
+
 ### Fixed
 - Esc closes the installation menu in the sidebar.
 - Saving a CurseForge key while Culm is still scanning or checking for updates now rescans once that finishes, so

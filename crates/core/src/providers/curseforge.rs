@@ -42,16 +42,25 @@ impl CurseForge {
             .context("CurseForge needs an API key (Settings)")
     }
 
+    /// Calls the API with the key, which goes only to the API itself, never along a redirect.
+    fn keyed<T>(
+        &self,
+        call: impl FnOnce(&str, &http::ScopedHeader) -> Result<Envelope<T>>,
+    ) -> Result<T> {
+        let key = http::ScopedHeader {
+            name: "x-api-key",
+            value: self.key()?,
+            to: &|url| http::under(url, &self.base_url),
+        };
+        Ok(call(&self.base_url, &key)?.data)
+    }
+
     fn get<T: for<'de> Deserialize<'de>>(&self, path: &str, query: &[(&str, &str)]) -> Result<T> {
-        let url = format!("{}{path}", self.base_url);
-        let env: Envelope<T> = http::get_json(&url, query, &[("x-api-key", self.key()?)])?;
-        Ok(env.data)
+        self.keyed(|base, key| http::get_json(&format!("{base}{path}"), query, &[], Some(key)))
     }
 
     fn post<T: for<'de> Deserialize<'de>>(&self, path: &str, body: serde_json::Value) -> Result<T> {
-        let url = format!("{}{path}", self.base_url);
-        let env: Envelope<T> = http::post_json(&url, &body, &[("x-api-key", self.key()?)])?;
-        Ok(env.data)
+        self.keyed(|base, key| http::post_json(&format!("{base}{path}"), &body, &[], Some(key)))
     }
 
     /// WoW addon categories (`GET /v1/categories?gameId=1`), sorted by name; top-level ones have
