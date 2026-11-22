@@ -181,3 +181,129 @@ fn f7_3_every_theme_font_is_bundled() {
         }
     }
 }
+
+/// Spellings that decide a look outside `theme/`: raw colours, theme checks and the frame theme.
+const LOOKS: [&str; 7] = [
+    "h(\"",
+    "hex(",
+    "oklch",
+    "ThemeId::",
+    ".frame",
+    "Color::BLACK",
+    "Color::WHITE",
+];
+
+/// Lines in `ui.rs` and `view/` that may use one of `LOOKS`, as (file, a fragment of the line, why).
+/// Every entry must still match, so the list can't go stale.
+const ALLOWED: &[(&str, &str, &str)] = &[
+    (
+        "ui.rs",
+        "class.mix(Color::BLACK",
+        "class medallion: the disc is shaded from the class colour, not the theme",
+    ),
+    (
+        "ui.rs",
+        "Color::BLACK,",
+        "class medallion: holds light class colours down so the emblem reads",
+    ),
+    (
+        "ui.rs",
+        "Color::WHITE.alpha(0.",
+        "class medallion: the disc's specular sheen",
+    ),
+    (
+        "ui.rs",
+        "Color::WHITE.mix(class",
+        "class medallion: the emblem's light ink",
+    ),
+    (
+        "ui.rs",
+        "Color::BLACK.alpha(0.75), Color::BLACK.alpha(0.35)",
+        "class medallion: the sunk lip round the disc",
+    ),
+    (
+        "ui.rs",
+        "color: Color::BLACK.alpha(0.45)",
+        "class medallion: its drop shadow",
+    ),
+    (
+        "view/settings.rs",
+        "for id in ThemeId::ALL",
+        "the theme picker lists every theme",
+    ),
+    (
+        "view/toasts.rs",
+        "tone.mix(Color::WHITE, 0.45)",
+        "lifts a dark status tone off a dark ground (a contrast rule)",
+    ),
+];
+
+/// Whether `line` has a `LOOKS` spelling outside its `//` comment. `.frame` counts only as the field
+/// itself: the `frame_look()` accessor and `framed(..)` are how views reach the frame theme.
+fn looks_in(line: &str) -> Vec<&'static str> {
+    let code = line.split("//").next().unwrap_or("");
+    LOOKS
+        .into_iter()
+        .filter(|pat| {
+            code.match_indices(pat).any(|(i, _)| {
+                *pat != ".frame"
+                    || !code[i + pat.len()..].starts_with(|c: char| c == '_' || c.is_alphanumeric())
+            })
+        })
+        .collect()
+}
+
+#[test]
+fn f7_3_views_leave_looks_to_the_theme() {
+    let src = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
+    let mut files = vec!["ui.rs".to_string()];
+    for entry in std::fs::read_dir(src.join("view")).unwrap() {
+        let name = entry.unwrap().file_name().into_string().unwrap();
+        if name.ends_with(".rs") {
+            files.push(format!("view/{name}"));
+        }
+    }
+    let mut used = vec![false; ALLOWED.len()];
+    let mut found = Vec::new();
+    for file in &files {
+        let text = std::fs::read_to_string(src.join(file)).unwrap();
+        for (n, line) in text.lines().enumerate() {
+            for pat in looks_in(line) {
+                match ALLOWED
+                    .iter()
+                    .position(|(f, frag, _)| f == file && line.contains(frag))
+                {
+                    Some(i) => used[i] = true,
+                    None => found.push(format!("{file}:{}: `{pat}` in `{}`", n + 1, line.trim())),
+                }
+            }
+        }
+    }
+    assert!(
+        found.is_empty(),
+        "looks belong in the theme (Pal, Skin, theme/ helpers; see docs/THEMES.md), not in views:\n{}",
+        found.join("\n")
+    );
+    let stale: Vec<_> = ALLOWED
+        .iter()
+        .zip(&used)
+        .filter(|(_, u)| !**u)
+        .map(|(a, _)| a.1)
+        .collect();
+    assert!(
+        stale.is_empty(),
+        "allow-list entries that no longer match: {stale:?}"
+    );
+}
+
+#[test]
+fn f7_3_look_lint_sees_what_it_should() {
+    assert_eq!(looks_in(r##"    .fill(h("#fff"))"##), ["h(\""]);
+    assert_eq!(looks_in("    if th.frame.is_some() {"), [".frame"]);
+    assert!(looks_in("    let fr = th.frame_look();").is_empty());
+    assert!(looks_in("    // Color::BLACK in a comment").is_empty());
+    assert_eq!(
+        looks_in("    .color(Color::WHITE) // white"),
+        ["Color::WHITE"]
+    );
+}
