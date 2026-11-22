@@ -73,7 +73,9 @@ pub fn spec() -> AppSpec<State> {
 /// replaces the native titlebar (Windows, macOS) the window's controls sit over the band; elsewhere
 /// the native frame stays.
 pub fn app() -> rune::App<State> {
-    rune::App::new(spec()).titlebar(rune::Titlebar::new(theme::BAND_H))
+    rune::App::new(spec())
+        .titlebar(rune::Titlebar::new(theme::BAND_H))
+        .on_quit(|s, _| s.flush_saves())
 }
 
 /// A headless runtime over `state` with the app's fonts and poll wired, for tests.

@@ -9,7 +9,7 @@ mod app_update;
 mod get_addons;
 mod maintenance;
 
-pub use addons::{AddonUi, Op, Status, manual_url};
+pub use addons::{AddonUi, Op, Saves, Status, manual_url};
 pub use app_update::AppUpdate;
 pub use get_addons::{
     Detail, Fetch, Input, LinkAnswer, SearchAnswer, by_hand_file, install_key, remote_key, single,
@@ -206,6 +206,8 @@ pub struct State {
     /// The newest settings not yet written. Writers run on workers in any order: each takes the newest under
     /// the lock, so an older snapshot never overwrites a newer one (#7).
     unsaved: Arc<std::sync::Mutex<Option<Settings>>>,
+    /// Record saves not yet written, in order (#136).
+    pub saves: Arc<Saves>,
 }
 
 impl State {
@@ -258,6 +260,7 @@ impl State {
             msgs: channel(),
             waker: Arc::new(|| {}),
             unsaved: Arc::default(),
+            saves: Arc::default(),
             rescan_pending: false,
         }
     }

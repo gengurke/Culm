@@ -6,7 +6,41 @@ use crate::backend::{AddonOrder, Backend, SortBy, Warned};
 use crate::worker::{self, Msg};
 use addon_core::{Addon, IgnoreReason, Installation};
 use rune::Tx;
+use std::collections::VecDeque;
 use std::path::PathBuf;
+use std::sync::{Mutex, MutexGuard};
+
+/// Record saves (Ignore, channel) waiting to be written, oldest first (#136). Whoever writes holds
+/// `write` and takes the oldest, so a newer copy of a record is never overwritten by an older one;
+/// quit writes what is left ([`State::flush_saves`]).
+#[derive(Default)]
+pub struct Saves {
+    queue: Mutex<VecDeque<(Installation, Addon)>>,
+    write: Mutex<()>,
+}
+
+impl Saves {
+    /// Writes every queued save in order; `failed` hears about each one that could not be.
+    fn flush(&self, b: &dyn Backend, failed: &dyn Fn(&Addon, anyhow::Error)) {
+        let _turn = self.write.lock().unwrap_or_else(|e| e.into_inner());
+        loop {
+            let next = self
+                .queue
+                .lock()
+                .unwrap_or_else(|e| e.into_inner())
+                .pop_front();
+            let Some((inst, addon)) = next else { return };
+            if let Err(e) = b.save_addon(&inst, &addon) {
+                failed(&addon, e);
+            }
+        }
+    }
+
+    /// Holds every write back while the guard lives, as a long store edit would (tests).
+    pub fn hold(&self) -> MutexGuard<'_, ()> {
+        self.write.lock().unwrap_or_else(|e| e.into_inner())
+    }
+}
 
 /// A running or failed operation on one addon (or one search result being installed).
 #[derive(Debug, Clone, PartialEq)]
@@ -566,13 +600,27 @@ impl State {
             return;
         };
         let addon = a.addon.clone();
+        self.saves
+            .queue
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .push_back((inst, addon));
+        let saves = self.saves.clone();
         worker::spawn(self, "save-addon", move |b, post| {
-            if let Err(e) = b.save_addon(&inst, &addon) {
+            saves.flush(b, &|addon, e| {
                 post.send(Msg::Failed {
                     title: format!("Could not save {}", addon.name),
                     error: err(e),
-                });
-            }
+                })
+            });
+        });
+    }
+
+    /// Writes the record saves still queued or running, waiting for them: for quitting only, so
+    /// Ignore or a channel change made just before is never lost (#136).
+    pub fn flush_saves(&self) {
+        self.saves.flush(&*self.backend, &|addon, e| {
+            addon_core::log::error(&format!("Could not save {} on quit: {e:#}", addon.name))
         });
     }
 

@@ -339,6 +339,43 @@ fn f3_3_channel_change_rechecks_only_that_addon() {
 }
 
 #[test]
+fn f2_5_changes_made_just_before_quitting_are_stored() {
+    let world = World::new().with_key("test-key");
+    let mut app = world.app();
+    app.wait_idle();
+    let (id, inst) = (app.id("Ace"), app.state().current.clone().unwrap());
+    let saves = app.state().saves.clone();
+    let (held, wait_held) = std::sync::mpsc::channel();
+    std::thread::scope(|scope| {
+        // A long store edit (a remove, a scan merge) holds the writes back while the user
+        // toggles Ignore three times and quits.
+        scope.spawn(|| {
+            let _edit = saves.hold();
+            held.send(()).unwrap();
+            std::thread::sleep(std::time::Duration::from_millis(300));
+        });
+        wait_held.recv().unwrap();
+        app.tap(&app.row("Ace", ""));
+        for _ in 0..3 {
+            app.tap("detail/ignore");
+        }
+        // What quitting runs: it waits for the held writes and stores them in order.
+        app.state().flush_saves();
+    });
+    let stored = addon_core::store::load_addons(&world.config().data_dir, &inst).unwrap();
+    let ace = stored.iter().find(|a| a.id == id).unwrap();
+    assert_eq!(
+        ace.ignored,
+        Some(IgnoreReason::User),
+        "the last toggle wins"
+    );
+
+    let mut again = world.app();
+    again.wait_idle();
+    assert_eq!(again.status("Ace"), Status::Ignored);
+}
+
+#[test]
 fn f3_4_ignored_addon_is_not_offered_for_update() {
     let world = World::new().with_key("test-key");
     let mut app = world.app();
