@@ -87,8 +87,13 @@ What the addon manager does, one short paragraph per feature. Ids are referenced
   swaps the folders with backup + rollback, removes folders the new version dropped (only folders no other record lists),
   records the new version. A folder that is a git checkout the addon doesn't own is never replaced (the install fails,
   nothing touched). If Culm dies mid-swap, the next scan puts back the backed-up folders that are missing and deletes
-  the leftovers. A running update can't be started twice, also across a rescan. CurseForge CDN downloads carry the
-  user's key (`x-api-key`), sent only to CurseForge hosts and checked again on every redirect. (e2e `f3_2_update_replaces_folder_contents`, `f3_2_update_all_updates_every_outdated_addon`, core: `f3_2_download_reports_progress_and_http_errors`, `f3_2_update_swaps_folders_and_rolls_back_on_bad_zip`, `f3_2_swap_failure_restores_backups`, `f3_2_recover_puts_back_folders_of_an_interrupted_install`, `f3_2_big_downloads_stream_to_a_file`, `f3_2_download_keys_go_only_to_their_hosts_even_across_redirects`, `f3_2_only_curseforge_hosts_get_the_key`)
+  the leftovers; folders it can't put back keep their record's link. A rollback that couldn't restore everything keeps
+  the old folders (`.addons-kept-*`) until they can go back; a finished swap's backup is renamed to trash before it is
+  deleted. A lock file (`Interface/.addons-lock`) keeps that cleanup away from installs in another Culm process. A running update can't be started twice, also across a rescan. CurseForge CDN downloads carry the
+  user's key (`x-api-key`), sent only to CurseForge hosts and checked again on every redirect. (e2e `f3_2_update_replaces_folder_contents`, `f3_2_update_all_updates_every_outdated_addon`, core: `f3_2_download_reports_progress_and_http_errors`, `f3_2_update_swaps_folders_and_rolls_back_on_bad_zip`, `f3_2_swap_failure_restores_backups`, `f3_2_recover_puts_back_folders_of_an_interrupted_install`, `f3_2_recover_never_deletes_a_kept_backup`,
+  `f3_2_recover_leaves_a_running_install_alone`, `f3_2_recover_reports_folders_it_cannot_put_back`,
+  `f3_2_failed_rollback_keeps_its_backup` (unit), e2e `f3_2_scan_puts_back_folders_of_an_interrupted_install`,
+  `f3_2_scan_keeps_the_link_of_folders_it_cannot_put_back`, `f3_2_big_downloads_stream_to_a_file`, `f3_2_download_keys_go_only_to_their_hosts_even_across_redirects`, `f3_2_only_curseforge_hosts_get_the_key`)
 - **F3.3 Channels** ✅ — Per addon Stable / Beta / Alpha in the detail panel (stored); "Beta" also accepts
   stable files, etc. A change rechecks only that addon (its row says "Checking…"); a full check still running answers
   for the old channel and doesn't overwrite it. (`f3_1_check_updates_batches_per_provider_and_isolates_failures`,
@@ -309,6 +314,8 @@ in the theme's tones, gilded on the active chip, around a disc showing the origi
 `ADDONS_CURSEFORGE_URL` / `ADDONS_HUB_URL` / `ADDONS_GITHUB_URL` / `ADDONS_WOWINTERFACE_URL` (and `ADDONS_CLASS_ICON_URLS`,
 `ADDONS_APP_RELEASES_URL`, F4.6/F8.4). The window uses it; headless binary runs
 (`--snap`, `--script`) use the deterministic `MockBackend` (scenes) unless `ADDONS_BACKEND=core`.
+One window per user: `main` claims `rune::single_instance(brand::APP_ID)`, so a second launch brings the running window
+forward (Windows, Linux; macOS does this itself). Headless runs skip the claim.
 End-to-end specs in `crates/app/tests/e2e_*.rs` drive the real UI and core against a temp Forever tree, a fake import
 config and a FakeServer (helpers in `tests/common/mod.rs`); `tests/ui_shell.rs` keeps the mock-only UI checks.
 

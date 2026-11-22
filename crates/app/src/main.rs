@@ -5,6 +5,11 @@
 const ICON: &[u8] = include_bytes!("../assets/icon/culm-256.png");
 
 fn main() {
+    // One window per user: a second launch brings the running one forward (Windows, Linux; macOS
+    // does this itself). Headless runs (`--snap`, `--script`) render beside a running app.
+    if !rune::is_headless() && !rune::single_instance(addon_app::spec_app_id()) {
+        return;
+    }
     rune::set_app_id(addon_app::spec_app_id());
     // The icon of the running windows (title bar, taskbar, Alt+Tab, Dock). Rune applies it on Windows and macOS;
     // on Linux the desktop entry matched by the app id names it.

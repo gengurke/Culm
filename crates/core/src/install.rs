@@ -4,12 +4,18 @@
 //! filesystem, so moves are renames), the addon's old folders and every folder about to be
 //! replaced are moved to a backup dir, the new folders are moved in, and on any failure the new
 //! folders are removed and the backups restored. Old folders absent from the new zip are gone.
+//!
+//! Work dirs next to AddOns, by name: `.addons-staging-*` (the extracted zip), `.addons-backup-*`
+//! (folders moved aside during a swap), `.addons-trash-*` (a finished swap's backup being deleted)
+//! and `.addons-kept-*` (a rollback that couldn't put everything back keeps the old folders there).
+//! [`recover`] cleans up after a crash; `.addons-lock` keeps it away from installs in other processes.
 
 use crate::model::{Addon, Channel, Installation, RemoteAddon, RemoteFile};
 use crate::toc::{Toc, read_folder_toc};
 use crate::util::{new_id, now_rfc3339, now_stamp};
 use anyhow::{Context, Result, bail};
 use std::collections::BTreeSet;
+use std::fs::File;
 use std::io::{Cursor, Read, Seek};
 use std::path::{Path, PathBuf};
 
@@ -42,17 +48,46 @@ pub fn install_zip(
     std::fs::create_dir_all(&addons).with_context(|| format!("creating {}", addons.display()))?;
     let work = addons.parent().context("AddOns folder has no parent")?;
     let tag = format!("{}-{}", now_stamp(), &new_id()[..8]);
-    let staging = work.join(format!(".addons-staging-{tag}"));
-    let backup = work.join(format!(".addons-backup-{tag}"));
+    let staging = work.join(format!("{STAGING}{tag}"));
+    let backup = work.join(format!("{BACKUP}{tag}"));
+    let kept = work.join(format!("{KEPT}{tag}"));
+    let lock = lock_file(work)?;
+    lock.lock_shared()
+        .with_context(|| format!("locking {}", work.join(LOCK).display()))?;
 
     let extracted = extract(zip, &staging);
-    let result =
-        extracted.and_then(|new| swap(&addons, &staging, &backup, &new, old_folders).map(|_| new));
+    let result = extracted
+        .and_then(|new| swap(&addons, &staging, &backup, &kept, &new, old_folders).map(|_| new));
     let _ = std::fs::remove_dir_all(&staging);
     if result.is_ok() {
-        let _ = std::fs::remove_dir_all(&backup);
+        // Renamed first: after a crash mid-delete, `recover` must not put dropped folders back.
+        let trash = work.join(format!("{TRASH}{tag}"));
+        let doomed = if std::fs::rename(&backup, &trash).is_ok() {
+            trash
+        } else {
+            backup
+        };
+        let _ = std::fs::remove_dir_all(doomed);
     }
     result
+}
+
+const STAGING: &str = ".addons-staging-";
+const BACKUP: &str = ".addons-backup-";
+const TRASH: &str = ".addons-trash-";
+const KEPT: &str = ".addons-kept-";
+const LOCK: &str = ".addons-lock";
+
+/// The lock file of an installation's work dirs: installs hold it shared, [`recover`] exclusive,
+/// across processes (two Culm windows, or one Culm stuck while another starts).
+fn lock_file(work: &Path) -> Result<File> {
+    let path = work.join(LOCK);
+    std::fs::OpenOptions::new()
+        .create(true)
+        .truncate(false)
+        .write(true)
+        .open(&path)
+        .with_context(|| format!("opening {}", path.display()))
 }
 
 /// Validates every entry, then extracts. Returns the top-level folder names.
@@ -141,6 +176,7 @@ fn swap(
     addons: &Path,
     staging: &Path,
     backup: &Path,
+    kept: &Path,
     new: &[String],
     old: &[String],
 ) -> Result<()> {
@@ -186,51 +222,95 @@ fn swap(
         let _ = std::fs::remove_dir_all(backup);
         Err(err)
     } else {
+        // `recover` never deletes a kept copy whose folder is in AddOns: that one may be broken.
+        let keep = if std::fs::rename(backup, kept).is_ok() {
+            kept
+        } else {
+            backup
+        };
         Err(err.context(format!(
             "could not restore {} - the old folders are kept in {}",
             lost.join(", "),
-            backup.display()
+            keep.display()
         )))
     }
 }
 
-/// Cleans up after an install that was cut off mid-swap (crash, power loss): every folder in a
-/// leftover backup dir whose name is missing in AddOns goes back, then the backup dir is deleted;
-/// leftover staging dirs are deleted. Call it only while no install runs. A backup that can't be
-/// put back fully is kept for the next try.
-pub fn recover(inst: &Installation) -> Result<()> {
+/// What [`recover`] left undone.
+#[derive(Debug, Default)]
+pub struct Leftovers {
+    /// Folders missing in AddOns whose copy is still in a backup: not gone, only not back yet.
+    pub folders: Vec<String>,
+    pub errors: Vec<String>,
+}
+
+/// Cleans up after an install that was cut off (crash, power loss): folders in a backup dir whose
+/// name is missing in AddOns go back. Then a crash's backup and leftover staging and trash dirs
+/// are deleted; a kept dir only once it is empty, since its folders may be the only good copies.
+/// A dir that can't be put back fully stays for the next try. Skipped while an install runs
+/// (in any process).
+pub fn recover(inst: &Installation) -> Leftovers {
+    let mut left = Leftovers::default();
     let addons = inst.addons_dir();
     let Some(work) = addons.parent() else {
-        return Ok(());
+        return left;
     };
     let Ok(entries) = std::fs::read_dir(work) else {
-        return Ok(()); // no Interface folder yet
+        return left; // no Interface folder yet
     };
-    let mut failed = Vec::new();
-    for e in entries.flatten() {
-        if !e.file_type().is_ok_and(|t| t.is_dir()) {
-            continue;
+    let dirs: Vec<(String, PathBuf)> = entries
+        .flatten()
+        .filter(|e| e.file_type().is_ok_and(|t| t.is_dir()))
+        .map(|e| (e.file_name().to_string_lossy().into_owned(), e.path()))
+        .filter(|(n, _)| {
+            [STAGING, BACKUP, TRASH, KEPT]
+                .iter()
+                .any(|p| n.starts_with(p))
+        })
+        .collect();
+    if dirs.is_empty() {
+        return left;
+    }
+    // Busy: an install runs (here or in another process), its dirs are live.
+    let lock = match lock_file(work) {
+        Ok(f) => f.try_lock().is_ok().then_some(f),
+        Err(e) => {
+            left.errors
+                .push(format!("could not clean up an interrupted install: {e:#}"));
+            None
         }
-        let name = e.file_name().to_string_lossy().into_owned();
-        let path = e.path();
-        let res = if name.starts_with(".addons-staging-") {
-            std::fs::remove_dir_all(&path).map_err(Into::into)
-        } else if name.starts_with(".addons-backup-") {
-            restore(&path, &addons).and_then(|()| Ok(std::fs::remove_dir_all(&path)?))
+    };
+    for (name, path) in dirs.iter().filter(|_| lock.is_some()) {
+        let res = if name.starts_with(BACKUP) {
+            restore(path, &addons).and_then(|()| Ok(std::fs::remove_dir_all(path)?))
+        } else if name.starts_with(KEPT) {
+            restore(path, &addons).map(|()| {
+                let _ = std::fs::remove_dir(path); // only if empty
+            })
         } else {
-            continue;
+            std::fs::remove_dir_all(path).map_err(Into::into)
         };
-        if let Err(err) = res {
-            failed.push(format!("{}: {err:#}", path.display()));
+        if let Err(e) = res {
+            left.errors.push(format!(
+                "could not clean up an interrupted install: {}: {e:#}",
+                path.display()
+            ));
         }
     }
-    if !failed.is_empty() {
-        bail!(
-            "could not clean up an interrupted install: {}",
-            failed.join("; ")
-        );
+    for (name, path) in &dirs {
+        if !(name.starts_with(BACKUP) || name.starts_with(KEPT)) {
+            continue;
+        }
+        for e in std::fs::read_dir(path).into_iter().flatten().flatten() {
+            if addons.join(e.file_name()).symlink_metadata().is_err() {
+                left.folders
+                    .push(e.file_name().to_string_lossy().into_owned());
+            }
+        }
     }
-    Ok(())
+    left.folders.sort();
+    left.folders.dedup();
+    left
 }
 
 /// Moves each folder in `backup` whose name is missing in `addons` back.
@@ -379,5 +459,44 @@ mod tests {
         assert!(safe_parts("A\\..\\..\\x").is_err());
         assert!(safe_parts("C:/x").is_err());
         assert_eq!(safe_parts("A/./b.lua").unwrap(), ["A", "b.lua"]);
+    }
+
+    /// F3.2: a rollback that can't put everything back marks its backup kept, so `recover` never
+    /// deletes the only good copy.
+    #[cfg(unix)]
+    #[test]
+    fn f3_2_failed_rollback_keeps_its_backup() {
+        use std::os::unix::fs::PermissionsExt;
+        let tmp = tempfile::tempdir().unwrap();
+        let (addons, staging) = (tmp.path().join("AddOns"), tmp.path().join("staging"));
+        let (backup, kept) = (tmp.path().join("backup"), tmp.path().join("kept"));
+        std::fs::create_dir_all(addons.join("Foo")).unwrap();
+        std::fs::write(addons.join("Foo/old.lua"), "old").unwrap();
+        // The new Foo moves in, then Foo_Lib is missing from staging: the swap fails. The new Foo
+        // can't be deleted (a read-only folder inside), so the old one can't go back.
+        let sub = staging.join("Foo/sub");
+        std::fs::create_dir_all(&sub).unwrap();
+        std::fs::write(sub.join("x.lua"), "new").unwrap();
+        std::fs::set_permissions(&sub, std::fs::Permissions::from_mode(0o555)).unwrap();
+        let probe = std::fs::File::create(sub.join("probe")).is_ok();
+        let new = ["Foo".to_string(), "Foo_Lib".to_string()];
+        let res = (!probe).then(|| swap(&addons, &staging, &backup, &kept, &new, &["Foo".into()]));
+        let _ = std::fs::set_permissions(
+            addons.join("Foo/sub"),
+            std::fs::Permissions::from_mode(0o755),
+        );
+        let _ = std::fs::set_permissions(&sub, std::fs::Permissions::from_mode(0o755));
+        let Some(res) = res else {
+            eprintln!("skipped: running as root, folders stay writable");
+            return;
+        };
+        let err = format!("{:#}", res.unwrap_err());
+        assert!(err.contains("could not restore Foo"), "{err}");
+        assert!(err.contains(&kept.display().to_string()), "{err}");
+        assert!(!backup.exists());
+        assert_eq!(
+            std::fs::read_to_string(kept.join("Foo/old.lua")).unwrap(),
+            "old"
+        );
     }
 }
