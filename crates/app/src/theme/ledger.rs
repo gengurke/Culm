@@ -3,7 +3,7 @@
 //! gold accents, serif headings in off-white and one deep red action button. Flat, no textures:
 //! the practical daily driver.
 
-use super::{BASE_TYPE, BandDeco, Border, Medal, Pal, Skin, Surface, Theme, Type, drop, h, ink, inner_ring, inset};
+use super::{BASE_TYPE, BandDeco, Border, Medal, Pal, Skin, Surface, Theme, Tone, Type, drop, h, ink, inner_ring, inset};
 use rune::tok::{Family, TextStyle};
 use rune::Color;
 use std::sync::LazyLock;
@@ -19,6 +19,7 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
     let lifted = h("#3a3230");
     let sidebar = h("#0c0605");
     let sky = h("#161110");
+    let selected = gold.alpha(0.10);
     let p = Pal {
         bg: h("#060100"),
         panel: h("#1e1918"),
@@ -30,20 +31,15 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
         border_strong: ink(0.18),
         divider: ink(0.06),
         hover: ink(0.05),
-        selected: gold.alpha(0.10),
         chip: ink(0.07),
         track: ink(0.10),
         accent: gold,
         accent_hi: h("#e6c860"),
-        accent_soft: gold.alpha(0.16),
         accent_focus: h("#66c6e0").alpha(0.85),
-        success: h("#62d26f"),
-        success_soft: h("#62d26f").alpha(0.13),
-        warning: h("#f0b44a"),
-        warning_soft: h("#f0b44a").alpha(0.14),
-        danger: h("#f0645a"),
-        danger_soft: h("#f0645a").alpha(0.10),
-        danger_line: h("#f0645a").alpha(0.45),
+        success: Tone { ink: h("#62d26f"), soft: h("#62d26f").alpha(0.13), line: h("#62d26f").alpha(0.4) },
+        warning: Tone { ink: h("#f0b44a"), soft: h("#f0b44a").alpha(0.14), line: h("#f0b44a").alpha(0.4) },
+        danger: Tone { ink: h("#f0645a"), soft: h("#f0645a").alpha(0.10), line: h("#f0645a").alpha(0.45) },
+        busy: Tone { ink: gold, soft: gold.alpha(0.16), line: gold.alpha(0.4) },
     };
     let ty = Type {
         display: TextStyle::new(23.0, 500.0).family(SERIF).tracking(0.2).lh(28.0),
@@ -68,7 +64,7 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
         detail: Surface { fill: deep, border: Some(Border::sides([0.0, 0.0, 0.0, 1.0], ink(0.07))), ..Default::default() },
         menu: Surface { fill: h("#24201f"), border: frame, radius: 8.0, shadows: vec![lip, drop(6.0, 18.0, 0.6)], ..Default::default() },
         list_header: Surface { fill: Color::WHITE.alpha(0.025), border: under, ..Default::default() },
-        row_selected: Surface { fill: p.selected, border: under, shadows: vec![inner_ring(gold.alpha(0.35))], hover: p.hover, ..Default::default() },
+        row_selected: Surface { fill: selected, border: under, shadows: vec![inner_ring(gold.alpha(0.35))], hover: p.hover, ..Default::default() },
         nav: Surface { fill: tile, ink: p.text_dim, border: gap(sidebar), radius: 14.0, hover: p.hover, ..Default::default() },
         nav_active: Surface { fill: lifted, ink: p.heading, border: gap(sidebar), radius: 14.0, shadows: vec![inner_ring(gold.alpha(0.35))], hover: p.hover, ..Default::default() },
         primary: Surface {
@@ -93,7 +89,7 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
         input: Surface { fill: tile, border: Some(Border::bevel(1.0, h("#141010"), h("#3a3331"))), radius: 8.0, ..Default::default() },
         tile: Surface { fill: tile, ink: gold, border: frame, radius: 6.0, ..Default::default() },
         segments: Surface { fill: deep, border: Some(Border::all(1.0, ink(0.08))), radius: 8.0, ..Default::default() },
-        segment_on: Surface { fill: lifted, ink: gold, border: Some(Border::all(1.0, gold.alpha(0.45))), radius: 7.0, ..Default::default() },
+        toggle_on: Surface { fill: lifted, ink: gold, border: Some(Border::all(1.0, gold.alpha(0.45))), radius: 7.0, ..Default::default() },
         toast: Surface { shadows: vec![lip, drop(2.0, 6.0, 0.5), drop(6.0, 18.0, 0.5)], ..panel },
         kbd: Surface { ink: p.text_muted, border: Some(Border::all(1.0, ink(0.16))), radius: 4.0, ..Default::default() },
         medal: Medal { ring: [h("#dadada"), h("#7a7a7a"), h("#2a2a2a")], ring_on: [h("#fff0b8"), h("#ccaa44"), h("#6a5010")], outline: h("#000000") },
@@ -106,7 +102,6 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
         pal: p,
         ty,
         skin,
-        textures: &[],
         frame: None,
     }
 });

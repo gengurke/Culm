@@ -278,13 +278,13 @@ fn nav_row(
                 .px(7.0)
                 .center()
                 .skin(&Surface {
-                    fill: p.warning_soft,
-                    ..th.skin.chip.clone()
+                    fill: p.warning.soft,
+                    ..th.skin.toggle.clone()
                 })
                 .child(
                     text(count.to_string())
                         .font(t().ty.number.lh(14.0))
-                        .color(p.warning),
+                        .color(p.warning.ink),
                 ),
         );
     }

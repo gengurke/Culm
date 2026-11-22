@@ -5,7 +5,7 @@ use super::{band, band_note};
 use crate::icons;
 use crate::state::{Intent, MaintCard, MaintPhase, State, dispatch};
 use crate::theme::{self, pal, t};
-use crate::ui::{self, Kind};
+use crate::ui::{self, Kind, Mark};
 use rune::{El, Icon, col, icon, row, text};
 
 pub fn page(s: &State) -> El {
@@ -19,16 +19,11 @@ pub fn page(s: &State) -> El {
         .py(24.0);
     if s.game_running {
         content = content.child(
-            row()
-                .key("maintenance/game-running")
-                .w_full()
-                .gap(12.0)
-                .padding(12.0)
-                .center_y()
-                .radius(t().skin.panel.radius)
-                .fill(p.warning_soft)
-                .border(1.0, p.warning.alpha(0.4))
-                .child(ui::badge(&icons::ALERT, p.warning))
+            ui::notice(
+                row().key("maintenance/game-running").gap(12.0).center_y(),
+                Mark::Update,
+            )
+            .child(ui::badge(&icons::ALERT, Mark::Update))
             .child(
                 text(
                     "World of Warcraft is running. Close the game to clean or back up its folders.",
@@ -167,40 +162,36 @@ fn card(
     let foot = match &phase {
         MaintPhase::Idle => None,
         MaintPhase::Confirm => Some(
-            row()
-                .key(format!("{key}/confirm-row"))
-                .w_full()
-                .gap(10.0)
-                .padding(12.0)
-                .center_y()
-                .fill(p.danger_soft)
-                .border(1.0, p.danger_line)
-                .child(
-                    text(confirm_text(s, which))
-                        .font(t().ty.note)
-                        .color(p.text)
-                        .grow(1.0)
-                        .min_w(0.0)
-                        .wrap(),
-                )
-                .child(ui::button(
-                    format!("{key}/confirm"),
-                    "Confirm",
-                    Kind::Danger,
-                    None,
-                    true,
-                    move |s, tx| dispatch(s, Intent::ConfirmMaintain(which), tx),
-                ))
-                .child(ui::button(
-                    format!("{key}/cancel"),
-                    "Cancel",
-                    Kind::Ghost,
-                    None,
-                    true,
-                    move |s, _| {
-                        s.maint.remove(&which);
-                    },
-                )),
+            ui::notice(
+                row().key(format!("{key}/confirm-row")).gap(10.0).center_y(),
+                Mark::Bad,
+            )
+            .child(
+                text(confirm_text(s, which))
+                    .font(t().ty.note)
+                    .color(p.text)
+                    .grow(1.0)
+                    .min_w(0.0)
+                    .wrap(),
+            )
+            .child(ui::button(
+                format!("{key}/confirm"),
+                "Confirm",
+                Kind::Danger,
+                None,
+                true,
+                move |s, tx| dispatch(s, Intent::ConfirmMaintain(which), tx),
+            ))
+            .child(ui::button(
+                format!("{key}/cancel"),
+                "Cancel",
+                Kind::Ghost,
+                None,
+                true,
+                move |s, _| {
+                    s.maint.remove(&which);
+                },
+            )),
         ),
         MaintPhase::Running => Some(
             row()
@@ -214,19 +205,19 @@ fn card(
                 .key(format!("{key}/result"))
                 .gap(8.0)
                 .center_y()
-                .child(icon(&icons::CHECK, 14.0).color(p.success))
-                .child(text(line.clone()).font(t().ty.small).color(p.success)),
+                .child(icon(&icons::CHECK, 14.0).color(p.success.ink))
+                .child(text(line.clone()).font(t().ty.small).color(p.success.ink)),
         ),
         MaintPhase::Failed(e) => Some(
             row()
                 .key(format!("{key}/result"))
                 .gap(8.0)
                 .center_y()
-                .child(icon(&icons::ALERT, 14.0).color(p.danger))
+                .child(icon(&icons::ALERT, 14.0).color(p.danger.ink))
                 .child(
                     text(e.clone())
                         .font(t().ty.small)
-                        .color(p.danger)
+                        .color(p.danger.ink)
                         .wrap_anywhere()
                         .grow(1.0)
                         .min_w(0.0),

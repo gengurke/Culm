@@ -5,7 +5,7 @@ use crate::brand;
 use crate::icons;
 use crate::state::{AppUpdate, Intent, State, dispatch};
 use crate::theme::{self, StyleExt, SurfaceExt, ThemeId, pal, t};
-use crate::ui::{self, Kind};
+use crate::ui::{self, Kind, Themed};
 use addon_core::Channel;
 use rune::{Cursor, El, Tx, col, el, icon, row, text};
 
@@ -374,10 +374,10 @@ fn theme_card(s: &State, id: ThemeId) -> El {
                         .center_y()
                         .child(el().w(30.0).h(14.0).skin(&sk.primary))
                         .child(el().w(22.0).h(14.0).skin(&sk.secondary))
-                        .child(el().w(8.0).h(8.0).radius(4.0).fill(th.pal.success)),
+                        .child(el().w(8.0).h(8.0).radius(4.0).fill(th.pal.success.ink)),
                 ),
         );
-    let card = col()
+    let mut card = col()
         .key(format!("settings/theme/{}", th.id))
         .role("radio")
         .label(th.name)
@@ -385,16 +385,16 @@ fn theme_card(s: &State, id: ThemeId) -> El {
         .focusable(true)
         .w(140.0)
         .grow(1.0)
-        .padding(8.0)
+        .padding(12.0)
         .gap(10.0)
-        .border(
-            if on { 2.0 } else { 1.0 },
-            if on { p.accent } else { p.border },
-        )
+        .skin(&t().skin.panel)
         .hover(p.hover)
         .cursor(Cursor::Pointer)
         .on_press_tx(move |s: &mut State, tx: &mut Tx| dispatch(s, Intent::SetTheme(id), tx))
         .child(preview);
+    if on {
+        card = card.selected();
+    }
     card.child(
         row()
             .w_full()

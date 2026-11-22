@@ -77,14 +77,26 @@ pub struct Theme {
     pub pal: Pal,
     pub ty: Type,
     pub skin: Skin,
-    /// Textures its skin uses (generated once when the theme is first shown), its frame's too.
-    pub textures: &'static [Tex],
     /// A second look for the window frame (sidebar and header band), for themes whose pages
     /// are light but whose frame is dark. Views draw the frame inside [`framed`].
     pub frame: Option<&'static LazyLock<Theme>>,
 }
 
 impl Theme {
+    /// Textures its skin and its frame's use (generated once when the theme is first shown).
+    pub fn textures(&self) -> Vec<Tex> {
+        let mut out = Vec::new();
+        let frame = self.frame.map(|f| &f.skin);
+        for s in std::iter::once(&self.skin).chain(frame) {
+            for (tex, _) in s.surfaces().iter().filter_map(|s| s.texture) {
+                if !out.contains(&tex) {
+                    out.push(tex);
+                }
+            }
+        }
+        out
+    }
+
     /// The look of the window frame (sidebar, header band): [`Theme::frame`] or the theme itself.
     pub fn frame_look(&'static self) -> &'static Theme {
         self.frame.map_or(self, |f| &**f)
@@ -114,34 +126,33 @@ pub struct Pal {
     pub divider: Color,
     /// Hover wash on clickable rows, chips and cards.
     pub hover: Color,
-    /// Press wash on icon buttons.
-    pub selected: Color,
     /// Quiet badge ground and keyboard caps.
     pub chip: Color,
     /// Progress bar track.
     pub track: Color,
-    /// Links, active controls, progress and the busy badge.
+    /// Links, active controls, progress, info toasts.
     pub accent: Color,
-    /// The lit side of accent: band embers, the toast gem's top edge.
+    /// The lit side of accent: band embers.
     pub accent_hi: Color,
-    /// The busy badge's ground.
-    pub accent_soft: Color,
-    /// Keyboard focus rings and the focused field's border.
+    /// Keyboard focus rings, the focused field's and the open dropdown's ring.
     pub accent_focus: Color,
-    /// Up to date, done.
-    pub success: Color,
-    /// The "up to date" badge's ground.
-    pub success_soft: Color,
-    /// Update available, out of date, game running.
-    pub warning: Color,
-    /// Ground of the update badge, the sidebar's update count and the game-running notice.
-    pub warning_soft: Color,
-    /// Errors and failures.
-    pub danger: Color,
-    /// The remove and clean confirmation's ground.
-    pub danger_soft: Color,
-    /// The remove and clean confirmation's border.
-    pub danger_line: Color,
+    /// Up to date, installed, done.
+    pub success: Tone,
+    /// Update available, out of date, game running; the sidebar's update count.
+    pub warning: Tone,
+    /// Errors, failures, and confirmations of what deletes something.
+    pub danger: Tone,
+    /// Something runs or is the one in use.
+    pub busy: Tone,
+}
+
+/// A status colour: `ink` for its text and glyphs, `soft` for the ground of its badges and notices,
+/// `line` for their edge (read through `ui::Mark`).
+#[derive(Clone, Copy)]
+pub struct Tone {
+    pub ink: Color,
+    pub soft: Color,
+    pub line: Color,
 }
 
 /// Text style per role. Tracking is in points: em × size.
@@ -229,12 +240,15 @@ pub struct Skin {
     pub danger: Surface,
     pub icon_button: Surface,
     pub input: Surface,
-    /// Status badges: their shape (the fill and ink come from the status).
-    pub chip: Surface,
+    /// An unselected toggle (Get Addons' class chips, the source rows); also the shape of the
+    /// sidebar's update count.
+    pub toggle: Surface,
     /// Square wells: initials tiles, icon boxes.
     pub tile: Surface,
+    /// The track of a segmented control.
     pub segments: Surface,
-    pub segment_on: Surface,
+    /// A selected toggle: the chosen segment, class chip or source row.
+    pub toggle_on: Surface,
     /// Toasts (framed alerts); their corner glyph, if any, also crowns the top edge as a gem.
     pub toast: Surface,
     pub kbd: Surface,
@@ -247,9 +261,69 @@ pub struct Skin {
 }
 
 impl Skin {
+    /// Every surface, so nothing that reads them all (textures) misses a slot added later.
+    fn surfaces(&self) -> [&Surface; 24] {
+        let Skin {
+            window,
+            sidebar,
+            band,
+            band_deco: _,
+            toolbar,
+            panel,
+            detail,
+            menu,
+            list_header,
+            row,
+            row_selected,
+            nav,
+            nav_active,
+            primary,
+            secondary,
+            ghost,
+            danger,
+            icon_button,
+            input,
+            toggle,
+            tile,
+            segments,
+            toggle_on,
+            toast,
+            kbd,
+            medal: _,
+            emblem: _,
+            glyphs: _,
+        } = self;
+        [
+            window,
+            sidebar,
+            band,
+            toolbar,
+            panel,
+            detail,
+            menu,
+            list_header,
+            row,
+            row_selected,
+            nav,
+            nav_active,
+            primary,
+            secondary,
+            ghost,
+            danger,
+            icon_button,
+            input,
+            toggle,
+            tile,
+            segments,
+            toggle_on,
+            toast,
+            kbd,
+        ]
+    }
+
     /// The slots most themes share, drawn from the palette, with `radius` on the small controls:
     /// a plain window, underlined toolbar, list header and rows, hover-only nav, ghost and icon
-    /// buttons, a soft danger button, status chips and hairline key caps. Every other slot is
+    /// buttons, a soft danger button, toggles and hairline key caps. Every other slot is
     /// blank (a transparent box), and the emblem is the stock one: themes set those and override
     /// what they make their own (`Skin { panel: .., ..Skin::base(&p, 3.0) }`).
     pub fn base(p: &Pal, radius: f32) -> Skin {
@@ -300,11 +374,11 @@ impl Skin {
                 ..blank()
             },
             danger: Surface {
-                fill: p.danger_soft,
-                ink: p.danger,
-                border: Some(Border::all(1.0, p.danger_line)),
+                fill: p.danger.soft,
+                ink: p.danger.ink,
+                border: Some(Border::all(1.0, p.danger.line)),
                 radius,
-                hover: p.danger.alpha(0.12),
+                hover: p.danger.ink.alpha(0.12),
                 ..blank()
             },
             icon_button: Surface {
@@ -314,10 +388,10 @@ impl Skin {
                 ..blank()
             },
             input: blank(),
-            chip: Surface { radius, ..blank() },
+            toggle: Surface { radius, ..blank() },
             tile: blank(),
             segments: blank(),
-            segment_on: blank(),
+            toggle_on: blank(),
             toast: blank(),
             kbd: Surface {
                 ink: p.text_muted,
@@ -591,7 +665,7 @@ pub fn begin(s: &State, chrome: ChromeInsets) {
     } else {
         std::slice::from_ref(&s.settings.theme)
     };
-    for &tex in shown.iter().flat_map(|id| id.theme().textures) {
+    for tex in shown.iter().flat_map(|id| id.theme().textures()) {
         TEXTURES.with(|m| {
             let mut m = m.borrow_mut();
             if m.contains_key(&tex) {
@@ -748,9 +822,10 @@ mod tests {
                         ("text_dim", p.text_dim, 4.5),
                         ("text_muted", p.text_muted, 3.0),
                         ("accent", p.accent, 3.0),
-                        ("success", p.success, 3.0),
-                        ("warning", p.warning, 3.0),
-                        ("danger", p.danger, 3.0),
+                        ("success", p.success.ink, 3.0),
+                        ("warning", p.warning.ink, 3.0),
+                        ("danger", p.danger.ink, 3.0),
+                        ("busy", p.busy.ink, 3.0),
                     ];
                     for (name, fg, min) in checks {
                         let c = contrast(fg, bg, p.bg);

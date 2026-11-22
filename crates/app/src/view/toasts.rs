@@ -39,9 +39,9 @@ impl Look {
     fn of(tone: Tone) -> Look {
         let p = pal();
         let (tone, glyph) = match tone {
-            Tone::Success => (p.success, &icons::CHECK),
+            Tone::Success => (p.success.ink, &icons::CHECK),
             Tone::Info => (p.accent, &icons::DOWNLOAD),
-            Tone::Danger => (p.danger, &icons::ALERT),
+            Tone::Danger => (p.danger.ink, &icons::ALERT),
         };
         Look { tone, glyph }
     }

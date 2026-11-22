@@ -4,7 +4,7 @@
 //! top left: raised parts catch it on their top-left edge and cast their shadow down-right,
 //! fields and wells sink, pressed buttons darken. Textures are generated (texture.rs).
 
-use super::{BASE_TYPE, BandDeco, Border, Corners, Medal, Overlay, Pal, Skin, Surface, Tex, Theme, Type, drop, h, inner_ring, outer_ring};
+use super::{BASE_TYPE, BandDeco, Border, Corners, Medal, Overlay, Pal, Skin, Surface, Tex, Theme, Tone, Type, drop, h, inner_ring, outer_ring};
 use super::glyphs;
 use crate::icons;
 use rune::tok::{Family, TextStyle};
@@ -42,6 +42,7 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
     let sidebar = h("#1d1a17");
     let sky = h("#d6bf8c");
     let well = h("#f6edd4");
+    let selected = h("#c08a24").alpha(0.24);
     let p = Pal {
         bg: h("#e4d0a2"),
         panel: h("#eee0bc"),
@@ -53,20 +54,15 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
         border_strong: rim.alpha(0.65),
         divider: rim.alpha(0.2),
         hover: h("#6a4210").alpha(0.08),
-        selected: h("#c08a24").alpha(0.24),
         chip: rim.alpha(0.11),
         track: rim.alpha(0.18),
         accent: h("#80500c"),
         accent_hi: h("#a06a14"),
-        accent_soft: h("#a06a14").alpha(0.16),
         accent_focus: h("#9a2a10").alpha(0.85),
-        success: h("#1d6a1d"),
-        success_soft: h("#2a8a2a").alpha(0.15),
-        warning: h("#9a4400"),
-        warning_soft: h("#d06a10").alpha(0.17),
-        danger: h("#a01e0e"),
-        danger_soft: h("#c03020").alpha(0.12),
-        danger_line: h("#a01e0e").alpha(0.5),
+        success: Tone { ink: h("#1d6a1d"), soft: h("#2a8a2a").alpha(0.15), line: h("#1d6a1d").alpha(0.4) },
+        warning: Tone { ink: h("#9a4400"), soft: h("#d06a10").alpha(0.17), line: h("#9a4400").alpha(0.4) },
+        danger: Tone { ink: h("#a01e0e"), soft: h("#c03020").alpha(0.12), line: h("#a01e0e").alpha(0.5) },
+        busy: Tone { ink: h("#80500c"), soft: h("#a06a14").alpha(0.16), line: h("#80500c").alpha(0.4) },
     };
     let ty = Type {
         display: TextStyle::new(24.0, 700.0).family(SERIF).tracking(0.3).lh(30.0),
@@ -132,13 +128,13 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
         list_header: Surface { fill: rim.alpha(0.1), border: Some(Border::sides([0.0, 0.0, 1.0, 0.0], rim.alpha(0.35))), ..Default::default() },
         // The quest log's highlight: a warm wash over the whole line in a bronze rule.
         row_selected: Surface {
-            fill: p.selected,
+            fill: selected,
             border: Some(Border::sides([0.0, 0.0, 1.0, 0.0], h("#a06a14").alpha(0.45))),
             shadows: vec![inner_ring(h("#a06a14").alpha(0.55))],
             hover: p.hover,
             ..Default::default()
         },
-        nav_active: Surface { fill: p.selected, ink: p.heading, ..Default::default() },
+        nav_active: Surface { fill: selected, ink: p.heading, ..Default::default() },
         primary: lacquer.clone(),
         secondary: Surface {
             fill: h("#3a2c1e"),
@@ -174,7 +170,7 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
         tile: slot,
         segments: Surface { fill: rim.alpha(0.12), border: Some(Border::bevel(1.0, h("#6a4a24"), h("#c8aa70"))), radius: 3.0, shadows: vec![sunk(2.0, 0.22)], ..Default::default() },
         // The spellbook's open tab: red-brown with gold lettering, standing out of the page.
-        segment_on: Surface { radius: 2.0, ..lacquer.clone() },
+        toggle_on: Surface { radius: 2.0, ..lacquer.clone() },
         toast: Surface { shadows: vec![lit(0.7), shade(0.12), cast(3.0, 7.0, 0.35), drop(6.0, 18.0, 0.5)], ..panel },
         kbd: Surface { ink: p.text_muted, border: Some(Border::bevel(1.0, h("#a8885a"), h("#5a3e1e"))), radius: 2.0, ..Default::default() },
         medal: Medal { ring: [h("#c4c0b8"), h("#68625a"), h("#24201c")], ring_on: [h("#ffe38a"), h("#c8961e"), h("#5a3606")], outline: h("#2a1a0a") },
@@ -189,7 +185,6 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
         pal: p,
         ty,
         skin,
-        textures: &[Tex::Parchment, Tex::Stone, Tex::Leather],
         frame: Some(&FRAME),
     }
 });
@@ -220,20 +215,15 @@ static FRAME: LazyLock<Theme> = LazyLock::new(|| {
         border_strong: gold.alpha(0.55),
         divider: gold.alpha(0.16),
         hover: h("#ffdc9a").alpha(0.07),
-        selected: h("#ffc95a").alpha(0.12),
         chip: parchment.alpha(0.08),
         track: parchment.alpha(0.12),
         accent: h("#f0c050"),
         accent_hi: h("#ffd96b"),
-        accent_soft: h("#f0c050").alpha(0.18),
         accent_focus: h("#ffd100").alpha(0.8),
-        success: h("#5bd65b"),
-        success_soft: h("#5bd65b").alpha(0.15),
-        warning: h("#ffa135"),
-        warning_soft: h("#ffa135").alpha(0.17),
-        danger: h("#ff5a48"),
-        danger_soft: h("#ff5a48").alpha(0.12),
-        danger_line: h("#ff5a48").alpha(0.5),
+        success: Tone { ink: h("#5bd65b"), soft: h("#5bd65b").alpha(0.15), line: h("#5bd65b").alpha(0.4) },
+        warning: Tone { ink: h("#ffa135"), soft: h("#ffa135").alpha(0.17), line: h("#ffa135").alpha(0.4) },
+        danger: Tone { ink: h("#ff5a48"), soft: h("#ff5a48").alpha(0.12), line: h("#ff5a48").alpha(0.5) },
+        busy: Tone { ink: h("#f0c050"), soft: h("#f0c050").alpha(0.18), line: h("#f0c050").alpha(0.4) },
     };
     let ps = &page.skin;
     let skin = Skin {
@@ -293,7 +283,6 @@ static FRAME: LazyLock<Theme> = LazyLock::new(|| {
         pal: p,
         ty: page.ty,
         skin,
-        textures: &[],
         frame: None,
     }
 });

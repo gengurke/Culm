@@ -3,11 +3,56 @@
 
 use crate::icons;
 use crate::state::State;
-use crate::theme::{self, StyleExt, Surface, SurfaceExt, pal, t};
+use crate::theme::{self, StyleExt, Surface, SurfaceExt, Tone, pal, t};
 use rune::{
     Color, Cursor, El, HelpLook, Icon, ScrollSpec, Shadow, TextEdit, Tx, col, el, icon, row, text,
 };
 use rune_kit::{Kit, PaletteSeed, ScrollBar, ScrollBarStyle, TextInput};
+
+/// Opacity of a control that can't run now (a locked card is a different state: 0.6).
+pub const DISABLED: f32 = 0.45;
+
+/// The looks every control shares, whatever the theme.
+pub trait Themed {
+    /// The keyboard focus ring: a thin `accent_focus` line just outside the box.
+    fn focus_look(self) -> El;
+    /// A state (focused field, open dropdown) drawn as a 1 pt `color` ring just inside the box's
+    /// border, so the theme's border and bevel stay.
+    fn ring(self, color: Color) -> El;
+    /// A chosen card (the selected addon, the theme in use): a 2 pt `accent` ring inside its frame.
+    fn selected(self) -> El;
+}
+
+impl Themed for El {
+    fn focus_look(self) -> El {
+        self.focus_ring(1.0, 2.0, pal().accent_focus)
+    }
+    fn ring(self, color: Color) -> El {
+        self.box_shadow(Shadow {
+            spread: 1.0,
+            color,
+            inset: true,
+            ..Shadow::default()
+        })
+    }
+    fn selected(self) -> El {
+        self.box_shadow(Shadow {
+            spread: 2.0,
+            color: pal().accent,
+            inset: true,
+            ..Shadow::default()
+        })
+    }
+}
+
+/// The wash while `sk` is pressed: its own, or a stronger hover.
+fn press_of(sk: &Surface) -> Color {
+    if sk.press.a > 0.0 {
+        sk.press
+    } else {
+        sk.hover.alpha(sk.hover.a * 1.6)
+    }
+}
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Kind {
@@ -26,19 +71,14 @@ pub fn button(
     enabled: bool,
     f: impl Fn(&mut State, &mut Tx) + 'static,
 ) -> El {
-    let (th, p) = (t(), pal());
+    let th = t();
     let sk = match kind {
         Kind::Primary => &th.skin.primary,
         Kind::Secondary => &th.skin.secondary,
         Kind::Ghost => &th.skin.ghost,
         Kind::Danger => &th.skin.danger,
     };
-    let (ink, hover) = (sk.ink, sk.hover);
-    let press = if sk.press.a > 0.0 {
-        sk.press
-    } else {
-        hover.alpha(hover.a * 1.6)
-    };
+    let (ink, hover, press) = (sk.ink, sk.hover, press_of(sk));
     let font = if kind == Kind::Primary {
         th.ty.label.weight_of(600.0)
     } else {
@@ -59,7 +99,7 @@ pub fn button(
             press: Color::TRANSPARENT,
             ..sk.clone()
         })
-        .focus_ring(1.0, 2.0, p.accent_focus);
+        .focus_look();
     if let Some(g) = glyph {
         b = b.child(icon(theme::glyph(g), 14.0).color(ink));
     }
@@ -70,7 +110,7 @@ pub fn button(
             .cursor(Cursor::Pointer)
             .on_press_tx(f)
     } else {
-        b.disabled(true).opacity(0.45)
+        b.disabled(true).opacity(DISABLED)
     }
 }
 
@@ -90,7 +130,7 @@ pub fn icon_button(
         .size(28.0, 28.0)
         .center()
         .skin(sk)
-        .press(pal().selected)
+        .press(press_of(sk))
         .cursor(Cursor::Pointer)
         .on_press_tx(f)
         .child(icon(theme::glyph(glyph), 16.0).color(sk.ink))
@@ -113,16 +153,21 @@ pub enum Mark {
 }
 
 impl Mark {
-    /// Ink and soft fill from the palette.
-    pub fn colors(self) -> (Color, Color) {
+    /// Its colours from the palette's status tones (the quiet marks: muted text on the chip ground).
+    pub fn tone(self) -> Tone {
         let p = pal();
+        let quiet = |ink: Color| Tone {
+            ink,
+            soft: p.chip,
+            line: p.border,
+        };
         match self {
-            Mark::Good => (p.success, p.success_soft),
-            Mark::Update => (p.warning, p.warning_soft),
-            Mark::Busy => (p.accent, p.accent_soft),
-            Mark::Bad => (p.danger, p.danger.alpha(0.14)),
-            Mark::Muted => (p.text_muted, p.chip),
-            Mark::Off => (p.text_dim, p.chip),
+            Mark::Good => p.success,
+            Mark::Update => p.warning,
+            Mark::Busy => p.busy,
+            Mark::Bad => p.danger,
+            Mark::Muted => quiet(p.text_muted),
+            Mark::Off => quiet(p.text_dim),
         }
     }
 
@@ -147,7 +192,7 @@ impl Mark {
 pub fn tag(label: &str, mark: Mark) -> El {
     let th = t();
     let p = &th.pal;
-    let (fg, _) = mark.colors();
+    let fg = mark.tone().ink;
     let quiet = if mark == Mark::Good { fg } else { p.text_muted };
     row()
         .h(20.0)
@@ -175,7 +220,7 @@ pub fn progress_line(done: f32, height: f32) -> El {
         .child(el().h_full().w_frac(done.clamp(0.0, 1.0)).fill(p.accent))
 }
 
-/// A text field in a `well`: hairline edge that turns gold on focus, optional leading glyph and
+/// A text field in a `well`: the input skin with an `accent_focus` ring inside it on focus, optional leading glyph and
 /// trailing accessory. `edit` must be the field `access` returns.
 pub fn field(
     key: &str,
@@ -245,18 +290,17 @@ impl FieldBuilder {
         if let Some(g) = self.glyph {
             input = input.leading_icon(g).leading_icon_size(14.0);
         }
-        let mut skin = th.skin.input.clone();
-        if self.focused {
-            skin.border = Some(theme::Border::all(1.0, p.accent_focus));
-        }
         let mut f = row()
             .key(self.key)
             .h(theme::CONTROL_H + 4.0)
             .pr(6.0)
             .gap(6.0)
             .center_y()
-            .skin(&skin)
-            .child(input.build(&k).grow(1.0).min_w(0.0));
+            .skin(&th.skin.input);
+        if self.focused {
+            f = f.ring(p.accent_focus);
+        }
+        f = f.child(input.build(&k).grow(1.0).min_w(0.0));
         if let Some(t) = self.trailing {
             f = f.child(t);
         }
@@ -287,12 +331,7 @@ pub fn help_look() -> HelpLook {
         .delay(0.6)
         .skip_delay(0.4)
         .fade(0.12, 0.08, 0.96)
-        .shadows([Shadow {
-            y: 3.0,
-            blur: 10.0,
-            color: Color::BLACK.alpha(0.4),
-            ..Shadow::default()
-        }])
+        .shadows(sk.shadows.iter().filter(|s| !s.inset).copied())
 }
 
 /// rune-kit, tinted for the few kit parts we use (text fields).
@@ -330,19 +369,26 @@ pub fn scroll(viewport: El) -> El {
         .scroll_bar_styled(look)
 }
 
-/// A status glyph in a small round badge: a soft wash of `tone` in a faint ring of it (notices).
-pub fn badge(glyph: &'static Icon, tone: Color) -> El {
+/// A glyph in a small round badge: the mark's soft wash in a ring of its line.
+pub fn badge(glyph: &'static Icon, mark: Mark) -> El {
+    let tone = mark.tone();
     el().size(28.0, 28.0)
         .radius(14.0)
         .center()
-        .fill(tone.alpha(0.16))
-        .box_shadow(Shadow {
-            spread: 1.0,
-            color: tone.alpha(0.4),
-            inset: true,
-            ..Shadow::default()
-        })
-        .child(icon(glyph, 14.0).color(tone))
+        .fill(tone.soft)
+        .ring(tone.line)
+        .child(icon(glyph, 14.0).color(tone.ink))
+}
+
+/// Paints `e` as a notice (a warning, an error, a confirmation of a deletion): the mark's soft wash
+/// edged in its line, with the panel's corners and 12 pt padding. The caller lays out the content.
+pub fn notice(e: El, mark: Mark) -> El {
+    let tone = mark.tone();
+    e.w_full()
+        .padding(12.0)
+        .radius(t().skin.panel.radius)
+        .fill(tone.soft)
+        .border(1.0, tone.line)
 }
 
 /// A key hint box (`/`).
@@ -392,10 +438,10 @@ pub fn segmented<T: Copy + PartialEq + 'static>(
             .px(12.0)
             .center();
         if on {
-            item = item.skin(&th.skin.segment_on);
+            item = item.skin(&th.skin.toggle_on);
         }
         item = item.child(text(label).font(th.ty.label).color(if on {
-            th.skin.segment_on.ink
+            th.skin.toggle_on.ink
         } else {
             p.text_muted
         }));
@@ -408,7 +454,7 @@ pub fn segmented<T: Copy + PartialEq + 'static>(
         }
         seg = seg.child(item);
     }
-    if enabled { seg } else { seg.opacity(0.45) }
+    if enabled { seg } else { seg.opacity(DISABLED) }
 }
 
 pub fn slug(s: &str) -> String {
