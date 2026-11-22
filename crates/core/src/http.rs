@@ -20,36 +20,30 @@ pub const USER_AGENT: &str = concat!(
     " (World of Warcraft: Forever addon manager)"
 );
 
-fn agent() -> &'static ureq::Agent {
-    static AGENT: OnceLock<ureq::Agent> = OnceLock::new();
-    AGENT.get_or_init(|| {
-        ureq::Agent::config_builder()
-            .user_agent(USER_AGENT)
-            .http_status_as_error(false)
-            .timeout_connect(Some(Duration::from_secs(15)))
-            .timeout_recv_response(Some(Duration::from_secs(30)))
-            // Per read, not total: large downloads on slow links must still finish.
-            .timeout_per_read(Some(Duration::from_secs(30)))
-            .build()
-            .into()
-    })
+fn agent_config(max_redirects: u32) -> ureq::Agent {
+    ureq::Agent::config_builder()
+        .user_agent(USER_AGENT)
+        .http_status_as_error(false)
+        .max_redirects(max_redirects)
+        .timeout_connect(Some(Duration::from_secs(15)))
+        .timeout_recv_response(Some(Duration::from_secs(30)))
+        // Per read, not total: large downloads on slow links must still finish.
+        .timeout_per_read(Some(Duration::from_secs(30)))
+        .build()
+        .into()
 }
 
-/// Like `agent()`, but hands redirects back so `stream` can decide per hop which headers to send.
-fn download_agent() -> &'static ureq::Agent {
+/// For requests without a [`ScopedHeader`]: ureq follows their redirects, dropping only
+/// `Authorization` and `Cookie` on the way to another host.
+fn agent() -> &'static ureq::Agent {
     static AGENT: OnceLock<ureq::Agent> = OnceLock::new();
-    AGENT.get_or_init(|| {
-        ureq::Agent::config_builder()
-            .user_agent(USER_AGENT)
-            .http_status_as_error(false)
-            .max_redirects(0)
-            .timeout_connect(Some(Duration::from_secs(15)))
-            .timeout_recv_response(Some(Duration::from_secs(30)))
-            // Per read, not total: large downloads on slow links must still finish.
-            .timeout_per_read(Some(Duration::from_secs(30)))
-            .build()
-            .into()
-    })
+    AGENT.get_or_init(|| agent_config(MAX_REDIRECTS as u32))
+}
+
+/// Hands redirects back, so [`follow`] can decide per hop where a [`ScopedHeader`] goes.
+fn hop_agent() -> &'static ureq::Agent {
+    static AGENT: OnceLock<ureq::Agent> = OnceLock::new();
+    AGENT.get_or_init(|| agent_config(0))
 }
 
 type Headers<'a> = &'a [(&'a str, &'a str)];
@@ -59,35 +53,52 @@ type Headers<'a> = &'a [(&'a str, &'a str)];
 pub struct ScopedHeader<'a> {
     pub name: &'a str,
     pub value: &'a str,
-    pub to: fn(&str) -> bool,
+    pub to: &'a dyn Fn(&str) -> bool,
 }
 
-/// Redirects followed by a download before giving up.
+/// Whether `url` lies under `base` (`https://api.example/v1` is under `https://api.example`, but
+/// `https://api.example.evil/` is not).
+pub fn under(url: &str, base: &str) -> bool {
+    url.strip_prefix(base.trim_end_matches('/'))
+        .is_some_and(|rest| rest.is_empty() || rest.starts_with(['/', '?', '#']))
+}
+
+/// Redirects followed before giving up.
 const MAX_REDIRECTS: usize = 10;
 
-/// GET `url` with `query` params (URL-encoded) and parse the JSON answer.
+/// GET `url` with `query` params (URL-encoded) and parse the JSON answer. `key` goes only where
+/// it may, on every hop.
 pub fn get_json<T: DeserializeOwned>(
     url: &str,
     query: &[(&str, &str)],
     headers: Headers,
+    key: Option<&ScopedHeader>,
 ) -> Result<T> {
-    let mut req = agent().get(url).header("Accept", "application/json");
-    for (k, v) in query {
-        req = req.query(*k, *v);
-    }
-    for (k, v) in headers {
-        req = req.header(*k, *v);
-    }
-    parse_json(url, req.call())
+    parse_json(
+        url,
+        send(url, key, |agent, url, scoped| {
+            let mut req = agent.get(url).header("Accept", "application/json");
+            for (k, v) in query {
+                req = req.query(*k, *v);
+            }
+            for (k, v) in headers.iter().chain(scoped) {
+                req = req.header(*k, *v);
+            }
+            req.call()
+        })?,
+    )
 }
 
 /// GET `url` as text (at most the JSON size limit).
-pub fn get_text(url: &str, headers: Headers) -> Result<String> {
-    let mut req = agent().get(url);
-    for (k, v) in headers {
-        req = req.header(*k, *v);
-    }
-    check(url, req.call())?
+pub fn get_text(url: &str, headers: Headers, key: Option<&ScopedHeader>) -> Result<String> {
+    let res = send(url, key, |agent, url, scoped| {
+        let mut req = agent.get(url);
+        for (k, v) in headers.iter().chain(scoped) {
+            req = req.header(*k, *v);
+        }
+        req.call()
+    })?;
+    check(url, res)?
         .body_mut()
         .with_config()
         .limit(JSON_LIMIT)
@@ -100,15 +111,60 @@ pub fn post_json<T: DeserializeOwned>(
     url: &str,
     body: &impl Serialize,
     headers: Headers,
+    key: Option<&ScopedHeader>,
 ) -> Result<T> {
-    let mut req = agent()
-        .post(url)
-        .header("Accept", "application/json")
-        .header("Content-Type", "application/json");
-    for (k, v) in headers {
-        req = req.header(*k, *v);
+    let body = serde_json::to_vec(body)?;
+    let res = send(url, key, |agent, url, scoped| {
+        let mut req = agent
+            .post(url)
+            .header("Accept", "application/json")
+            .header("Content-Type", "application/json");
+        for (k, v) in headers.iter().chain(scoped) {
+            req = req.header(*k, *v);
+        }
+        req.send(&body[..])
+    })?;
+    parse_json(url, res)
+}
+
+type Res = ureq::http::Response<ureq::Body>;
+
+/// Sends the request `req` builds for a URL and the scoped headers to add there. Without a key
+/// ureq follows redirects; with one, [`follow`] does, so the key never leaves its hosts.
+fn send(
+    url: &str,
+    key: Option<&ScopedHeader>,
+    req: impl Fn(&ureq::Agent, &str, Headers) -> Result<Res, ureq::Error>,
+) -> Result<Res> {
+    match key {
+        None => req(agent(), url, &[]).with_context(|| format!("request {url}")),
+        Some(_) => follow(url, key, req).map(|(_, res)| res),
     }
-    parse_json(url, req.send(&serde_json::to_vec(body)?[..]))
+}
+
+/// Sends `req` hop by hop, adding `key` only on hops to a host it accepts. Returns the final URL
+/// and its (non-redirect) answer.
+fn follow(
+    url: &str,
+    key: Option<&ScopedHeader>,
+    req: impl Fn(&ureq::Agent, &str, Headers) -> Result<Res, ureq::Error>,
+) -> Result<(String, Res)> {
+    let mut url = url.to_string();
+    for _ in 0..=MAX_REDIRECTS {
+        let scoped = key.filter(|k| (k.to)(&url)).map(|k| [(k.name, k.value)]);
+        let res = req(hop_agent(), &url, scoped.as_ref().map_or(&[], |s| &s[..]))
+            .with_context(|| format!("request {url}"))?;
+        if !res.status().is_redirection() {
+            return Ok((url, res));
+        }
+        let location = res
+            .headers()
+            .get("location")
+            .and_then(|l| l.to_str().ok())
+            .with_context(|| format!("HTTP {} from {url} without a target", res.status()))?;
+        url = join_location(&url, location);
+    }
+    bail!("too many redirects from {url}")
 }
 
 /// Download `url` into memory (small files only). `progress(done, total)` is called as bytes arrive.
@@ -136,28 +192,14 @@ fn stream(
     out: &mut dyn Write,
     progress: &mut dyn FnMut(u64, Option<u64>),
 ) -> Result<u64> {
-    let mut url = url.to_string();
-    let mut hops = 0;
-    let res = loop {
-        let mut req = download_agent().get(&url);
-        if let Some(h) = header.filter(|h| (h.to)(&url)) {
-            req = req.header(h.name, h.value);
+    let (url, res) = follow(url, header, |agent, url, scoped| {
+        let mut req = agent.get(url);
+        for (k, v) in scoped {
+            req = req.header(*k, *v);
         }
-        let res = req.call().with_context(|| format!("request {url}"))?;
-        if !res.status().is_redirection() {
-            break check(&url, Ok(res))?;
-        }
-        let location = res
-            .headers()
-            .get("location")
-            .and_then(|l| l.to_str().ok())
-            .with_context(|| format!("HTTP {} from {url} without a target", res.status()))?;
-        hops += 1;
-        if hops > MAX_REDIRECTS {
-            bail!("too many redirects from {url}");
-        }
-        url = join_location(&url, location);
-    };
+        req.call()
+    })?;
+    let res = check(&url, res)?;
     let url = url.as_str();
     let total = res.body().content_length();
     let too_large = || anyhow::anyhow!("the file is too large (over {} MB)", limit >> 20);
@@ -187,8 +229,6 @@ fn stream(
     Ok(done)
 }
 
-type Res = ureq::http::Response<ureq::Body>;
-
 /// The URL a `Location` header points to, seen from `base` (absolute, `//host/…`, `/path` or relative).
 fn join_location(base: &str, location: &str) -> String {
     if location.starts_with("https://") || location.starts_with("http://") {
@@ -207,8 +247,7 @@ fn join_location(base: &str, location: &str) -> String {
     format!("{scheme}://{dir}/{location}")
 }
 
-fn check(url: &str, res: Result<Res, ureq::Error>) -> Result<Res> {
-    let mut res = res.with_context(|| format!("request {url}"))?;
+fn check(url: &str, mut res: Res) -> Result<Res> {
     let status = res.status();
     if !status.is_success() {
         let body = res
@@ -222,7 +261,7 @@ fn check(url: &str, res: Result<Res, ureq::Error>) -> Result<Res> {
     Ok(res)
 }
 
-fn parse_json<T: DeserializeOwned>(url: &str, res: Result<Res, ureq::Error>) -> Result<T> {
+fn parse_json<T: DeserializeOwned>(url: &str, res: Res) -> Result<T> {
     let bytes = check(url, res)?
         .body_mut()
         .with_config()

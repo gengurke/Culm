@@ -502,7 +502,7 @@ fn f3_2_download_keys_go_only_to_their_hosts_even_across_redirects() {
     let key = http::ScopedHeader {
         name: "x-api-key",
         value: "test-key",
-        to: |u| u.contains("/cdn/"),
+        to: &|u| u.contains("/cdn/"),
     };
     for start in ["/cdn/a.zip", "/cdn/c.zip"] {
         let url = format!("{}{start}", s.url());

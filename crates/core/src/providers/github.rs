@@ -29,7 +29,7 @@ impl GitHub {
         if let Some(auth) = &auth {
             headers.push(("Authorization", auth));
         }
-        http::get_json(url, &[], &headers)
+        http::get_json(url, &[], &headers, None)
     }
 
     /// The repo's README as plain text (`GET /repos/{repo}/readme`, raw Markdown).
@@ -46,7 +46,11 @@ impl GitHub {
         if let Some(auth) = &auth {
             headers.push(("Authorization", auth));
         }
-        let md = http::get_text(&format!("{}/repos/{repo}/readme", self.api_base), &headers)?;
+        let md = http::get_text(
+            &format!("{}/repos/{repo}/readme", self.api_base),
+            &headers,
+            None,
+        )?;
         Ok(crate::html::markdown_to_text(
             &md,
             crate::html::DESCRIPTION_MAX,
@@ -172,15 +176,16 @@ fn forever_asset(r: &Release) -> Option<&Asset> {
     if let Some(meta_asset) = r.assets.iter().find(|a| a.name == "release.json") {
         // A failed metadata fetch falls back to asset names. No token: the download
         // URL redirects to another host.
-        let picked = http::get_json::<ReleaseJson>(&meta_asset.browser_download_url, &[], &[])
-            .ok()
-            .and_then(|meta| {
-                let entry = meta
-                    .releases
-                    .iter()
-                    .find(|e| !e.nolib && e.metadata.iter().any(|m| m.flavor == "forever"))?;
-                r.assets.iter().find(|a| a.name == entry.filename)
-            });
+        let picked =
+            http::get_json::<ReleaseJson>(&meta_asset.browser_download_url, &[], &[], None)
+                .ok()
+                .and_then(|meta| {
+                    let entry = meta
+                        .releases
+                        .iter()
+                        .find(|e| !e.nolib && e.metadata.iter().any(|m| m.flavor == "forever"))?;
+                    r.assets.iter().find(|a| a.name == entry.filename)
+                });
         // With metadata present, a release without a Forever entry has no Forever build.
         return picked.or_else(by_name);
     }

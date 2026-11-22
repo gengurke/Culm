@@ -199,7 +199,7 @@ impl CoreBackend {
         let header = key.as_deref().map(|value| http::ScopedHeader {
             name: "x-api-key",
             value,
-            to: providers::curseforge::is_curseforge_host,
+            to: &providers::curseforge::is_curseforge_host,
         });
         http::download_to(url, header.as_ref(), &mut file, &mut |done, total| {
             if let Some(total) = total.filter(|t| *t > 0) {

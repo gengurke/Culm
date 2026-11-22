@@ -680,3 +680,28 @@ fn f3_5_curseforge_file_carries_its_size_and_sha1() {
         "the hash is never written to disk (#69)"
     );
 }
+
+#[test]
+fn f7_1_the_api_key_never_follows_a_redirect_off_the_api() {
+    // A redirect inside the API keeps the key; one to another server must not carry it along.
+    let api = FakeServer::start();
+    let other = FakeServer::start();
+    api.redirect("/v1/categories", &format!("{}/v2/categories", api.url()));
+    api.redirect("/v2/categories", &format!("{}/v1/categories", other.url()));
+    other.json("GET", "/v1/categories", &cf_envelope(json!([])));
+    assert!(curseforge(&api).categories().unwrap().is_empty());
+    let key_at =
+        |s: &FakeServer, p: &str| s.requests_to(p)[0].header("x-api-key").map(str::to_string);
+    assert_eq!(key_at(&api, "/v1/categories").as_deref(), Some("test-key"));
+    assert_eq!(key_at(&api, "/v2/categories").as_deref(), Some("test-key"));
+    assert_eq!(key_at(&other, "/v1/categories"), None);
+    // The base is matched as a whole URL prefix, not as text: a look-alike host is not under it.
+    assert!(http::under(
+        "https://api.example/v1/mods?x=1",
+        "https://api.example"
+    ));
+    assert!(!http::under(
+        "https://api.example.evil/v1",
+        "https://api.example"
+    ));
+}

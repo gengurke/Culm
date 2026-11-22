@@ -39,6 +39,7 @@ impl Hub {
             &self.url(&format!("/addons/batch/{}", game_type(flavor))),
             &json!({ "addonIds": ids }),
             &[],
+            None,
         )?;
         Ok(res.addons)
     }
@@ -66,6 +67,7 @@ impl Provider for Hub {
             &self.url(&format!("/addons/search/{}", game_type(flavor))),
             &[("query", filter.text.as_str()), ("limit", "50")],
             &[],
+            None,
         )?;
         Ok(to_addons(flavor, &res.addons))
     }
@@ -75,6 +77,7 @@ impl Provider for Hub {
             &self.url(&format!("/addons/featured/{}", game_type(flavor))),
             &[("count", "60"), ("recent", "30")],
             &[],
+            None,
         )?;
         let mut seen = HashSet::new();
         let unique: Vec<HubAddon> = res
@@ -110,6 +113,7 @@ impl Provider for Hub {
             &self.url("/addons/fingerprint"),
             &json!({ "fingerprints": fps }),
             &[],
+            None,
         )?;
         let matches: Vec<(&ScannedFolder, &FpMatch, RemoteFile)> = folders
             .iter()
@@ -159,7 +163,7 @@ impl Provider for Hub {
         let Some(id) = parse_url(url) else {
             return Ok(None);
         };
-        let res: Single = http::get_json(&self.url(&format!("/addons/{id}")), &[], &[])?;
+        let res: Single = http::get_json(&self.url(&format!("/addons/{id}")), &[], &[], None)?;
         let addon = to_addon(flavor, &res.addon);
         anyhow::ensure!(
             !addon.files.is_empty(),
