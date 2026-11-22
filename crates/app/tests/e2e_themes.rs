@@ -109,6 +109,40 @@ fn f7_3_every_theme_renders_every_screen() {
     }
 }
 
+#[test]
+fn f7_3_every_theme_shows_its_swatches() {
+    for &theme in ThemeId::ALL {
+        let mut state = State::new(Arc::new(MockBackend::new()));
+        loaded(&mut state);
+        state.settings.theme = theme;
+        state.screen = Screen::Swatches;
+        let mut rt = runtime(state, (1280.0, 800.0));
+        rt.frame(0.0);
+        let th = theme.theme();
+        let mut keys: Vec<String> = th
+            .skin
+            .surfaces()
+            .iter()
+            .map(|(name, _)| format!("swatches/skin/{name}"))
+            .collect();
+        keys.extend(
+            [
+                "page-title",
+                "swatches/page/accent",
+                "swatches/type/mono",
+                "swatches/status",
+            ]
+            .map(String::from),
+        );
+        if !std::ptr::eq(th, th.frame_look()) {
+            keys.push("swatches/frame/accent".into());
+        }
+        for k in keys {
+            assert!(rt.find(&k).is_some(), "{}: nothing keyed {k}", theme.id());
+        }
+    }
+}
+
 /// Every role's style in a type ladder.
 fn styles(ty: &Type) -> [(&'static str, TextStyle); 13] {
     [

@@ -35,6 +35,8 @@ pub enum Screen {
     GetAddons,
     Maintenance,
     Settings,
+    /// Every colour, text role and surface of the theme, for theme authors (scene `swatches`).
+    Swatches,
 }
 
 /// The installation-wide background job (one at a time).

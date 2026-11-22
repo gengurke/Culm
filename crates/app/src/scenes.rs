@@ -321,6 +321,10 @@ const SCENES: &[Scene] = &[
             sums: None,
         });
     }),
+    ("swatches", |s| {
+        loaded(s);
+        s.screen = Screen::Swatches;
+    }),
     ("onboarding", |s| {
         s.settings = s.backend.load_settings();
         s.job = Job::Idle;

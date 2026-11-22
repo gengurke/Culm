@@ -94,7 +94,7 @@ impl Theme {
         let mut out = Vec::new();
         let frame = self.frame.map(|f| &f.skin);
         for s in std::iter::once(&self.skin).chain(frame) {
-            for (tex, _) in s.surfaces().iter().filter_map(|s| s.texture) {
+            for (tex, _) in s.surfaces().iter().filter_map(|(_, s)| s.texture) {
                 if !out.contains(&tex) {
                     out.push(tex);
                 }
@@ -300,8 +300,9 @@ pub struct Skin {
 }
 
 impl Skin {
-    /// Every surface, so nothing that reads them all (textures) misses a slot added later.
-    fn surfaces(&self) -> [&Surface; 24] {
+    /// Every surface with its slot name, so nothing that reads them all (textures, the swatches
+    /// screen) misses a slot added later.
+    pub fn surfaces(&self) -> [(&'static str, &Surface); 24] {
         let Skin {
             window,
             sidebar,
@@ -333,30 +334,30 @@ impl Skin {
             glyphs: _,
         } = self;
         [
-            window,
-            sidebar,
-            band,
-            toolbar,
-            panel,
-            detail,
-            menu,
-            list_header,
-            row,
-            row_selected,
-            nav,
-            nav_active,
-            primary,
-            secondary,
-            ghost,
-            danger,
-            icon_button,
-            input,
-            toggle,
-            tile,
-            segments,
-            toggle_on,
-            toast,
-            kbd,
+            ("window", window),
+            ("sidebar", sidebar),
+            ("band", band),
+            ("toolbar", toolbar),
+            ("panel", panel),
+            ("detail", detail),
+            ("menu", menu),
+            ("list_header", list_header),
+            ("row", row),
+            ("row_selected", row_selected),
+            ("nav", nav),
+            ("nav_active", nav_active),
+            ("primary", primary),
+            ("secondary", secondary),
+            ("ghost", ghost),
+            ("danger", danger),
+            ("icon_button", icon_button),
+            ("input", input),
+            ("toggle", toggle),
+            ("tile", tile),
+            ("segments", segments),
+            ("toggle_on", toggle_on),
+            ("toast", toast),
+            ("kbd", kbd),
         ]
     }
 

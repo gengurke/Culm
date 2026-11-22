@@ -4,6 +4,7 @@ mod get_addons;
 mod maintenance;
 mod my_addons;
 mod settings;
+mod swatches;
 mod toasts;
 
 use crate::brand;
@@ -21,6 +22,7 @@ pub fn view(s: &State, cx: &mut Cx<State>) -> El {
     cx.caption_color(theme::framed(|| pal().text));
     let page = match (s.screen, s.installation()) {
         (Screen::Settings, _) => settings::page(s),
+        (Screen::Swatches, _) => swatches::page(s),
         (_, None) if s.job == Job::Booting || s.job == Job::Scanning => loading_page(s),
         (_, None) => onboarding_page(),
         (Screen::MyAddons, Some(_)) => my_addons::page(s),

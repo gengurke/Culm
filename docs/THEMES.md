@@ -44,7 +44,8 @@ colour, not the theme).
    the palette. The slots it leaves blank, which every theme sets, are `sidebar`, `band`, `panel`, `detail`, `menu`,
    `row_selected`, `primary`, `secondary`, `input`, `tile`, `segments`, `toggle_on` and `toast`, and `medal`
    (`Medal::default()` is transparent).
-6. Look at it: `target/debug/culm --snap out.png --scene settings@<id>`. Check every screen with
+6. Look at it: `target/debug/culm --snap out.png --scene swatches@<id>` shows every colour, text role, surface,
+   status mark and glyph swap on one screen, each labelled with its slot name. Then check every screen with
    `cargo run -- --list-scenes` and `--scene <scene>@<id>`. `scripts/tree-diff.sh` dumps every scene's element tree.
 7. Run `cargo test` (`f7_3_every_theme_renders_every_screen`, `f7_3_every_theme_font_is_bundled`). Then add the theme
    to F7.3 in `docs/FEATURES.md` and to `CHANGELOG.md`.
