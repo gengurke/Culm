@@ -86,6 +86,14 @@ impl Provider for CurseForge {
         NAME
     }
 
+    fn is_link(&self, input: &str) -> bool {
+        parse_url(input).is_some()
+    }
+
+    fn takes_links(&self) -> bool {
+        true
+    }
+
     fn available(&self) -> bool {
         self.key().is_ok()
     }

@@ -49,6 +49,14 @@ impl Provider for Hub {
         NAME
     }
 
+    fn is_link(&self, input: &str) -> bool {
+        parse_url(input).is_some()
+    }
+
+    fn takes_links(&self) -> bool {
+        true
+    }
+
     fn label(&self) -> &'static str {
         "WowUp Hub"
     }

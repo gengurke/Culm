@@ -109,6 +109,14 @@ impl Provider for GitHub {
         NAME
     }
 
+    fn is_link(&self, input: &str) -> bool {
+        parse_url(input).is_some()
+    }
+
+    fn takes_links(&self) -> bool {
+        true
+    }
+
     /// One request pair per repo: a failing repo (renamed, deleted, rate limit) is skipped so
     /// the others still get checked; only a batch where every repo fails is an error.
     fn get_many(&self, _flavor: Flavor, external_ids: &[String]) -> Result<Vec<RemoteAddon>> {

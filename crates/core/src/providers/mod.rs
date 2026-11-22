@@ -63,29 +63,27 @@ pub fn all(config: &ProviderConfig) -> Vec<Box<dyn Provider>> {
     ]
 }
 
-/// Whether a link is one of a provider's addon pages.
-type IsLink = fn(&str) -> bool;
+/// Every source with default settings, for what doesn't depend on keys or endpoints (labels, links).
+fn known() -> &'static [Box<dyn Provider>] {
+    static KNOWN: LazyLock<Vec<Box<dyn Provider>>> =
+        LazyLock::new(|| all(&ProviderConfig::default()));
+    &KNOWN
+}
 
-/// The sources an install link can name, in the order links are tried: a CurseForge addon page,
-/// a WowUp Hub page `wowup.io/addons/<id>`, a GitHub repo URL or bare `owner/repo`.
-const LINKS: [(&str, IsLink); 3] = [
-    (curseforge::NAME, |s| curseforge::parse_url(s).is_some()),
-    (hub::NAME, |s| hub::parse_url(s).is_some()),
-    (github::NAME, |s| github::parse_url(s).is_some()),
-];
-
-/// The provider an install link names ([`LINKS`]), or None for anything else (search text).
+/// The provider an install link names ([`Provider::is_link`], tried in [`all`]'s order), or None
+/// for anything else (search text).
 pub fn link_source(input: &str) -> Option<&'static str> {
     let input = input.trim();
-    LINKS
-        .iter()
-        .find(|(_, is)| is(input))
-        .map(|(name, _)| *name)
+    known().iter().find(|p| p.is_link(input)).map(|p| p.name())
 }
 
 /// "CurseForge, WowUp Hub or GitHub": the sources install links can name, for messages.
 pub fn link_sources() -> String {
-    let labels: Vec<&str> = LINKS.iter().map(|(name, _)| label(name)).collect();
+    let labels: Vec<&str> = known()
+        .iter()
+        .filter(|p| p.takes_links())
+        .map(|p| p.label())
+        .collect();
     match labels.split_last() {
         Some((last, [])) => last.to_string(),
         Some((last, rest)) => format!("{} or {last}", rest.join(", ")),
@@ -96,16 +94,10 @@ pub fn link_sources() -> String {
 /// A provider's name as people read it ([`Provider::label`], "WowUpHub" → "WowUp Hub"); a name no
 /// provider has stays as it is.
 pub fn label(name: &str) -> &str {
-    static LABELS: LazyLock<Vec<(&'static str, &'static str)>> = LazyLock::new(|| {
-        all(&ProviderConfig::default())
-            .iter()
-            .map(|p| (p.name(), p.label()))
-            .collect()
-    });
-    LABELS
+    known()
         .iter()
-        .find(|(n, _)| *n == name)
-        .map_or(name, |(_, l)| l)
+        .find(|p| p.name() == name)
+        .map_or(name, |p| p.label())
 }
 
 /// Keeps the first (newest) file of each channel from a newest-first list.
@@ -146,6 +138,14 @@ pub trait Provider: Send + Sync {
     /// The name as people read it ("WowUp Hub").
     fn label(&self) -> &'static str {
         self.name()
+    }
+    /// Whether `input` (trimmed) is one of this source's addon links, installed with [`Self::from_url`].
+    fn is_link(&self, _input: &str) -> bool {
+        false
+    }
+    /// Whether the source has addon links at all (named in the "Not a … addon URL" message).
+    fn takes_links(&self) -> bool {
+        false
     }
     /// Whether the provider is usable (e.g. has an API key).
     fn available(&self) -> bool {
