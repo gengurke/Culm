@@ -94,7 +94,7 @@ impl Theme {
         let mut out = Vec::new();
         let frame = self.frame.map(|f| &f.skin);
         for s in std::iter::once(&self.skin).chain(frame) {
-            for (tex, _) in s.surfaces().iter().filter_map(|s| s.texture) {
+            for (tex, _) in s.surfaces().iter().filter_map(|(_, s)| s.texture) {
                 if !out.contains(&tex) {
                     out.push(tex);
                 }
@@ -154,6 +154,55 @@ pub struct Pal {
     pub busy: Tone,
 }
 
+impl Pal {
+    /// Every colour with its field name, status tones as their ink (the swatches screen). Exhaustive,
+    /// so a new field doesn't build until it is listed.
+    pub fn colours(&self) -> [(&'static str, Color); 19] {
+        let Pal {
+            bg,
+            panel,
+            text,
+            heading,
+            text_dim,
+            text_muted,
+            border,
+            border_strong,
+            divider,
+            hover,
+            chip,
+            track,
+            accent,
+            accent_hi,
+            accent_focus,
+            success,
+            warning,
+            danger,
+            busy,
+        } = *self;
+        [
+            ("bg", bg),
+            ("panel", panel),
+            ("text", text),
+            ("heading", heading),
+            ("text_dim", text_dim),
+            ("text_muted", text_muted),
+            ("border", border),
+            ("border_strong", border_strong),
+            ("divider", divider),
+            ("hover", hover),
+            ("chip", chip),
+            ("track", track),
+            ("accent", accent),
+            ("accent_hi", accent_hi),
+            ("accent_focus", accent_focus),
+            ("success", success.ink),
+            ("warning", warning.ink),
+            ("danger", danger.ink),
+            ("busy", busy.ink),
+        ]
+    }
+}
+
 /// A status colour: `ink` for its text and glyphs, `soft` for the ground of its badges and notices,
 /// `line` for their edge (read through `ui::Mark`).
 #[derive(Clone, Copy)]
@@ -195,6 +244,43 @@ pub struct Type {
     pub eyebrow: TextStyle,
     /// Versions, paths and ids. Keep `Family::Mono` (JetBrains Mono).
     pub mono: TextStyle,
+}
+
+impl Type {
+    /// Every role with its field name (the swatches screen, the font test). Exhaustive, so a new
+    /// role doesn't build until it is listed.
+    pub fn roles(&self) -> [(&'static str, TextStyle); 13] {
+        let Type {
+            display,
+            hero,
+            title,
+            heading,
+            body,
+            strong,
+            label,
+            note,
+            small,
+            number,
+            caption,
+            eyebrow,
+            mono,
+        } = *self;
+        [
+            ("display", display),
+            ("hero", hero),
+            ("title", title),
+            ("heading", heading),
+            ("body", body),
+            ("strong", strong),
+            ("label", label),
+            ("note", note),
+            ("small", small),
+            ("number", number),
+            ("caption", caption),
+            ("eyebrow", eyebrow),
+            ("mono", mono),
+        ]
+    }
 }
 
 /// The Moonlit ladder; other themes start from it (`Type { hero: .., ..BASE_TYPE }`).
@@ -300,8 +386,9 @@ pub struct Skin {
 }
 
 impl Skin {
-    /// Every surface, so nothing that reads them all (textures) misses a slot added later.
-    fn surfaces(&self) -> [&Surface; 24] {
+    /// Every surface with its slot name, so nothing that reads them all (textures, the swatches
+    /// screen) misses a slot added later.
+    pub fn surfaces(&self) -> [(&'static str, &Surface); 24] {
         let Skin {
             window,
             sidebar,
@@ -333,30 +420,30 @@ impl Skin {
             glyphs: _,
         } = self;
         [
-            window,
-            sidebar,
-            band,
-            toolbar,
-            panel,
-            detail,
-            menu,
-            list_header,
-            row,
-            row_selected,
-            nav,
-            nav_active,
-            primary,
-            secondary,
-            ghost,
-            danger,
-            icon_button,
-            input,
-            toggle,
-            tile,
-            segments,
-            toggle_on,
-            toast,
-            kbd,
+            ("window", window),
+            ("sidebar", sidebar),
+            ("band", band),
+            ("toolbar", toolbar),
+            ("panel", panel),
+            ("detail", detail),
+            ("menu", menu),
+            ("list_header", list_header),
+            ("row", row),
+            ("row_selected", row_selected),
+            ("nav", nav),
+            ("nav_active", nav_active),
+            ("primary", primary),
+            ("secondary", secondary),
+            ("ghost", ghost),
+            ("danger", danger),
+            ("icon_button", icon_button),
+            ("input", input),
+            ("toggle", toggle),
+            ("tile", tile),
+            ("segments", segments),
+            ("toggle_on", toggle_on),
+            ("toast", toast),
+            ("kbd", kbd),
         ]
     }
 
