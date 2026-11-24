@@ -6,6 +6,10 @@ or break. New changes go under "Unreleased"; a release turns that heading into i
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-11-24
+
+Safer installs and updates, and themes that keep their frames.
+
 ### Changed
 - Maintenance: "Back up now" and "Clear cache" run as soon as you press them, without asking to confirm (a backup
   only adds a zip, and the game rebuilds its cache). "Clean up" still asks first.
@@ -21,9 +25,6 @@ or break. New changes go under "Unreleased"; a release turns that heading into i
 - WowUp Hub addons show the addon's own version ("12.9.0") instead of the release tag ("bundle/v12.9.0+v1.1.1"),
   as WowUp does.
 
-### Security
-- Your CurseForge key is sent only to CurseForge, also when its server redirects a search or update check elsewhere
-  (downloads already worked this way).
 
 ### Fixed
 - Ignoring an addon or changing its channel right before closing Culm is no longer lost, and quick toggles are
@@ -42,6 +43,11 @@ or break. New changes go under "Unreleased"; a release turns that heading into i
 - A zip installed by hand is checked and installed from the same file, so a file replaced in between is never
   installed unchecked.
 - The Reinstall tooltip says what it does: it downloads the newest version and replaces the addon's folders.
+
+### Security
+- Your CurseForge key is sent only to CurseForge, also when its server redirects a search or update check elsewhere
+  (downloads already worked this way).
+
 
 ## [0.2.0] - 2026-11-21
 
@@ -99,7 +105,8 @@ First beta, Linux only (AppImage).
 - Updates itself: the AppImage checks for a new version at start and installs it with one click and a restart.
 - The AppImage carries update information, so Gear Lever, AppImageUpdate and AppImageLauncher can update it too.
 
-[Unreleased]: https://github.com/gengurke/Culm/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/gengurke/Culm/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/gengurke/Culm/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/gengurke/Culm/compare/v0.1.2...v0.2.0
 [0.1.2]: https://github.com/gengurke/Culm/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/gengurke/Culm/compare/v0.1.0...v0.1.1
